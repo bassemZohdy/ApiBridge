@@ -23,9 +23,14 @@ public class BridgeController {
     }
 
 <#list endpoints as endpoint>
-<#-- Derive a camelCase method name from the endpoint path -->
-<#assign methodName = endpoint.path?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")>
-<#assign methodName = methodName?uncap_first>
+<#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
+<#assign methodName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first />
+<#assign pathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign pathParams = pathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
     /**
      * Proxies ${endpoint.method?upper_case} ${endpoint.path} → ${endpoint.backendUrl}
      */
@@ -43,6 +48,9 @@ public class BridgeController {
     @RequestMapping(value = "${endpoint.path}", method = RequestMethod.${endpoint.method?upper_case})
 </#if>
     public ResponseEntity<String> ${methodName}(
+<#list pathParams as param>
+            @PathVariable String ${param},
+</#list>
             @RequestBody(required = false) String body,
             HttpServletRequest request) {
 <#if flags.enableTelemetry>
@@ -50,7 +58,8 @@ public class BridgeController {
 </#if>
         if (blockTraffic) return ResponseEntity.status(503).body("{\"error\":\"Service temporarily unavailable\"}");
         if (mockMode) return ResponseEntity.ok("{\"status\":\"mock\",\"endpoint\":\"${endpoint.path}\",\"method\":\"${endpoint.method}\"}");
-        return proxyService.forward("${endpoint.backendUrl}", "${endpoint.method}", body, request);
+        String backendUrl${endpoint?index} = "${endpoint.backendUrl}"<#list pathParams as param>.replace("{${param}}", ${param})</#list>;
+        return proxyService.forward(backendUrl${endpoint?index}, "${endpoint.method}", body, request);
     }
 
 </#list>

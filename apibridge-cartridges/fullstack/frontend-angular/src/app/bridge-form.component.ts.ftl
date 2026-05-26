@@ -26,15 +26,29 @@ export class BridgeFormComponent implements AfterViewInit {
   }
 
   private callEndpoint(index: number, body: unknown): void {
+    const payload = (body ?? {}) as Record<string, unknown>;
     switch (index) {
 <#list endpoints as endpoint>
-<#assign methodName = endpoint.path?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first>
-      case ${endpoint?index}:
-        this.bridgeApiService.${methodName}(body<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
+<#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
+<#assign methodName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first />
+<#assign epPathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
+      case ${endpoint?index}: {
+<#if epPathParams?has_content>
+        const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = payload;
+        this.bridgeApiService.${methodName}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if (flags.securityLevel!"") == "bearer-token">, String(payload['token'] ?? '')<#elseif (flags.securityLevel!"") == "apiKey">, String(payload['key'] ?? '')</#if>).subscribe({
+<#else>
+        this.bridgeApiService.${methodName}(payload<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
+</#if>
           next: (response) => console.log('Response:', response),
           error: (err) => console.error('Error:', err)
         });
         break;
+      }
 </#list>
       default:
         break;
@@ -48,7 +62,24 @@ export class BridgeFormComponent {
 
   fieldSets: FormlyFieldConfig[][] = [
 <#list endpoints as endpoint>
+<#assign epPathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
     [
+<#list epPathParams as param>
+      {
+        key: '${param}',
+        type: 'input',
+        props: {
+          label: '${param?capitalize}',
+          required: true,
+          placeholder: 'Enter ${param}'
+        }
+      },
+</#list>
 <#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>
       {
@@ -76,15 +107,29 @@ export class BridgeFormComponent {
   }
 
   private callEndpoint(index: number, body: unknown): void {
+    const payload = (body ?? {}) as Record<string, unknown>;
     switch (index) {
 <#list endpoints as endpoint>
-<#assign methodName = endpoint.path?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first>
-      case ${endpoint?index}:
-        this.bridgeApiService.${methodName}(body<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
+<#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
+<#assign methodName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first />
+<#assign epPathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
+      case ${endpoint?index}: {
+<#if epPathParams?has_content>
+        const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = payload;
+        this.bridgeApiService.${methodName}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
+<#else>
+        this.bridgeApiService.${methodName}(payload<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
+</#if>
           next: (response) => console.log('Response:', response),
           error: (err) => console.error('Error:', err)
         });
         break;
+      }
 </#list>
       default:
         break;

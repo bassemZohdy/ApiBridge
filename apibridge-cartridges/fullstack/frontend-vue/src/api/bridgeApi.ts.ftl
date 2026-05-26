@@ -1,12 +1,17 @@
 <#-- Helper: convert a URL path segment to a camelCase function name.
      e.g. /login -> login, /user-profile -> userProfile, /api/v1/create-user -> createUser -->
 <#function pathToMethod path>
-  <#-- Strip leading slash and take only the last segment if nested -->
   <#local clean = path?remove_beginning("/") />
-  <#-- Use the last path segment for the method name -->
   <#local parts = clean?split("/") />
-  <#local segment = parts[parts?size - 1] />
-  <#-- Convert kebab-case to camelCase -->
+  <#local segment = "" />
+  <#list parts as p>
+    <#if !p?contains("{") && p?has_content>
+      <#local segment = p />
+    </#if>
+  </#list>
+  <#if !segment?has_content>
+    <#local segment = parts[0]?replace("[{][^}]*[}]", "", "r") />
+  </#if>
   <#local words = segment?split("-") />
   <#local result = words[0] />
   <#list words as word>
@@ -25,7 +30,13 @@
 <#if endpoints?has_content>
 <#list endpoints as endpoint>
 <#assign methodName = pathToMethod(endpoint.path) />
-export async function ${methodName}(body?: unknown<#if (flags.securityLevel!"") == "bearer-token">, token?: string<#elseif (flags.securityLevel!"") == "apiKey">, apiKey?: string</#if>): Promise<unknown> {
+<#assign pathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign pathParams = pathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
+export async function ${methodName}(<#list pathParams as param>${param}: string, </#list>body?: unknown<#if (flags.securityLevel!"") == "bearer-token">, token?: string<#elseif (flags.securityLevel!"") == "apiKey">, apiKey?: string</#if>): Promise<unknown> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 <#if (flags.securityLevel!"") == "bearer-token">
   if (token) {
@@ -36,7 +47,8 @@ export async function ${methodName}(body?: unknown<#if (flags.securityLevel!"") 
     headers['X-API-Key'] = apiKey;
   }
 </#if>
-  const res = await fetch('${basePath}${endpoint.path}', {
+  const url = '${basePath}${endpoint.path}'<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
+  const res = await fetch(url, {
     method: '${endpoint.method}',
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined

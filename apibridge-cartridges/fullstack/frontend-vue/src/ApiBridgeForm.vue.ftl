@@ -1,7 +1,15 @@
 <#function pathToMethod path>
   <#local clean = path?remove_beginning("/") />
   <#local parts = clean?split("/") />
-  <#local segment = parts[parts?size - 1] />
+  <#local segment = "" />
+  <#list parts as p>
+    <#if !p?contains("{") && p?has_content>
+      <#local segment = p />
+    </#if>
+  </#list>
+  <#if !segment?has_content>
+    <#local segment = parts[0]?replace("[{][^}]*[}]", "", "r") />
+  </#if>
   <#local words = segment?split("-") />
   <#local result = words[0] />
   <#list words as word>
@@ -28,17 +36,27 @@ onMounted(() => {
   if (el) {
     el.addEventListener('bridgeSubmit', async (event: Event) => {
       const customEvent = event as CustomEvent;
+      const detail = (customEvent.detail ?? {}) as Record<string, unknown>;
       try {
         switch (activeTab.value) {
 <#list endpoints as endpoint>
-          case ${endpoint?index}:
-<#if securityLevel == "bearer-token">
-            await ${pathToMethod(endpoint.path)}(customEvent.detail, customEvent.detail?.token as string | undefined);
+<#assign epPathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
+          case ${endpoint?index}: {
+<#if epPathParams?has_content>
+            const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = detail;
+            await ${pathToMethod(endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, detail.token as string | undefined</#if>);
 <#else>
-            await ${pathToMethod(endpoint.path)}(customEvent.detail);
+            await ${pathToMethod(endpoint.path)}(detail<#if securityLevel == "bearer-token">, detail.token as string | undefined</#if>);
 </#if>
             break;
+          }
 </#list>
+          default: break;
         }
       } catch (err) {
         console.error('ApiBridge submit error:', err);
@@ -77,7 +95,16 @@ const errors = ref<Record<string, string>>({});
 const successMessage = ref('');
 
 <#list endpoints as endpoint>
+<#assign epPathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
 const formData${endpoint?index} = reactive({
+<#list epPathParams as param>
+  ${param}: '',
+</#list>
 <#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>
   ${field.name}: <#if field.type == "number">0<#elseif field.type == "boolean">false<#else>''</#if>,
@@ -93,13 +120,21 @@ async function onSubmit(endpointIndex: number): Promise<void> {
   try {
     switch (endpointIndex) {
 <#list endpoints as endpoint>
-      case ${endpoint?index}:
-<#if securityLevel == "bearer-token">
-        await ${pathToMethod(endpoint.path)}(formData${endpoint?index}, (formData${endpoint?index} as Record<string, unknown>).token as string | undefined);
+<#assign epPathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
+      case ${endpoint?index}: {
+<#if epPathParams?has_content>
+        const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = formData${endpoint?index} as Record<string, unknown>;
+        await ${pathToMethod(endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, (formData${endpoint?index} as Record<string, unknown>).token as string | undefined</#if>);
 <#else>
-        await ${pathToMethod(endpoint.path)}(formData${endpoint?index});
+        await ${pathToMethod(endpoint.path)}(formData${endpoint?index}<#if securityLevel == "bearer-token">, (formData${endpoint?index} as Record<string, unknown>).token as string | undefined</#if>);
 </#if>
         break;
+      }
 </#list>
     }
     successMessage.value = 'Submitted successfully.';
@@ -126,7 +161,24 @@ async function onSubmit(endpointIndex: number): Promise<void> {
 </#if>
 
 <#list endpoints as endpoint>
+<#assign epPathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
     <form v-if="activeTab === ${endpoint?index}" @submit.prevent="onSubmit(${endpoint?index})">
+<#list epPathParams as param>
+      <div class="field">
+        <label for="path${endpoint?index}-${param}">${param}</label>
+        <input
+          id="path${endpoint?index}-${param}"
+          type="text"
+          v-model="formData${endpoint?index}.${param}"
+          required
+        />
+      </div>
+</#list>
 <#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>
       <div class="field">

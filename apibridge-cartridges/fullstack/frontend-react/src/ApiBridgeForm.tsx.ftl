@@ -3,8 +3,8 @@
   <#local parts = clean?split("[/\\-]", "r") />
   <#local result = "" />
   <#list parts as part>
-    <#if part?has_content>
-      <#if part_index == 0>
+    <#if part?has_content && !part?contains("{")>
+      <#if result == "">
         <#local result = part />
       <#else>
         <#local result = result + part?capitalize />
@@ -43,24 +43,36 @@ const ENDPOINT_LABELS = [<#list endpoints as ep>'${ep.path}'<#sep>, </#list>];
 <#if uiPattern == "form-engine">
 const ENDPOINT_SCHEMAS: RJSFSchema[] = [
 <#list endpoints as endpoint>
+<#assign epPathParams = [] />
+<#list endpoint.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
   {
     title: '${endpoint.path}',
     type: 'object',
-<#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
     properties: {
+<#list epPathParams as param>
+      ${param}: { type: 'string' },
+</#list>
+<#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>
       ${field.name}: { type: '${field.type}' },
 </#list>
+</#if>
     },
 <#assign reqFields = [] />
+<#list epPathParams as param>
+<#assign reqFields = reqFields + [param] />
+</#list>
+<#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>
 <#if field.required><#assign reqFields = reqFields + [field.name] /></#if>
 </#list>
+</#if>
 <#if reqFields?has_content>
     required: [<#list reqFields as rf>'${rf}'<#if rf?has_next>, </#if></#list>],
-</#if>
-<#else>
-    properties: {},
 </#if>
   }<#if endpoint?has_next>,</#if>
 </#list>
@@ -85,10 +97,29 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
     if (!el) return;
     const handleBridgeSubmit = async (event: Event) => {
       const customEvent = event as CustomEvent<Record<string, unknown>>;
+      const detail = customEvent.detail ?? {};
       try {
-        const handlers = [<#list endpoints as ep>${pathToMethod(ep.path)}<#sep>, </#list>];
-        const result = await handlers[activeTab](customEvent.detail<#if securityLevel == "bearer-token">, token</#if>);
-        if (onSuccess) onSuccess(result);
+        switch (activeTab) {
+<#list endpoints as ep>
+<#assign epPathParams = [] />
+<#list ep.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
+          case ${ep?index}: {
+<#if epPathParams?has_content>
+            const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${ep?index} } = detail;
+            const result${ep?index} = await ${pathToMethod(ep.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${ep?index}<#if securityLevel == "bearer-token">, token</#if>);
+<#else>
+            const result${ep?index} = await ${pathToMethod(ep.path)}(detail<#if securityLevel == "bearer-token">, token</#if>);
+</#if>
+            if (onSuccess) onSuccess(result${ep?index});
+            break;
+          }
+</#list>
+          default: break;
+        }
       } catch (err) {
         console.error('ApiBridge submit error:', err);
         if (onError) onError(err);
@@ -118,10 +149,29 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
   const [activeTab, setActiveTab] = useState(0);
 
   const handleSubmit = async ({ formData }: { formData?: Record<string, unknown> }) => {
+    const data = formData ?? {};
     try {
-      const handlers = [<#list endpoints as ep>${pathToMethod(ep.path)}<#sep>, </#list>];
-      const result = await handlers[activeTab](formData<#if securityLevel == "bearer-token">, token</#if>);
-      if (onSuccess) onSuccess(result);
+      switch (activeTab) {
+<#list endpoints as ep>
+<#assign epPathParams = [] />
+<#list ep.path?split("{") as seg>
+  <#if seg?contains("}")>
+    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
+  </#if>
+</#list>
+        case ${ep?index}: {
+<#if epPathParams?has_content>
+          const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${ep?index} } = data;
+          const result${ep?index} = await ${pathToMethod(ep.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${ep?index}<#if securityLevel == "bearer-token">, token</#if>);
+<#else>
+          const result${ep?index} = await ${pathToMethod(ep.path)}(data<#if securityLevel == "bearer-token">, token</#if>);
+</#if>
+          if (onSuccess) onSuccess(result${ep?index});
+          break;
+        }
+</#list>
+        default: break;
+      }
     } catch (err) {
       console.error('ApiBridge submit error:', err);
       if (onError) onError(err);

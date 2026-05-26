@@ -34,10 +34,17 @@ public class BridgeResource {
     HttpHeaders headers;
 
     <#list endpoints as endpoint>
-    <#assign methodName = endpoint.path?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first>
+    <#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
+    <#assign methodName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first />
+    <#assign pathParams = [] />
+    <#list endpoint.path?split("{") as seg>
+      <#if seg?contains("}")>
+        <#assign pathParams = pathParams + [seg?split("}")?first] />
+      </#if>
+    </#list>
     @${endpoint.method?upper_case}
     @Path("${endpoint.path}")
-    public Response ${methodName}(String body) {
+    public Response ${methodName}(<#list pathParams as param>@PathParam("${param}") String ${param}, </#list>String body) {
         if (blockTraffic) {
             return Response.status(503)
                     .entity("{\"error\":\"Service temporarily unavailable\"}")
@@ -48,7 +55,8 @@ public class BridgeResource {
                     "{\"status\":\"mock\",\"endpoint\":\"${endpoint.path}\",\"method\":\"${endpoint.method?upper_case}\"}"
             ).build();
         }
-        return proxyService.forward("${endpoint.backendUrl}", "${endpoint.method?upper_case}", body, headers);
+        String backendUrl${endpoint?index} = "${endpoint.backendUrl}"<#list pathParams as param>.replace("{${param}}", ${param})</#list>;
+        return proxyService.forward(backendUrl${endpoint?index}, "${endpoint.method?upper_case}", body, headers);
     }
     </#list>
 }
