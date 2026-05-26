@@ -69,21 +69,21 @@ public class YamlParser {
             throw new IllegalArgumentException("Schema validation error: Configuration must define at least one endpoint under 'endpoints'.");
         }
 
-        if (model.getFlags() != null && model.getFlags().getBackendFlavor() != null) {
+        if (model.getFlags() != null) {
             String flavor = model.getFlags().getBackendFlavor().toLowerCase();
             if (!flavor.equals("spring-boot") && !flavor.equals("quarkus")) {
                 throw new IllegalArgumentException("Schema validation error: Invalid flags.backendFlavor value '" + flavor + "'. Must be 'spring-boot' or 'quarkus'.");
             }
         }
 
-        if (model.getFlags() != null && model.getFlags().getUiPattern() != null) {
+        if (model.getFlags() != null) {
             String pattern = model.getFlags().getUiPattern().toLowerCase();
             if (!pattern.equals("web-component") && !pattern.equals("form-engine")) {
                 throw new IllegalArgumentException("Schema validation error: Invalid flags.uiPattern value '" + pattern + "'. Must be 'web-component' or 'form-engine'.");
             }
         }
 
-        if (model.getFlags() != null && model.getFlags().getFeFlavor() != null) {
+        if (model.getFlags() != null) {
             String flavor = model.getFlags().getFeFlavor().toLowerCase();
             if (!flavor.equals("angular") && !flavor.equals("react") && !flavor.equals("vue")) {
                 throw new IllegalArgumentException("Schema validation error: Invalid flags.feFlavor value '" + flavor + "'. Must be 'angular', 'react', or 'vue'.");

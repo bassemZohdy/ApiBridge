@@ -51,7 +51,25 @@ public class YamlParserTest {
         assertThrows(IOException.class, () -> parser.parse(file));
     }
 
+    @Test
+    public void testNullYamlDocumentThrows(@TempDir Path tempDir) throws IOException {
+        // YAML '~' is the null literal — Jackson parses successfully but returns null model
+        File file = writeYaml(tempDir, "null.yaml", "~\n");
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+    }
+
     // --- Required top-level field validation ---
+
+    @Test
+    public void testMissingEndpointsKeyThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("endpoints"));
+    }
 
     @Test
     public void testMissingIdThrows(@TempDir Path tempDir) throws IOException {
@@ -458,6 +476,24 @@ public class YamlParserTest {
     }
 
     @Test
+    public void testBlankTelemetryNameThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableTelemetry: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    telemetryName: "   "
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("telemetryName"));
+    }
+
+    @Test
     public void testTelemetryEnabledRequiresTelemetryName(@TempDir Path tempDir) throws IOException {
         File file = writeYaml(tempDir, "schema.yaml", """
                 id: "test"
@@ -492,6 +528,63 @@ public class YamlParserTest {
     }
 
     // --- UiLayout validation ---
+
+    @Test
+    public void testBlankUiLayoutComponentThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    uiLayout:
+                      component: "   "
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("component"));
+    }
+
+    @Test
+    public void testBlankUiLayoutFieldNameThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    uiLayout:
+                      component: "Form"
+                      fields:
+                        - name: "   "
+                          type: "string"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("name"));
+    }
+
+    @Test
+    public void testBlankUiLayoutFieldTypeThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    uiLayout:
+                      component: "Form"
+                      fields:
+                        - name: "email"
+                          type: "   "
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("type"));
+    }
 
     @Test
     public void testUiLayoutRequiresComponent(@TempDir Path tempDir) throws IOException {

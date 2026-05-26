@@ -150,14 +150,14 @@ public class ApiBridgeCartridgeEngine {
     }
 
     private String resolvedBeFlavor(BridgeSchemaModel model) {
-        if (model.getFlags() != null && model.getFlags().getBackendFlavor() != null) {
+        if (model.getFlags() != null) {
             return model.getFlags().getBackendFlavor().toLowerCase();
         }
         return "spring-boot";
     }
 
     private String resolvedFeFlavor(BridgeSchemaModel model) {
-        if (model.getFlags() != null && model.getFlags().getFeFlavor() != null) {
+        if (model.getFlags() != null) {
             return model.getFlags().getFeFlavor().toLowerCase();
         }
         return "react";

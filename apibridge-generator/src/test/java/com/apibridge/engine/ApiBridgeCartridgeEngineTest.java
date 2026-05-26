@@ -292,6 +292,25 @@ public class ApiBridgeCartridgeEngineTest {
         assertTrue(new File(output, "backend/pom.xml").exists());
     }
 
+    @Test
+    public void testNonFtlFilesIgnored(@TempDir Path tempDir) throws Exception {
+        File cartridge = tempDir.resolve("cartridge").toFile();
+        writeFtl(cartridge, "output.txt", "generated");
+        // Place a non-.ftl file directly (no .ftl suffix — must be written manually)
+        File readme = new File(cartridge, "README.md");
+        readme.getParentFile().mkdirs();
+        try (FileWriter fw = new FileWriter(readme)) {
+            fw.write("not a template");
+        }
+
+        BridgeSchemaModel model = createTestModel();
+        File output = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridge, output);
+
+        assertTrue(new File(output, "output.txt").exists());
+        assertFalse(new File(output, "README.md").exists());
+    }
+
     // --- Input guard tests ---
 
     @Test
