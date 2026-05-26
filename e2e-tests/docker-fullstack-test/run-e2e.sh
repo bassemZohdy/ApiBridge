@@ -58,10 +58,14 @@ echo "=================================================="
 echo "Running E2E: Fullstack Docker (BE=$BE_FLAVOR FE=$FE_FLAVOR)"
 echo "=================================================="
 
-# 1. Build the generator engine
+# 1. Build the generator engine (skip when already built by CI)
 echo ""
-echo "[1/8] Building ApiBridge Generator Engine..."
-(cd ../.. && mvn package -q -DskipTests)
+if [ "${SKIP_GENERATOR_BUILD:-false}" = "true" ]; then
+  echo "[1/8] Skipping generator build (SKIP_GENERATOR_BUILD=true)"
+else
+  echo "[1/8] Building ApiBridge Generator Engine..."
+  (cd ../.. && mvn package -q -DskipTests)
+fi
 
 # 2. Generate without deployTarget — Dockerfile always present, no deployment configs
 echo ""

@@ -12,9 +12,13 @@ echo "=================================================="
 echo "🧹 Cleaning previous artifacts..."
 rm -rf generated src/main/java/com/apibridge/generated src/main/java/CustomerOnboardingBridgeResource.java
 
-# 2. Build the generator engine fat jar from parent root (if not already done)
-echo "📦 Building ApiBridge Generator Engine..."
-(cd ../.. && mvn package)
+# 2. Build the generator engine fat jar (skip when already built by CI)
+if [ "${SKIP_GENERATOR_BUILD:-false}" = "true" ]; then
+  echo "⏩ Skipping generator build (SKIP_GENERATOR_BUILD=true)"
+else
+  echo "📦 Building ApiBridge Generator Engine..."
+  (cd ../.. && mvn package -q -DskipTests)
+fi
 
 # 3. Execute the generator using backend-quarkus cartridge
 echo "⚡ Executing ApiBridge Generator CLI with Quarkus cartridge..."

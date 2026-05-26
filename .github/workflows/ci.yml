@@ -10,10 +10,20 @@ on:
     branches:
       - main
 
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
 jobs:
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 1: Compile, unit tests, Checkstyle, publish JUnit results
+  # ─────────────────────────────────────────────────────────────────
   build:
-    name: Build & Test
+    name: Build & Unit Tests
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -27,10 +37,31 @@ jobs:
       - name: Build and verify (unit tests + Checkstyle)
         run: mvn verify -B
 
-  e2e:
-    name: E2E Tests
+      - name: Publish unit test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Unit Test Results
+          path: apibridge-generator/target/surefire-reports/TEST-*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload surefire XML reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: apibridge-generator/target/surefire-reports/
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 2: Fast E2E — compile verification for all cartridges
+  # ─────────────────────────────────────────────────────────────────
+  e2e-compile:
+    name: E2E — Compile Checks
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +78,141 @@ jobs:
           node-version: '20'
 
       - name: Build fat JAR
-        run: mvn clean package -pl apibridge-generator -DskipTests -B
+        run: mvn clean package -pl apibridge-generator -DskipTests -B -q
 
-      - name: Run E2E tests
-        run: ./e2e-tests/run-all-e2e.sh
+      - name: '[1/6] Spring Boot — generate + Maven compile'
+        id: spring_boot
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/maven-spring-boot-test/run-e2e.sh
+
+      - name: '[2/6] Quarkus — generate + Maven compile'
+        id: quarkus
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/maven-quarkus-test/run-e2e.sh
+
+      - name: '[3/6] Angular — generate + strict TypeScript compile'
+        id: angular
+        continue-on-error: true
+        run: ./e2e-tests/typescript-angular-test/run-e2e.sh
+
+      - name: '[4/6] React — generate + strict TypeScript compile'
+        id: react
+        continue-on-error: true
+        run: ./e2e-tests/typescript-react-test/run-e2e.sh
+
+      - name: '[5/6] Vue — generate + strict TypeScript compile'
+        id: vue
+        continue-on-error: true
+        run: ./e2e-tests/typescript-vue-test/run-e2e.sh
+
+      - name: '[6/6] Backend-frontend contract symmetry'
+        id: contract
+        continue-on-error: true
+        run: ./e2e-tests/verify-contract-symmetry.sh
+
+      - name: Write E2E compile summary
+        if: always()
+        env:
+          R_SPRING:   ${{ steps.spring_boot.outcome }}
+          R_QUARKUS:  ${{ steps.quarkus.outcome }}
+          R_ANGULAR:  ${{ steps.angular.outcome }}
+          R_REACT:    ${{ steps.react.outcome }}
+          R_VUE:      ${{ steps.vue.outcome }}
+          R_CONTRACT: ${{ steps.contract.outcome }}
+        run: |
+          icon() { [ "$1" = "success" ] && echo "✅" || echo "❌"; }
+          {
+            echo "## E2E Compile Results"
+            echo ""
+            echo "| # | Suite | Result |"
+            echo "|---|-------|--------|"
+            echo "| 1 | Spring Boot (generate + Maven compile) | $(icon "$R_SPRING") \`$R_SPRING\` |"
+            echo "| 2 | Quarkus (generate + Maven compile) | $(icon "$R_QUARKUS") \`$R_QUARKUS\` |"
+            echo "| 3 | Angular (generate + strict tsc) | $(icon "$R_ANGULAR") \`$R_ANGULAR\` |"
+            echo "| 4 | React (generate + strict tsc) | $(icon "$R_REACT") \`$R_REACT\` |"
+            echo "| 5 | Vue (generate + strict tsc) | $(icon "$R_VUE") \`$R_VUE\` |"
+            echo "| 6 | Backend-frontend contract symmetry | $(icon "$R_CONTRACT") \`$R_CONTRACT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if any compile check failed
+        if: >-
+          always() && (
+            steps.spring_boot.outcome == 'failure' ||
+            steps.quarkus.outcome   == 'failure' ||
+            steps.angular.outcome   == 'failure' ||
+            steps.react.outcome     == 'failure' ||
+            steps.vue.outcome       == 'failure' ||
+            steps.contract.outcome  == 'failure'
+          )
+        run: |
+          echo "One or more E2E compile checks failed — see summary above."
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 3: Slow E2E — fullstack Docker generate + build + runtime
+  # ─────────────────────────────────────────────────────────────────
+  e2e-docker:
+    name: E2E — Fullstack Docker
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build fat JAR
+        run: mvn clean package -pl apibridge-generator -DskipTests -B -q
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: '[1/1] Fullstack Docker — generate + build + container runtime'
+        id: fullstack_docker
+        continue-on-error: true
+        timeout-minutes: 20
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/docker-fullstack-test/run-e2e.sh
+
+      - name: Write Docker E2E summary
+        if: always()
+        env:
+          R_DOCKER: ${{ steps.fullstack_docker.outcome }}
+        run: |
+          icon() { [ "$1" = "success" ] && echo "✅" || echo "❌"; }
+          {
+            echo "## Fullstack Docker E2E Results"
+            echo ""
+            echo "| Suite | Result |"
+            echo "|-------|--------|"
+            echo "| Fullstack Docker (generate + build + MOCK_MODE + BLOCK_TRAFFIC) | $(icon "$R_DOCKER") \`$R_DOCKER\` |"
+            echo ""
+            echo "### Stages run"
+            echo "1. Generate without \`deployTarget\` — Dockerfile only, no deployment configs"
+            echo "2. Generate with \`--deploy-target=docker-compose\` — verify conditional outputs"
+            echo "3. Verify backend/frontend file structure"
+            echo "4. Docker image build"
+            echo "5. Container runtime — \`MOCK_MODE=true\`: health probe + endpoint response"
+            echo "6. Container runtime — \`BLOCK_TRAFFIC=true\`: assert HTTP 503"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if Docker E2E failed
+        if: always() && steps.fullstack_docker.outcome == 'failure'
+        run: |
+          echo "Fullstack Docker E2E failed — see summary above."
+          exit 1
