@@ -42,7 +42,7 @@ export class BridgeFormComponent implements OnInit {
       <#list endpoint.uiLayout.fields as field>
       {
         key: '${field.name}',
-        type: '${(field.type == "string")?then("input", "checkbox")}',
+        type: '${(field.type == "boolean")?then("checkbox", "input")}',
         templateOptions: {
           label: '${field.name?capitalize}',
           required: ${field.required?c},

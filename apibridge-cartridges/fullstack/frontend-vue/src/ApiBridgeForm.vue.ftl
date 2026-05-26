@@ -1,4 +1,3 @@
-<#-- Derive the first endpoint's API method name for imports -->
 <#function pathToMethod path>
   <#local clean = path?remove_beginning("/") />
   <#local parts = clean?split("/") />
@@ -12,21 +11,16 @@
   </#list>
   <#return result />
 </#function>
-<#assign uiPattern = flags.uiPattern!"form-engine" />
-<#assign securityLevel = flags.securityLevel!"" />
-<#assign hasEndpoints = endpoints?has_content />
-<#assign hasFirstLayout = hasEndpoints && endpoints[0].uiLayout?? />
-<#assign hasFields = hasFirstLayout && endpoints[0].uiLayout.fields?has_content />
-<#if hasEndpoints>
-<#assign firstMethodName = pathToMethod(endpoints[0].path) />
-</#if>
+<#assign uiPattern = (flags.uiPattern)!"form-engine" />
+<#assign securityLevel = (flags.securityLevel)!"" />
 <#if uiPattern == "web-component">
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-<#if hasEndpoints>
-import { ${firstMethodName} } from './api/bridgeApi';
-</#if>
+<#list endpoints as endpoint>
+import { ${pathToMethod(endpoint.path)} } from './api/bridgeApi';
+</#list>
 
+const activeTab = ref(0);
 const bridgeFormRef = ref<HTMLElement | null>(null);
 
 onMounted(() => {
@@ -35,17 +29,17 @@ onMounted(() => {
     el.addEventListener('bridgeSubmit', async (event: Event) => {
       const customEvent = event as CustomEvent;
       try {
-<#if hasEndpoints>
+        switch (activeTab.value) {
+<#list endpoints as endpoint>
+          case ${endpoint?index}:
 <#if securityLevel == "bearer-token">
-        const token = customEvent.detail?.token as string | undefined;
-        await ${firstMethodName}(customEvent.detail, token);
-<#elseif securityLevel == "apiKey">
-        const apiKey = customEvent.detail?.apiKey as string | undefined;
-        await ${firstMethodName}(customEvent.detail, apiKey);
+            await ${pathToMethod(endpoint.path)}(customEvent.detail, customEvent.detail?.token as string | undefined);
 <#else>
-        await ${firstMethodName}(customEvent.detail);
+            await ${pathToMethod(endpoint.path)}(customEvent.detail);
 </#if>
-</#if>
+            break;
+</#list>
+        }
       } catch (err) {
         console.error('ApiBridge submit error:', err);
       }
@@ -55,47 +49,62 @@ onMounted(() => {
 </script>
 
 <template>
-  <api-bridge-form ref="bridgeFormRef"></api-bridge-form>
+  <div class="api-bridge-form">
+<#if endpoints?size gt 1>
+    <div class="endpoint-tabs">
+<#list endpoints as ep>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === ${ep?index} }"
+        @click="activeTab = ${ep?index}"
+      >${ep.path}</button>
+</#list>
+    </div>
+</#if>
+    <api-bridge-form ref="bridgeFormRef"></api-bridge-form>
+  </div>
 </template>
 <#else>
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
-<#if hasEndpoints>
-import { ${firstMethodName} } from './api/bridgeApi';
-</#if>
+<#list endpoints as endpoint>
+import { ${pathToMethod(endpoint.path)} } from './api/bridgeApi';
+</#list>
 
-const formData = reactive({
-<#if hasFields>
-<#list endpoints[0].uiLayout.fields as field>
-  ${field.name}: <#if field.type == "number">0<#elseif field.type == "boolean">false<#else>''</#if><#sep>,</#sep>
+const activeTab = ref(0);
+const loading = ref(false);
+const errors = ref<Record<string, string>>({});
+const successMessage = ref('');
+
+<#list endpoints as endpoint>
+const formData${endpoint?index} = reactive({
+<#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
+<#list endpoint.uiLayout.fields as field>
+  ${field.name}: <#if field.type == "number">0<#elseif field.type == "boolean">false<#else>''</#if>,
 </#list>
 </#if>
 });
+</#list>
 
-const errors = ref<Record<string, string>>({});
-const loading = ref(false);
-const successMessage = ref('');
-
-async function onSubmit() {
+async function onSubmit(endpointIndex: number): Promise<void> {
   errors.value = {};
   successMessage.value = '';
   loading.value = true;
   try {
-<#if hasEndpoints>
+    switch (endpointIndex) {
+<#list endpoints as endpoint>
+      case ${endpoint?index}:
 <#if securityLevel == "bearer-token">
-    const token = (formData as Record<string, unknown>)['token'] as string | undefined;
-    await ${firstMethodName}(formData, token);
-<#elseif securityLevel == "apiKey">
-    const apiKey = (formData as Record<string, unknown>)['apiKey'] as string | undefined;
-    await ${firstMethodName}(formData, apiKey);
+        await ${pathToMethod(endpoint.path)}(formData${endpoint?index}, (formData${endpoint?index} as Record<string, unknown>).token as string | undefined);
 <#else>
-    await ${firstMethodName}(formData);
+        await ${pathToMethod(endpoint.path)}(formData${endpoint?index});
 </#if>
-</#if>
+        break;
+</#list>
+    }
     successMessage.value = 'Submitted successfully.';
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
-    errors.value['_global'] = message;
+    errors.value['_global'] = err instanceof Error ? err.message : 'An unexpected error occurred.';
   } finally {
     loading.value = false;
   }
@@ -104,34 +113,47 @@ async function onSubmit() {
 
 <template>
   <div class="api-bridge-form">
-    <form @submit.prevent="onSubmit">
-<#if hasFields>
-<#list endpoints[0].uiLayout.fields as field>
+<#if endpoints?size gt 1>
+    <div class="endpoint-tabs">
+<#list endpoints as ep>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === ${ep?index} }"
+        @click="activeTab = ${ep?index}"
+      >${ep.path}</button>
+</#list>
+    </div>
+</#if>
+
+<#list endpoints as endpoint>
+    <form v-if="activeTab === ${endpoint?index}" @submit.prevent="onSubmit(${endpoint?index})">
+<#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
+<#list endpoint.uiLayout.fields as field>
       <div class="field">
-        <label for="field-${field.name}">${field.name}</label>
+        <label for="field${endpoint?index}-${field.name}">${field.name}</label>
 <#if field.type == "boolean">
         <input
-          id="field-${field.name}"
+          id="field${endpoint?index}-${field.name}"
           type="checkbox"
-          v-model="formData.${field.name}"
+          v-model="formData${endpoint?index}.${field.name}"
 <#if field.required>
           required
 </#if>
         />
 <#elseif field.type == "number">
         <input
-          id="field-${field.name}"
+          id="field${endpoint?index}-${field.name}"
           type="number"
-          v-model.number="formData.${field.name}"
+          v-model.number="formData${endpoint?index}.${field.name}"
 <#if field.required>
           required
 </#if>
         />
 <#else>
         <input
-          id="field-${field.name}"
+          id="field${endpoint?index}-${field.name}"
           type="text"
-          v-model="formData.${field.name}"
+          v-model="formData${endpoint?index}.${field.name}"
 <#if field.required>
           required
 </#if>
@@ -154,6 +176,7 @@ async function onSubmit() {
         <span v-else>Submit</span>
       </button>
     </form>
+</#list>
   </div>
 </template>
 
@@ -163,6 +186,29 @@ async function onSubmit() {
   margin: 0 auto;
   padding: 1.5rem;
   font-family: sans-serif;
+}
+
+.endpoint-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.tab-btn {
+  padding: 0.4rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px 4px 0 0;
+  background: #f5f5f5;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.tab-btn.active {
+  background: #4a90e2;
+  color: #fff;
+  border-color: #4a90e2;
 }
 
 .field {

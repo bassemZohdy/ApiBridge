@@ -14,62 +14,81 @@ export class BridgeFormComponent implements AfterViewInit {
 
   @ViewChild('bridgeFormRef') bridgeFormRef!: ElementRef;
 
+  activeTabIndex = 0;
+
   constructor(private bridgeApiService: BridgeApiService) {}
 
-  ngAfterViewInit(): void {
-    // Custom element is ready after view init
+  ngAfterViewInit(): void {}
+
+  onBridgeSubmit(event: Event): void {
+    const detail = (event as CustomEvent).detail ?? {};
+    this.callEndpoint(this.activeTabIndex, detail);
   }
 
-  onSubmit(event: Event): void {
-    const detail = (event as CustomEvent).detail ?? {};
+  private callEndpoint(index: number, body: unknown): void {
+    switch (index) {
 <#list endpoints as endpoint>
-<#if endpoint?is_first>
 <#assign methodName = endpoint.path?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first>
-    this.bridgeApiService.${methodName}(detail<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
-      next: (response) => console.log('Response:', response),
-      error: (err) => console.error('Error:', err)
-    });
-</#if>
+      case ${endpoint?index}:
+        this.bridgeApiService.${methodName}(body<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
+          next: (response) => console.log('Response:', response),
+          error: (err) => console.error('Error:', err)
+        });
+        break;
 </#list>
+      default:
+        break;
+    }
   }
 }
 <#else>
 export class BridgeFormComponent {
 
-  form = new FormGroup({});
-  model: Record<string, unknown> = {};
-  fields: FormlyFieldConfig[] = [
+  activeTabIndex = 0;
+
+  fieldSets: FormlyFieldConfig[][] = [
 <#list endpoints as endpoint>
-<#if endpoint?is_first>
-<#if endpoint.uiLayout??>
+    [
+<#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>
-    {
-      key: '${field.name}',
-      type: '${(field.type == "string")?then("input", "checkbox")}',
-      props: {
-        label: '${field.name?capitalize}',
-        required: ${field.required?c},
-        placeholder: 'Enter ${field.name}'
-      }
-    }<#if field_has_next>,</#if>
+      {
+        key: '${field.name}',
+        type: '${(field.type == "boolean")?then("checkbox", "input")}',
+        props: {
+          label: '${field.name?capitalize}',
+          required: ${field.required?c},
+          placeholder: 'Enter ${field.name}'
+        }
+      }<#if field_has_next>,</#if>
 </#list>
 </#if>
-</#if>
+    ]<#if endpoint?has_next>,</#if>
 </#list>
   ];
+
+  models: Record<string, unknown>[] = [<#list endpoints as ep>{}<#sep>, </#list>];
+  forms: FormGroup[] = [<#list endpoints as ep>new FormGroup({})<#sep>, </#list>];
 
   constructor(private bridgeApiService: BridgeApiService) {}
 
   onSubmit(): void {
+    this.callEndpoint(this.activeTabIndex, this.models[this.activeTabIndex]);
+  }
+
+  private callEndpoint(index: number, body: unknown): void {
+    switch (index) {
 <#list endpoints as endpoint>
-<#if endpoint?is_first>
 <#assign methodName = endpoint.path?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first>
-    this.bridgeApiService.${methodName}(this.model<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
-      next: (response) => console.log('Response:', response),
-      error: (err) => console.error('Error:', err)
-    });
-</#if>
+      case ${endpoint?index}:
+        this.bridgeApiService.${methodName}(body<#if (flags.securityLevel!"") == "bearer-token">, ''<#elseif (flags.securityLevel!"") == "apiKey">, ''</#if>).subscribe({
+          next: (response) => console.log('Response:', response),
+          error: (err) => console.error('Error:', err)
+        });
+        break;
 </#list>
+      default:
+        break;
+    }
   }
 }
 </#if>
