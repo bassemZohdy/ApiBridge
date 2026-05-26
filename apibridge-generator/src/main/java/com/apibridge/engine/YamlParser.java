@@ -58,7 +58,7 @@ public class YamlParser {
      *
      * @param model Model to validate
      */
-    private void validate(BridgeSchemaModel model) {
+    public void validate(BridgeSchemaModel model) {
         if (model.getId() == null || model.getId().isBlank()) {
             throw new IllegalArgumentException("Schema validation error: Missing or empty 'id' parameter.");
         }

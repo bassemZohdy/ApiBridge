@@ -90,6 +90,10 @@ public class ApiBridgeRunner {
                 System.out.println("Deploy Target Override: " + deployTargetOverride);
             }
 
+            if (feFlavorOverride != null || beFlavorOverride != null || deployTargetOverride != null) {
+                parser.validate(model);
+            }
+
             System.out.println("Initializing Pluggable Cartridge: " + cartridgeDir.getAbsolutePath());
             ApiBridgeCartridgeEngine engine = new ApiBridgeCartridgeEngine();
             engine.generate(model, cartridgeDir, outputDir);
