@@ -47,7 +47,8 @@ export async function ${methodName}(<#list pathParams as param>${param}: string,
     headers['X-API-Key'] = apiKey;
   }
 </#if>
-  const url = '${basePath}${endpoint.path}'<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+  const url = (baseUrl + '${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
   const res = await fetch(url, {
     method: '${endpoint.method}',
     headers,

@@ -1,3 +1,8 @@
+<#function pathToEnvKey path>
+  <#local s = path?replace("[{}]", "", "r")?replace("[^A-Za-z0-9]", "_", "r")?upper_case />
+  <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
+  <#return s />
+</#function>
 spring.application.name=${id}
 server.port=8080
 
@@ -22,3 +27,22 @@ management.endpoint.health.show-details=never
 
 # Structured JSON logging for container log aggregators (EFK/Loki/CloudWatch)
 logging.structured.format.console=ecs
+
+# ─── Supported ENV VAR overrides ──────────────────────────────────────────────
+# All values below can be set as environment variables at runtime.
+# Spring Boot reads ENV VARs automatically (e.g. SERVER_PORT overrides server.port).
+#
+#   MOCK_MODE=false               Return canned responses instead of proxying
+#   BLOCK_TRAFFIC=false           Reject all requests with 503
+#   SERVER_PORT=8080              Listening port
+#   LOGGING_LEVEL_ROOT=INFO       Root log level: ERROR | WARN | INFO | DEBUG
+#   LOGGING_LEVEL_COM_APIBRIDGE=INFO  Package-level log level
+#   CORS_ALLOWED_ORIGINS=*        Comma-separated allowed origins (CorsConfig)
+<#if (flags.securityLevel!"") == "apiKey">
+#   API_KEY=                      Expected X-API-Key header value; empty = validation disabled
+</#if>
+#
+#   Per-endpoint backend URL overrides (default = schema-defined URL):
+<#list endpoints as endpoint>
+#   BACKEND_URL_${pathToEnvKey(endpoint.path)}=${endpoint.backendUrl}
+</#list>

@@ -1,3 +1,8 @@
+<#function pathToEnvKey path>
+  <#local s = path?replace("[{}]", "", "r")?replace("[^A-Za-z0-9]", "_", "r")?upper_case />
+  <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
+  <#return s />
+</#function>
 <#if deployTarget == "kubernetes" || deployTarget == "openshift">
 apiVersion: v1
 kind: ConfigMap
@@ -6,6 +11,27 @@ metadata:
   labels:
     app: ${id}
 data:
+  # ── Feature flags ────────────────────────────────────────────────────────────
   MOCK_MODE: "false"
   BLOCK_TRAFFIC: "false"
+  # ── Credentials ──────────────────────────────────────────────────────────────
+<#if (flags.securityLevel!"") == "apiKey">
+  API_KEY: ""             # Set to enforce X-API-Key validation; empty = disabled
+  # Note: for production, store API_KEY in a Secret rather than a ConfigMap
+</#if>
+  # ── CORS ─────────────────────────────────────────────────────────────────────
+  CORS_ALLOWED_ORIGINS: "*"  # Restrict to specific origins in production
+  # ── Server / JVM ─────────────────────────────────────────────────────────────
+<#if backendFlavor == "spring-boot">
+  SERVER_PORT: "8080"
+  LOGGING_LEVEL_ROOT: "INFO"
+<#else>
+  QUARKUS_HTTP_PORT: "8080"
+  QUARKUS_LOG_LEVEL: "INFO"
+</#if>
+  # ── Per-endpoint backend URL overrides ───────────────────────────────────────
+  # Override any URL without rebuilding the image
+<#list endpoints as endpoint>
+  BACKEND_URL_${pathToEnvKey(endpoint.path)}: "${endpoint.backendUrl}"
+</#list>
 </#if>

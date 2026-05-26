@@ -60,20 +60,20 @@ public class ApiBridgeCartridgeEngineTest {
         // Execute Cartridge Projection
         engine.generate(model, cartridgeDir, outputDir);
 
-        // Verify Output Suffix Stripped (.ftl is gone)
-        Path controllerPath = outputDir.toPath().resolve("Controller.java");
+        Path controllerPath = outputDir.toPath()
+                .resolve("src/main/java/com/apibridge/generated/BridgeController.java");
         Path pomPath = outputDir.toPath().resolve("pom.xml");
-        
+
         assertTrue(Files.exists(controllerPath));
         assertTrue(Files.exists(pomPath));
 
         String controllerContent = Files.readString(controllerPath);
-        assertTrue(controllerContent.contains("public class UserAuthServiceController"));
+        assertTrue(controllerContent.contains("public class BridgeController"));
         assertTrue(controllerContent.contains("@RestController"));
 
         String pomContent = Files.readString(pomPath);
         assertTrue(pomContent.contains("<artifactId>user-auth-service</artifactId>"));
-        assertTrue(pomContent.contains("<version>${spring.boot.version}</version>"));
+        assertTrue(pomContent.contains("spring-boot-starter-parent"));
     }
 
     @Test
@@ -85,14 +85,15 @@ public class ApiBridgeCartridgeEngineTest {
         // Execute Cartridge Projection
         engine.generate(model, cartridgeDir, outputDir);
 
-        Path resourcePath = outputDir.toPath().resolve("Resource.java");
+        Path resourcePath = outputDir.toPath()
+                .resolve("src/main/java/com/apibridge/generated/BridgeResource.java");
         Path pomPath = outputDir.toPath().resolve("pom.xml");
 
         assertTrue(Files.exists(resourcePath));
         assertTrue(Files.exists(pomPath));
 
         String resourceContent = Files.readString(resourcePath);
-        assertTrue(resourceContent.contains("public class UserAuthServiceResource"));
+        assertTrue(resourceContent.contains("public class BridgeResource"));
         assertTrue(resourceContent.contains("import jakarta.ws.rs.*;"));
         assertTrue(resourceContent.contains("@Path(\"/api/auth\")"));
 

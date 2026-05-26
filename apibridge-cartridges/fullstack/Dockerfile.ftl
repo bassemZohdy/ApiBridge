@@ -1,7 +1,20 @@
+<#function pathToEnvKey path>
+  <#local s = path?replace("[{}]", "", "r")?replace("[^A-Za-z0-9]", "_", "r")?upper_case />
+  <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
+  <#return s />
+</#function>
 # =============================================================================
 # Stage 1 — Frontend build
 # =============================================================================
 FROM node:20-alpine AS frontend-build
+
+# Build-time env vars for the frontend bundle (set via --build-arg or docker-compose build.args)
+ARG VITE_API_BASE_URL=""
+ENV VITE_API_BASE_URL=${r"${VITE_API_BASE_URL}"}
+<#if (flags.securityLevel!"") == "apiKey">
+ARG VITE_API_KEY=""
+ENV VITE_API_KEY=${r"${VITE_API_KEY}"}
+</#if>
 
 WORKDIR /app/frontend
 
@@ -67,10 +80,41 @@ USER 1001
 
 EXPOSE 8080
 
-# Runtime flags (override via -e or K8s ConfigMap/env)
-ENV MOCK_MODE=false \
+# ─── Runtime ENV VARs ─────────────────────────────────────────────────────────
+# All variables below can be overridden with -e / docker-compose environment: / K8s ConfigMap.
+ENV \
+    # Feature flags
+    MOCK_MODE=false \
     BLOCK_TRAFFIC=false \
-    JAVA_OPTS=""
+    # JVM tuning
+    JAVA_OPTS="" \
+<#if backendFlavor == "spring-boot">
+    # Port (Spring Boot reads SERVER_PORT automatically)
+    SERVER_PORT=8080 \
+    # Log level (Spring Boot reads LOGGING_LEVEL_ROOT automatically)
+    LOGGING_LEVEL_ROOT=INFO \
+    # CORS allowed origins (comma-separated; * = allow all)
+    CORS_ALLOWED_ORIGINS=* \
+<#else>
+    # Port (Quarkus reads QUARKUS_HTTP_PORT automatically)
+    QUARKUS_HTTP_PORT=8080 \
+    # Log level (Quarkus reads QUARKUS_LOG_LEVEL automatically)
+    QUARKUS_LOG_LEVEL=INFO \
+    # CORS allowed origins (comma-separated; * = allow all)
+    CORS_ALLOWED_ORIGINS=* \
+</#if>
+<#if (flags.securityLevel!"") == "apiKey">
+    # API key validation — empty value disables validation
+    API_KEY="" \
+</#if>
+    # Per-endpoint backend URLs — default to schema-defined values
+<#list endpoints as endpoint>
+<#if endpoint?has_next>
+    BACKEND_URL_${pathToEnvKey(endpoint.path)}="${endpoint.backendUrl}" \
+<#else>
+    BACKEND_URL_${pathToEnvKey(endpoint.path)}="${endpoint.backendUrl}"
+</#if>
+</#list>
 
 # Health probe — validated by Docker, docker-compose, and used as a fallback.
 # K8s/OpenShift should define liveness/readiness probes in the Deployment manifest instead.

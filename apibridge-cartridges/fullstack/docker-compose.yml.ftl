@@ -1,16 +1,47 @@
+<#function pathToEnvKey path>
+  <#local s = path?replace("[{}]", "", "r")?replace("[^A-Za-z0-9]", "_", "r")?upper_case />
+  <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
+  <#return s />
+</#function>
 <#if deployTarget == "docker-compose">
 services:
   ${id}:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Frontend build-time base URL (leave empty when FE is co-hosted in the same container)
+        VITE_API_BASE_URL: ""
+<#if (flags.securityLevel!"") == "apiKey">
+        # API key injected into the frontend bundle at build time
+        VITE_API_KEY: ""
+</#if>
     image: ${id}:latest
     ports:
       - "8080:8080"
     environment:
+      # ── Feature flags ──────────────────────────────────────────────────────
       MOCK_MODE: "false"
       BLOCK_TRAFFIC: "false"
+      # ── Credentials ────────────────────────────────────────────────────────
+<#if (flags.securityLevel!"") == "apiKey">
+      API_KEY: ""                # Set to enforce X-API-Key validation; empty = disabled
+</#if>
+      # ── CORS ───────────────────────────────────────────────────────────────
+      CORS_ALLOWED_ORIGINS: "*"  # Restrict to specific origins in production
+      # ── Server / JVM ───────────────────────────────────────────────────────
+<#if backendFlavor == "spring-boot">
+      SERVER_PORT: "8080"
+      LOGGING_LEVEL_ROOT: "INFO"
+<#else>
+      QUARKUS_HTTP_PORT: "8080"
+      QUARKUS_LOG_LEVEL: "INFO"
+</#if>
       # JAVA_OPTS: "-Xms128m -Xmx256m"
+      # ── Per-endpoint backend URL overrides ─────────────────────────────────
+<#list endpoints as endpoint>
+      BACKEND_URL_${pathToEnvKey(endpoint.path)}: "${endpoint.backendUrl}"
+</#list>
     deploy:
       resources:
         limits:

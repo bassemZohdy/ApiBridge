@@ -10,13 +10,12 @@
     <name>${id?replace("-", " ")?capitalize}</name>
     <description>Generated integration bridge backend for ${id} (Quarkus)</description>
 
-    <!-- Quarkus Build Configuration -->
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <quarkus.platform.version>3.11.0</quarkus.platform.version>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+        <quarkus.platform.version>3.9.4</quarkus.platform.version>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
     </properties>
 
     <dependencyManagement>
@@ -32,39 +31,26 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Quarkus REST Jackson for dynamic endpoint mappings (GraalVM and AOT-compliant) -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-jackson</artifactId>
         </dependency>
-
-        <!-- Jackson Databind for dynamic payload handling -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.17.1</version>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
-
-        <!-- Pre-compiled Enterprise Core Shared proxy dependency -->
-        <dependency>
-            <groupId>com.apibridge</groupId>
-            <artifactId>apibridge-enterprise-core</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
-        <!-- OpenTelemetry extension for Quarkus -->
-        <#if flags.enableTelemetry>
+<#if flags.enableTelemetry>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-opentelemetry</artifactId>
         </dependency>
-        </#if>
+</#if>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>io.quarkus.platform</groupId>
+                <groupId>${"$"}{quarkus.platform.group-id}</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${"$"}{quarkus.platform.version}</version>
                 <extensions>true</extensions>
@@ -76,11 +62,9 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
                 <configuration>
                     <release>21</release>
                 </configuration>

@@ -27,11 +27,13 @@ export async function ${methodName}(<#list pathParams as param>${param}: string,
     headers['Authorization'] = 'Bearer ' + token;
   }
 <#elseif (flags.securityLevel!"") == "apiKey">
-  if (process.env.API_KEY) {
-    headers['X-API-Key'] = process.env.API_KEY;
+  const apiKey = import.meta.env.VITE_API_KEY as string | undefined;
+  if (apiKey) {
+    headers['X-API-Key'] = apiKey;
   }
 </#if>
-  const url = '${basePath}${endpoint.path}'<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+  const url = (baseUrl + '${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
   const response = await axios.${endpoint.method?lower_case}(url, body, { headers });
   return response.data;
 }

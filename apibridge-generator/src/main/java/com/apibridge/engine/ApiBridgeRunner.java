@@ -36,6 +36,9 @@ public class ApiBridgeRunner {
                 beFlavorOverride = arg.substring("--be-flavor=".length());
             } else if (arg.startsWith("--deploy-target=")) {
                 deployTargetOverride = arg.substring("--deploy-target=".length());
+            } else if (arg.equals("--version") || arg.equals("-v")) {
+                System.out.println("ApiBridge Generator " + getVersion());
+                System.exit(0);
             } else if (arg.equals("--help") || arg.equals("-h")) {
                 printUsage();
                 System.exit(0);
@@ -118,9 +121,11 @@ public class ApiBridgeRunner {
         }
     }
 
-    /**
-     * Standard command line usage printout.
-     */
+    static String getVersion() {
+        String v = ApiBridgeRunner.class.getPackage().getImplementationVersion();
+        return (v != null && !v.isBlank()) ? v : "unknown";
+    }
+
     private static void printUsage() {
         System.out.println("\nUsage:");
         System.out.println("  java -jar apibridge-generator.jar --schema=<path> --cartridge=<path> --output=<path> [options]");
@@ -132,6 +137,7 @@ public class ApiBridgeRunner {
         System.out.println("  --fe-flavor=<val>      Frontend framework: angular | react | vue");
         System.out.println("  --be-flavor=<val>      Backend framework: spring-boot | quarkus");
         System.out.println("  --deploy-target=<val>  Deployment config: docker-compose | kubernetes | openshift");
+        System.out.println("  --version, -v          Print version and exit");
         System.out.println("  -h, --help             Show this help menu\n");
     }
 }

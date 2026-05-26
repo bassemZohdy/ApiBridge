@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class BridgeApiService {
@@ -17,7 +18,7 @@ export class BridgeApiService {
   </#if>
 </#list>
   ${methodName}(<#list pathParams as param>${param}: string, </#list>body: unknown<#if (flags.securityLevel!"") == "bearer-token">, token: string<#elseif (flags.securityLevel!"") == "apiKey">, key: string</#if>): Observable<unknown> {
-    const url = '${basePath}${endpoint.path}'<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
+    const url = (environment.apiBaseUrl + '${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
 <#if (flags.securityLevel!"") == "bearer-token">
     const headers = new HttpHeaders({ Authorization: 'Bearer ' + token });
     return this.http.${endpoint.method?lower_case}<unknown>(url, body, { headers });
