@@ -54,6 +54,44 @@ jobs:
           path: apibridge-generator/target/surefire-reports/
           retention-days: 30
 
+      - name: Upload JaCoCo HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage-report
+          path: apibridge-generator/target/site/jacoco/
+          retention-days: 30
+
+      - name: Write coverage summary
+        if: always()
+        run: |
+          JACOCO_CSV=apibridge-generator/target/site/jacoco/jacoco.csv
+          if [ ! -f "$JACOCO_CSV" ]; then
+            echo "## Coverage" >> "$GITHUB_STEP_SUMMARY"
+            echo "_(JaCoCo CSV not found — coverage report unavailable)_" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Sum MISSED and COVERED columns for INSTRUCTION (col 4,5) and BRANCH (col 6,7)
+          INST_MISSED=$(tail -n +2 "$JACOCO_CSV" | awk -F',' '{s+=$4} END{print s+0}')
+          INST_COVERED=$(tail -n +2 "$JACOCO_CSV" | awk -F',' '{s+=$5} END{print s+0}')
+          BR_MISSED=$(tail -n +2 "$JACOCO_CSV" | awk -F',' '{s+=$6} END{print s+0}')
+          BR_COVERED=$(tail -n +2 "$JACOCO_CSV" | awk -F',' '{s+=$7} END{print s+0}')
+          LINE_MISSED=$(tail -n +2 "$JACOCO_CSV" | awk -F',' '{s+=$8} END{print s+0}')
+          LINE_COVERED=$(tail -n +2 "$JACOCO_CSV" | awk -F',' '{s+=$9} END{print s+0}')
+          pct() { echo "scale=1; $2 * 100 / ($1 + $2)" | bc; }
+          INST_PCT=$(pct "$INST_MISSED" "$INST_COVERED")
+          BR_PCT=$(pct "$BR_MISSED" "$BR_COVERED")
+          LINE_PCT=$(pct "$LINE_MISSED" "$LINE_COVERED")
+          {
+            echo "## Coverage"
+            echo ""
+            echo "| Metric | Covered | Missed | % |"
+            echo "|--------|---------|--------|---|"
+            echo "| Instructions | $INST_COVERED | $INST_MISSED | ${INST_PCT}% |"
+            echo "| Branches | $BR_COVERED | $BR_MISSED | ${BR_PCT}% |"
+            echo "| Lines | $LINE_COVERED | $LINE_MISSED | ${LINE_PCT}% |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # ─────────────────────────────────────────────────────────────────
   # Job 2: Fast E2E — compile verification for all cartridges
   # ─────────────────────────────────────────────────────────────────
