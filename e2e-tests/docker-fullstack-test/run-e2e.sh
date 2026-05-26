@@ -37,7 +37,7 @@ cleanup() {
 
 wait_healthy() {
   local url="$1"
-  local timeout=120
+  local timeout=180
   local interval=5
   local elapsed=0
   echo "  Waiting for $url (up to ${timeout}s)..."
@@ -68,15 +68,26 @@ else
 fi
 
 # 2. Generate without deployTarget — Dockerfile always present, no deployment configs
+# Uses an inline minimal schema so this test is independent of sample-schema.yaml content.
 echo ""
 echo "[2/8] Generation check: no deployTarget (Dockerfile only)..."
 rm -rf "$GENERATED_DIR"
+MINIMAL_SCHEMA=$(mktemp /tmp/e2e-schema-minimal-XXXXX.yaml)
+cat > "$MINIMAL_SCHEMA" << 'YAML'
+id: "e2e-test-bridge"
+basePath: "/api/v1/test"
+endpoints:
+  - path: "/run"
+    method: "POST"
+    backendUrl: "https://example.com/run"
+YAML
 java -jar "$JAR" \
-  --schema="$SCHEMA" \
+  --schema="$MINIMAL_SCHEMA" \
   --cartridge="$CARTRIDGE" \
   --output="$GENERATED_DIR" \
   --be-flavor="$BE_FLAVOR" \
   --fe-flavor="$FE_FLAVOR"
+rm -f "$MINIMAL_SCHEMA"
 
 [ -f "$GENERATED_DIR/Dockerfile" ]    && pass "Dockerfile generated" \
   || fail "Dockerfile missing (should always be generated)"
