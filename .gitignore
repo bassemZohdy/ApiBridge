@@ -1,0 +1,18 @@
+# Build output
+target/
+output/
+dependency-reduced-pom.xml
+
+# Node.js
+node_modules/
+
+# E2E test runtime output — regenerated on every run
+e2e-tests/*/generated/
+e2e-tests/maven-spring-boot-test/src/main/java/CustomerOnboardingBridgeController.java
+e2e-tests/maven-quarkus-test/src/main/java/CustomerOnboardingBridgeResource.java
+
+# Claude Code — personal/local only (CLAUDE.md and .claude/skills/ are committed)
+CLAUDE.local.md
+.claude/settings.local.json
+.remember/
+.superpowers/

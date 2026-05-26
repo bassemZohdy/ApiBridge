@@ -1,0 +1,23 @@
+id: "customer-onboarding-bridge"
+basePath: "/api/v1/onboarding"
+flags:
+  enableTelemetry: true
+  securityLevel: "bearer-token"
+  backendFlavor: "spring-boot"
+  feFlavor: "react"
+  uiPattern: "form-engine"
+  deployTarget: "docker-compose"
+endpoints:
+  - path: "/initiate"
+    method: "POST"
+    backendUrl: "https://internal-mesh.local/customer/create"
+    telemetryName: "apibridge_onboarding_initiate"
+    uiLayout:
+      component: "Form"
+      fields:
+        - name: "email"
+          type: "string"
+          required: true
+        - name: "companyName"
+          type: "string"
+          required: true
