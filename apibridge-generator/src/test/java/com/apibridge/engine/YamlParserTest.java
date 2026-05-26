@@ -195,6 +195,91 @@ public class YamlParserTest {
     }
 
     @Test
+    public void testInvalidSecurityLevelThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  securityLevel: "oauth2"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("securityLevel"));
+    }
+
+    @Test
+    public void testValidSecurityLevelBearerToken(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  securityLevel: "bearer-token"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertNotNull(model);
+        assertEquals("bearer-token", model.getFlags().getSecurityLevel());
+    }
+
+    @Test
+    public void testValidSecurityLevelApiKey(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  securityLevel: "apiKey"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertNotNull(model);
+        assertEquals("apiKey", model.getFlags().getSecurityLevel());
+    }
+
+    @Test
+    public void testSecurityLevelValidationIsCaseInsensitive(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  securityLevel: "Bearer-Token"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertNotNull(model);
+        assertEquals("Bearer-Token", model.getFlags().getSecurityLevel());
+    }
+
+    @Test
+    public void testSecurityLevelAbsentIsValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  backendFlavor: "spring-boot"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertNotNull(model);
+        assertNull(model.getFlags().getSecurityLevel());
+    }
+
+    @Test
     public void testInvalidDeployTargetThrows(@TempDir Path tempDir) throws IOException {
         File file = writeYaml(tempDir, "schema.yaml", """
                 id: "test"

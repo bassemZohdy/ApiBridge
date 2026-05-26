@@ -97,6 +97,13 @@ public class YamlParser {
             }
         }
 
+        if (model.getFlags() != null && model.getFlags().getSecurityLevel() != null) {
+            String level = model.getFlags().getSecurityLevel().toLowerCase();
+            if (!level.equals("bearer-token") && !level.equals("apikey")) {
+                throw new IllegalArgumentException("Schema validation error: Invalid flags.securityLevel value '" + level + "'. Must be 'bearer-token' or 'apiKey'.");
+            }
+        }
+
         for (int i = 0; i < model.getEndpoints().size(); i++) {
             BridgeSchemaModel.Endpoint endpoint = model.getEndpoints().get(i);
             String location = "endpoints[" + i + "]";

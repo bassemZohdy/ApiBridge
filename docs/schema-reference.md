@@ -23,7 +23,7 @@ The ApiBridge schema is a YAML Platform-Independent Model (PIM) that drives all 
 | `backendFlavor` | string | `spring-boot` | `spring-boot` \| `quarkus` | Selects backend framework for subdirectory-routed cartridges (validated, case-insensitive). |
 | `feFlavor` | string | `react` | `angular` \| `react` \| `vue` | Selects frontend framework for subdirectory-routed cartridges (validated, case-insensitive). |
 | `uiPattern` | string | `form-engine` | `form-engine` \| `web-component` | Selects frontend rendering pattern (validated, case-insensitive). |
-| `securityLevel` | string | — | `bearer-token` \| `apiKey` | Controls Authorization header injection in frontend templates. Not validated by the engine; used only in templates. |
+| `securityLevel` | string | — | `bearer-token` \| `apiKey` | Controls Authorization header injection in frontend templates. Validated by the engine when present (case-insensitive). |
 | `deployTarget` | string | — | `docker-compose` \| `kubernetes` \| `openshift` | When set, generates deployment configuration files alongside the project code. Omit (or leave `flags` absent) to produce code + Dockerfile only. |
 
 > Note: `flags` defaults (`backendFlavor: spring-boot`, `feFlavor: react`, `uiPattern: form-engine`) apply when the `flags` key is present but the sub-field is absent. If `flags` itself is omitted, no flag validation runs. CLI overrides (`--be-flavor`, `--fe-flavor`, `--deploy-target`) take precedence over schema flags.
@@ -104,6 +104,7 @@ The engine (`YamlParser`) enforces these rules at parse time and throws `Illegal
 - `flags.feFlavor` must be `angular`, `react`, or `vue` (if defined, case-insensitive)
 - `flags.uiPattern` must be `form-engine` or `web-component` (if defined, case-insensitive)
 - `flags.deployTarget` must be `docker-compose`, `kubernetes`, or `openshift` (if defined, case-insensitive)
+- `flags.securityLevel` must be `bearer-token` or `apiKey` (if defined, case-insensitive)
 - Each endpoint must have non-blank `path`, `method`, and `backendUrl`
 - Each endpoint must have non-blank `telemetryName` when `flags.enableTelemetry` is `true`
 - If `uiLayout` is present, `component` must be non-blank
