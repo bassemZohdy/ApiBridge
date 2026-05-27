@@ -161,23 +161,6 @@ public class YamlParserTest {
     }
 
     @Test
-    public void testInvalidUiPatternThrows(@TempDir Path tempDir) throws IOException {
-        File file = writeYaml(tempDir, "schema.yaml", """
-                id: "test"
-                basePath: "/api"
-                flags:
-                  uiPattern: "wizard"
-                endpoints:
-                  - path: "/run"
-                    method: "POST"
-                    backendUrl: "https://example.com/run"
-                """);
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> parser.parse(file));
-        assertTrue(ex.getMessage().contains("uiPattern"));
-    }
-
-    @Test
     public void testInvalidFeFlavorThrows(@TempDir Path tempDir) throws IOException {
         File file = writeYaml(tempDir, "schema.yaml", """
                 id: "test"
@@ -394,23 +377,6 @@ public class YamlParserTest {
         BridgeSchemaModel model = parser.parse(file);
         assertNotNull(model);
         assertNull(model.getFlags().getFeFlavor());
-    }
-
-    @Test
-    public void testUiPatternValidationIsCaseInsensitive(@TempDir Path tempDir) throws Exception {
-        File file = writeYaml(tempDir, "schema.yaml", """
-                id: "test"
-                basePath: "/api"
-                flags:
-                  uiPattern: "Form-Engine"
-                endpoints:
-                  - path: "/run"
-                    method: "POST"
-                    backendUrl: "https://example.com/run"
-                """);
-        BridgeSchemaModel model = parser.parse(file);
-        assertNotNull(model);
-        assertEquals("Form-Engine", model.getFlags().getUiPattern());
     }
 
     @Test
@@ -778,57 +744,6 @@ public class YamlParserTest {
         assertNotNull(layout);
         assertEquals("Form", layout.getComponent());
         assertNull(layout.getFields());
-    }
-
-    // --- navigationMode tests ---
-
-    @Test
-    public void testNavigationModeDefaultsSpa(@TempDir Path tempDir) throws Exception {
-        File file = writeYaml(tempDir, "schema.yaml", """
-                id: "svc"
-                basePath: "/api"
-                flags: {}
-                endpoints:
-                  - path: "/run"
-                    method: "POST"
-                    backendUrl: "https://example.com/run"
-                """);
-        BridgeSchemaModel model = parser.parse(file);
-        assertEquals("spa", model.getFlags().getNavigationMode());
-    }
-
-    @Test
-    public void testNavigationModeMpa(@TempDir Path tempDir) throws Exception {
-        File file = writeYaml(tempDir, "schema.yaml", """
-                id: "svc"
-                basePath: "/api"
-                flags:
-                  navigationMode: "mpa"
-                endpoints:
-                  - path: "/run"
-                    method: "POST"
-                    backendUrl: "https://example.com/run"
-                """);
-        BridgeSchemaModel model = parser.parse(file);
-        assertEquals("mpa", model.getFlags().getNavigationMode());
-    }
-
-    @Test
-    public void testInvalidNavigationModeThrows(@TempDir Path tempDir) throws IOException {
-        File file = writeYaml(tempDir, "schema.yaml", """
-                id: "svc"
-                basePath: "/api"
-                flags:
-                  navigationMode: "invalid"
-                endpoints:
-                  - path: "/run"
-                    method: "POST"
-                    backendUrl: "https://example.com/run"
-                """);
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> parser.parse(file));
-        assertTrue(ex.getMessage().toLowerCase().contains("navigationmode") ||
-                   ex.getMessage().toLowerCase().contains("navigation"));
     }
 
     // --- Pagination tests ---

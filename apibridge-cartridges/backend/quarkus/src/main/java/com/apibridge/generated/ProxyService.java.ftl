@@ -10,8 +10,8 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -23,13 +23,19 @@ public class ProxyService {
             "te", "trailers", "transfer-encoding", "upgrade", "content-length", "host"
     );
 
+    @ConfigProperty(name = "proxy.connect-timeout", defaultValue = "5000")
+    int connectTimeout;
+
+    @ConfigProperty(name = "proxy.read-timeout", defaultValue = "30000")
+    int readTimeout;
+
     private Client client;
 
     @PostConstruct
     void init() {
         client = ClientBuilder.newBuilder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
+                .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
                 .build();
     }
 

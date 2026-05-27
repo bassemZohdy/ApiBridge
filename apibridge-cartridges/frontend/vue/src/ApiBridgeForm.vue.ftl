@@ -27,7 +27,6 @@
   </#list>
   <#return method?lower_case + baseName?capitalize + suffix />
 </#function>
-<#assign uiPattern = (flags.uiPattern)!"form-engine" />
 <#assign securityLevel = (flags.securityLevel)!"" />
 <#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
 <#assign viewEndpoint = "" />
@@ -36,86 +35,6 @@
     <#assign viewEndpoint = ep />
   </#if>
 </#list>
-<#if uiPattern == "web-component">
-<script setup lang="ts">
-import { ref, onMounted } from 'vue';
-<#list formEndpoints as endpoint>
-import { ${endpointMethodName(endpoint.method, endpoint.path)} } from './api/bridgeApi';
-</#list>
-
-const props = withDefaults(defineProps<{
-  editId?: string;
-  onNavigate?: (path: string) => void;
-}>(), {
-  editId: undefined,
-  onNavigate: undefined,
-});
-
-const activeTab = ref(0);
-const bridgeFormRef = ref<HTMLElement | null>(null);
-
-onMounted(() => {
-  const el = bridgeFormRef.value;
-  if (el) {
-    el.addEventListener('bridgeSubmit', async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const detail = (customEvent.detail ?? {}) as Record<string, unknown>;
-      try {
-        switch (activeTab.value) {
-<#list formEndpoints as endpoint>
-<#assign epPathParams = [] />
-<#list endpoint.path?split("{") as seg>
-  <#if seg?contains("}")>
-    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
-  </#if>
-</#list>
-          case ${endpoint?index}: {
-<#if epPathParams?has_content>
-            const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = detail;
-            await ${endpointMethodName(endpoint.method, endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, detail.token as string | undefined</#if>);
-<#else>
-            await ${endpointMethodName(endpoint.method, endpoint.path)}(detail<#if securityLevel == "bearer-token">, detail.token as string | undefined</#if>);
-</#if>
-            break;
-          }
-</#list>
-          default: break;
-        }
-      } catch (err) {
-        console.error('ApiBridge submit error:', err);
-      }
-    });
-  }
-});
-</script>
-
-<template>
-  <div class="apib-shell">
-    <div class="apib-topbar"></div>
-    <div class="apib-card">
-      <div v-if="onNavigate" class="apib-view-header">
-        <button class="apib-btn apib-btn--ghost" @click="onNavigate('list')">← Back</button>
-      </div>
-      <div class="apib-header">
-        <span class="apib-badge">${id?upper_case}</span>
-        <h1 class="apib-title">API Bridge</h1>
-      </div>
-<#if formEndpoints?size gt 1>
-      <div class="apib-tabs">
-<#list formEndpoints as ep>
-        <button
-          class="apib-tab"
-          :class="{ 'apib-tab--active': activeTab === ${ep?index} }"
-          @click="activeTab = ${ep?index}"
-        >${ep.path}</button>
-</#list>
-      </div>
-</#if>
-      <api-bridge-form ref="bridgeFormRef"></api-bridge-form>
-    </div>
-  </div>
-</template>
-<#else>
 <script setup lang="ts">
 import { reactive, ref, watch, onMounted } from 'vue';
 <#list formEndpoints as endpoint>
@@ -582,4 +501,3 @@ async function onSubmit(endpointIndex: number): Promise<void> {
   white-space: pre;
 }
 </style>
-</#if>

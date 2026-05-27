@@ -45,7 +45,7 @@ mkdir -p apibridge-cartridges/$ARGUMENTS
 - PascalCase from kebab-case: `${id?replace("-", " ")?capitalize?replace(" ", "")}`
 - Gate on FE presence: `<#if (feFlavor!"") != "">`
 - Conditional telemetry: `<#if (flags.enableTelemetry!false)>`
-- UI pattern branching: `<#if (flags.uiPattern!"form-engine") == "form-engine">`
+- Null-safe flags: `<#if flags??>` or `(flags!.field!default)`
 - Escaping `$` in generated JS/TS: `${"$"}{someVar}`
 
 ## 3. Test manually

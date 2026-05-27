@@ -3,7 +3,6 @@ basePath: "/api/v1"
 flags:
   backendFlavor: "spring-boot"
   feFlavor: "react"
-  navigationMode: "spa"
   pagination:
     pageParam: "_page"
     sizeParam: "_limit"

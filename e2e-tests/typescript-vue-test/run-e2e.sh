@@ -27,7 +27,7 @@ echo "Installing dependencies..."
 (cd generated/frontend && npm install --legacy-peer-deps --silent)
 
 echo "Running strict TypeScript check..."
-(cd generated/frontend && npx tsc --noEmit)
+(cd generated/frontend && npx vue-tsc --noEmit)
 
 echo "=================================================="
 echo "E2E Vue PASSED"

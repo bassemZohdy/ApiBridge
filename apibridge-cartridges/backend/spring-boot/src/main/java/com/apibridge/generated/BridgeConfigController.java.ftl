@@ -28,6 +28,9 @@ public class BridgeConfigController {
     @Value("${r"${PAGINATION_DIRECTION_PARAM:"}<#if (flags.pagination.directionParam)??>${flags.pagination.directionParam}<#else>dir</#if>${r"}"}")
     private String directionParam;
 
+    @Value("${r"${CUSTOM_CSS_PATH:}"}")
+    private String customCssPath;
+
     @GetMapping("/bridge-config")
     public ResponseEntity<Map<String, Object>> config() {
         Map<String, Object> pagination = new LinkedHashMap<>();
@@ -38,8 +41,11 @@ public class BridgeConfigController {
         pagination.put("directionParam", directionParam);
 
         Map<String, Object> config = new LinkedHashMap<>();
-        config.put("navigationMode", "${(flags.navigationMode)!"spa"}");
+        config.put("securityLevel", "${(flags.securityLevel)!""}");
+        config.put("basePath", "${basePath}");
+        config.put("enableTelemetry", ${((flags.enableTelemetry)!false)?c});
         config.put("pagination", pagination);
+        config.put("customCssPath", customCssPath);
 
         return ResponseEntity.ok(config);
     }

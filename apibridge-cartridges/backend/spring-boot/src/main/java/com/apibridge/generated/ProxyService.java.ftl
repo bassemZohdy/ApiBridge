@@ -1,9 +1,11 @@
 package com.apibridge.generated;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
@@ -20,10 +22,16 @@ public class ProxyService {
             "te", "trailers", "transfer-encoding", "upgrade", "content-length", "host"
     );
 
+    @Value("${r"${proxy.connect-timeout:5000}"}")
+    private int connectTimeout;
+
+    @Value("${r"${proxy.read-timeout:30000}"}")
+    private int readTimeout;
+
     private final RestTemplate restTemplate;
 
-    public ProxyService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+    public ProxyService() {
+        this.restTemplate = new RestTemplate();
     }
 
     public ResponseEntity<String> forward(
@@ -31,6 +39,11 @@ public class ProxyService {
             String method,
             String requestBody,
             HttpServletRequest request) {
+
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(connectTimeout);
+        factory.setReadTimeout(readTimeout);
+        restTemplate.setRequestFactory(factory);
 
         String urlWithQuery = targetUrl;
         String queryString = request.getQueryString();

@@ -33,6 +33,8 @@ quarkus.http.cors=true
 quarkus.http.cors.origins=${r"${CORS_ALLOWED_ORIGINS:*}"}
 quarkus.http.cors.methods=GET,POST,PUT,DELETE,PATCH,OPTIONS
 quarkus.http.cors.headers=*
+quarkus.http.cors.exposed-headers=*
+quarkus.http.cors.access-control-max-age=3600
 <#if flags.enableTelemetry>
 
 # Distributed tracing — OTLP exporter
@@ -55,6 +57,8 @@ quarkus.otel.service.name=${id}
 #   PAGINATION_DEFAULT_PAGE_SIZE=20   Default page size
 #   PAGINATION_SORT_PARAM=sort        Query param name for sort field
 #   PAGINATION_DIRECTION_PARAM=dir    Query param name for sort direction (asc/desc)
+#   PROXY_CONNECT_TIMEOUT=5000        Proxy connect timeout in milliseconds (default: 5000)
+#   PROXY_READ_TIMEOUT=30000          Proxy read timeout in milliseconds (default: 30000)
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                          Expected X-API-Key header; empty = validation disabled
 </#if>

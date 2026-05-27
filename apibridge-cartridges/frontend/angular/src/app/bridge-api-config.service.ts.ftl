@@ -12,12 +12,10 @@ export interface PaginationConfig {
 }
 
 export interface BridgeConfig {
-  navigationMode: 'spa' | 'mpa';
   pagination: PaginationConfig;
 }
 
 const DEFAULT_CONFIG: BridgeConfig = {
-  navigationMode: '${(flags.navigationMode)!"spa"}',
   pagination: {
     pageParam: '${(flags.pagination.pageParam)!"page"}',
     sizeParam: '${(flags.pagination.sizeParam)!"size"}',

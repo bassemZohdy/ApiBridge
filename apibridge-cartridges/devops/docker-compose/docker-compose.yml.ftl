@@ -38,6 +38,13 @@ services:
 </#if>
       # ── CORS ───────────────────────────────────────────────────────────────
       CORS_ALLOWED_ORIGINS: "*"  # Restrict to specific origins in production
+      # ── Pagination defaults ────────────────────────────────────────────────
+      PAGINATION_PAGE_PARAM: "page"
+      PAGINATION_SIZE_PARAM: "size"
+      PAGINATION_DEFAULT_PAGE_SIZE: "20"
+      PAGINATION_SORT_PARAM: "sort"
+      PAGINATION_DIRECTION_PARAM: "dir"
+      CUSTOM_CSS_PATH: ""
       # ── Server / JVM ───────────────────────────────────────────────────────
 <#if backendFlavor == "spring-boot">
       SERVER_PORT: "8080"

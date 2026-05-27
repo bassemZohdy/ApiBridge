@@ -21,11 +21,9 @@ The ApiBridge schema is a YAML Platform-Independent Model (PIM) that drives all 
 |---|---|---|---|---|
 | `enableTelemetry` | boolean | `false` | `true` \| `false` | When `true`, all endpoints must have `telemetryName`. Conditionally injects OpenTelemetry instrumentation in backend templates. |
 | `backendFlavor` | string | `spring-boot` | `spring-boot` \| `quarkus` | Selects backend framework for subdirectory-routed cartridges. |
-| `feFlavor` | string | `react` | `angular` \| `react` \| `vue` | Selects frontend framework for subdirectory-routed cartridges. |
-| `uiPattern` | string | `form-engine` | `form-engine` \| `web-component` | Selects frontend rendering pattern. |
+| `feFlavor` | string | — | `angular` \| `react` \| `vue` | Selects frontend framework for subdirectory-routed cartridges. No default — absence means BE-only output. |
 | `securityLevel` | string | — | `bearer-token` \| `apiKey` | Controls Authorization header injection in frontend templates. |
 | `deployTarget` | string | — | `docker-compose` \| `kubernetes` \| `openshift` | When set, generates deployment configuration files alongside the project code. |
-| `navigationMode` | string | `spa` | `spa` \| `mpa` | Navigation architecture. `spa` enables client-side virtual routing; `mpa` separates them into page structures. |
 | `pagination` | object | — | — | Configures paging/sorting parameter names dynamically passed to backends. |
 
 ---
@@ -49,10 +47,12 @@ Each item in the `endpoints` array:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `path` | string | Yes | Endpoint path relative to `basePath` (e.g. `/login`). |
-| `method` | string | Yes | HTTP method (e.g. `POST`, `GET`). |
+| `method` | string | Yes | HTTP method. Must be one of: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`. |
 | `backendUrl` | string | Yes | Full URL of the upstream backend service. |
 | `telemetryName` | string | Conditional | Required when `flags.enableTelemetry: true`. Used as the OTel span name. |
 | `uiLayout` | object | No | Optional UI definition. If present, `component` is required. |
+
+Duplicate endpoints (same `path` + `method` combination) are rejected.
 
 ---
 
@@ -60,7 +60,7 @@ Each item in the `endpoints` array:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `component` | string | Yes (if `uiLayout` present) | Layout component type. Must be `Form`, `List`, or `View`. |
+| `component` | string | Yes (if `uiLayout` present) | Layout component type. Must be `Form`, `List`, or `View` (case-insensitive). |
 | `fields` | array | No | List of form fields to render (applicable for `Form` and `View` components). |
 | `columns` | array | No | Explicit listing of columns (applicable for `List` components). |
 
@@ -98,9 +98,7 @@ flags:
   securityLevel: "bearer-token"
   backendFlavor: "spring-boot"
   feFlavor: "react"
-  uiPattern: "form-engine"
   deployTarget: "docker-compose"
-  navigationMode: "spa"
   pagination:
     pageParam: "page"
     sizeParam: "size"
@@ -167,13 +165,13 @@ The engine (`YamlParser`) enforces these rules at parse time and throws `Illegal
 - `endpoints` must be non-null and non-empty
 - `flags.backendFlavor` must be `spring-boot` or `quarkus` (if defined, case-insensitive)
 - `flags.feFlavor` must be `angular`, `react`, or `vue` (if defined, case-insensitive)
-- `flags.uiPattern` must be `form-engine` or `web-component` (if defined, case-insensitive)
 - `flags.deployTarget` must be `docker-compose`, `kubernetes`, or `openshift` (if defined, case-insensitive)
 - `flags.securityLevel` must be `bearer-token` or `apiKey` (if defined, case-insensitive)
-- `flags.navigationMode` must be `spa` or `mpa` (if defined, case-insensitive)
 - `flags.pagination.defaultPageSize` must be a positive integer (if pagination is defined)
 - Each endpoint must have non-blank `path`, `method`, and `backendUrl`
+- Each endpoint `method` must be one of: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`
+- Duplicate endpoints (same `path` + `method`) are rejected
 - Each endpoint must have non-blank `telemetryName` when `flags.enableTelemetry` is `true`
-- If `uiLayout` is present, `component` must be `Form`, `List`, or `View`
+- If `uiLayout` is present, `component` must be `Form`, `List`, or `View` (case-insensitive)
 - Each field in `uiLayout.fields` must have non-blank `name` and `type` (type is mandatory for `Form` components)
 - Each column in `uiLayout.columns` must have non-blank `field`

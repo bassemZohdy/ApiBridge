@@ -1,26 +1,3 @@
-<#-- Helper: convert a URL path segment to a camelCase function name.
-     e.g. /login -> login, /user-profile -> userProfile, /api/v1/create-user -> createUser -->
-<#function pathToMethod path>
-  <#local clean = path?remove_beginning("/") />
-  <#local parts = clean?split("/") />
-  <#local segment = "" />
-  <#list parts as p>
-    <#if !p?contains("{") && p?has_content>
-      <#local segment = p />
-    </#if>
-  </#list>
-  <#if !segment?has_content>
-    <#local segment = parts[0]?replace("[{][^}]*[}]", "", "r") />
-  </#if>
-  <#local words = segment?split("-") />
-  <#local result = words[0] />
-  <#list words as word>
-    <#if word_index gt 0>
-      <#local result = result + word?cap_first />
-    </#if>
-  </#list>
-  <#return result />
-</#function>
 <#assign serviceName = id?replace("-", " ")?capitalize?replace(" ", "") />
 <#assign securityLevel = (flags.securityLevel)!"" />
 <#if securityLevel == "bearer-token">

@@ -1,4 +1,3 @@
-<#assign uiPattern = (flags.uiPattern)!"form-engine" />
 <#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
 <#assign viewEndpoint = "" />
 <#list endpoints as ep>
@@ -15,9 +14,6 @@
       <h1 class="apib-title">{{ editId ? 'Edit Record' : 'API Bridge' }}</h1>
     </div>
 
-<#if uiPattern == "web-component">
-    <api-bridge-form #bridgeFormRef (bridgeSubmit)="onBridgeSubmit($event)"></api-bridge-form>
-<#else>
 <#if viewEndpoint != "">
     <div *ngIf="loadingRecord && editId" class="apib-loading"><span class="apib-spinner"></span></div>
     <ng-container *ngIf="!(loadingRecord && editId)">
@@ -87,7 +83,6 @@
     </div>
 <#if viewEndpoint != "">
     </ng-container>
-</#if>
 </#if>
 
   </div>

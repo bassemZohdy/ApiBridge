@@ -55,6 +55,8 @@ management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 #   PAGINATION_DEFAULT_PAGE_SIZE=20  Default page size
 #   PAGINATION_SORT_PARAM=sort    Query param name for sort field
 #   PAGINATION_DIRECTION_PARAM=dir  Query param name for sort direction (asc/desc)
+#   PROXY_CONNECT_TIMEOUT=5000     Proxy connect timeout in milliseconds (default: 5000)
+#   PROXY_READ_TIMEOUT=30000       Proxy read timeout in milliseconds (default: 30000)
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                      Expected X-API-Key header value; empty = validation disabled
 </#if>

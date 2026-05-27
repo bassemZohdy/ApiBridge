@@ -7,8 +7,7 @@
     "dev": "vite"
   },
   "dependencies": {
-    "vue": "^3.4.27",
-    "axios": "^1.6.8"
+    "vue": "^3.4.27"
   },
   "devDependencies": {
     "vite": "^5.2.0",

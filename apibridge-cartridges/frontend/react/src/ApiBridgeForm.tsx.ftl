@@ -27,7 +27,6 @@
   </#list>
   <#return method?lower_case + baseName?capitalize + suffix />
 </#function>
-<#assign uiPattern = (flags.uiPattern)!"form-engine" />
 <#assign securityLevel = (flags.securityLevel)!"" />
 <#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
 <#assign viewEndpoint = "" />
@@ -36,30 +35,16 @@
     <#assign viewEndpoint = ep />
   </#if>
 </#list>
-import React, { useState, useEffect<#if uiPattern == "web-component">, useRef</#if> } from 'react';
+import React, { useState, useEffect } from 'react';
 <#list formEndpoints as endpoint>
 import { ${endpointMethodName(endpoint.method, endpoint.path)} } from './api/bridgeApi';
 </#list>
-<#if viewEndpoint != "" && uiPattern != "web-component">
+<#if viewEndpoint != "">
 import { ${endpointMethodName(viewEndpoint.method, viewEndpoint.path)} } from './api/bridgeApi';
-</#if>
-
-<#if uiPattern == "web-component">
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'api-bridge-form': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
-        ref?: React.RefObject<HTMLElement>;
-        schema?: string;
-      }, HTMLElement>;
-    }
-  }
-}
 </#if>
 
 const ENDPOINT_LABELS = [<#list formEndpoints as ep>'${ep.path}'<#sep>, </#list>];
 
-<#if uiPattern == "form-engine">
 type FieldDef = { key: string; label: string; inputType: string; required: boolean };
 
 const FIELD_DEFS: FieldDef[][] = [
@@ -103,7 +88,6 @@ const INITIAL_STATE: Record<string, string | number | boolean>[] = [
   }<#if endpoint?has_next>,</#if>
 </#list>
 ];
-</#if>
 
 interface ApiBridgeFormProps {
 <#if securityLevel == "bearer-token">
@@ -115,74 +99,6 @@ interface ApiBridgeFormProps {
   onError?: (error: unknown) => void;
 }
 
-<#if uiPattern == "web-component">
-export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel == "bearer-token">token, </#if>onSuccess, onError }) => {
-  const [activeTab, setActiveTab] = useState(0);
-  const webComponentRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const el = webComponentRef.current;
-    if (!el) return;
-    const handleBridgeSubmit = async (event: Event) => {
-      const customEvent = event as CustomEvent<Record<string, unknown>>;
-      const detail = customEvent.detail ?? {};
-      try {
-        switch (activeTab) {
-<#list formEndpoints as ep>
-<#assign epPathParams = [] />
-<#list ep.path?split("{") as seg>
-  <#if seg?contains("}")>
-    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
-  </#if>
-</#list>
-          case ${ep?index}: {
-<#if epPathParams?has_content>
-            const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${ep?index} } = detail;
-            const result${ep?index} = await ${endpointMethodName(ep.method, ep.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${ep?index}<#if securityLevel == "bearer-token">, token</#if>);
-<#else>
-            const result${ep?index} = await ${endpointMethodName(ep.method, ep.path)}(detail<#if securityLevel == "bearer-token">, token</#if>);
-</#if>
-            if (onSuccess) onSuccess(result${ep?index});
-            break;
-          }
-</#list>
-          default: break;
-        }
-      } catch (err) {
-        if (onError) onError(err);
-      }
-    };
-    el.addEventListener('bridgeSubmit', handleBridgeSubmit);
-    return () => el.removeEventListener('bridgeSubmit', handleBridgeSubmit);
-  }, [activeTab, <#if securityLevel == "bearer-token">token, </#if>onSuccess, onError]);
-
-  return (
-    <div className="apib-shell">
-      <div className="apib-topbar" />
-      <div className="apib-card">
-        <div className="apib-header">
-          <span className="apib-badge">${id?upper_case}</span>
-          <h1 className="apib-title">API Bridge</h1>
-        </div>
-        {ENDPOINT_LABELS.length > 1 && (
-          <div className="apib-tabs">
-            {ENDPOINT_LABELS.map((label, i) => (
-              <button
-                key={i}
-                className={'apib-tab' + (activeTab === i ? ' apib-tab--active' : '')}
-                onClick={() => setActiveTab(i)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-        <api-bridge-form ref={webComponentRef} />
-      </div>
-    </div>
-  );
-};
-<#else>
 export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel == "bearer-token">token, </#if>editId, onNavigate, onSuccess, onError }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -357,4 +273,4 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
     </div>
   );
 };
-</#if>
+

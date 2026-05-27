@@ -18,11 +18,9 @@
   </#if>
 </#list>
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { BridgeApiConfigService, BridgeConfig } from './bridge-api-config.service';
-<#if (flags.securityLevel!"") != "">
 import { BridgeApiService } from './bridge-api.service';
-</#if>
 
 type Row = Record<string, unknown>;
 
@@ -61,7 +59,8 @@ export class BridgeListComponent implements OnInit {
 
   constructor(
     private http: HttpClient,
-    private configService: BridgeApiConfigService
+    private configService: BridgeApiConfigService,
+    private apiService: BridgeApiService
   ) {}
 
   ngOnInit(): void {
@@ -90,12 +89,8 @@ export class BridgeListComponent implements OnInit {
     }
     const url = `${'$'}{r"${basePath}"}${listEndpoint.path}?${r"${queryStr}"}`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-<#if (flags.securityLevel!"") == "bearer-token">
-    const token = localStorage.getItem('token') ?? '';
-    if (token) headers['Authorization'] = `Bearer ${r"${token}"}`;
-<#elseif (flags.securityLevel!"") == "apiKey">
-    const key = localStorage.getItem('apiKey') ?? '';
-    if (key) headers['X-API-Key'] = key;
+<#if (flags.securityLevel!"") != "">
+    Object.assign(headers, this.apiService.getAuthHeaders());
 </#if>
     this.http.get<unknown>(url, { headers, observe: 'response' }).subscribe({
       next: (res) => {

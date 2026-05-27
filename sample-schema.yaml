@@ -5,9 +5,7 @@ flags:
   securityLevel: "bearer-token"
   backendFlavor: "spring-boot"
   feFlavor: "react"
-  uiPattern: "form-engine"
   deployTarget: "docker-compose"
-  navigationMode: "spa"
   pagination:
     pageParam: "page"
     sizeParam: "size"

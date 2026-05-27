@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpContext } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environment';
 
@@ -14,14 +14,14 @@ export class BridgeApiService {
 <#else>
 <#assign securityLevel = "" />
 </#if>
-  getAuthHeaders(<#if securityLevel == "bearer-token">token: string</#if>): HttpHeaders {
+  getAuthHeaders(<#if securityLevel == "bearer-token">token: string</#if>): Record<string, string> {
 <#if securityLevel == "bearer-token">
-    return new HttpHeaders({ Authorization: 'Bearer ' + token });
+    return { Authorization: 'Bearer ' + token };
 <#elseif securityLevel == "apiKey">
     const key = localStorage.getItem('apiKey') ?? '';
-    return new HttpHeaders({ 'X-API-Key': key });
+    return { 'X-API-Key': key };
 <#else>
-    return new HttpHeaders();
+    return {};
 </#if>
   }
 

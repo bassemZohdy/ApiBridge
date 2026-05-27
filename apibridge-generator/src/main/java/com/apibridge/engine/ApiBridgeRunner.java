@@ -20,6 +20,7 @@ public class ApiBridgeRunner {
         String feFlavorOverride = null;
         String beFlavorOverride = null;
         String deployTargetOverride = null;
+        String securityLevelOverride = null;
 
         for (String arg : args) {
             if (arg.startsWith("--schema=")) {
@@ -34,6 +35,8 @@ public class ApiBridgeRunner {
                 beFlavorOverride = arg.substring("--be-flavor=".length());
             } else if (arg.startsWith("--deploy-target=")) {
                 deployTargetOverride = arg.substring("--deploy-target=".length());
+            } else if (arg.startsWith("--security-level=")) {
+                securityLevelOverride = arg.substring("--security-level=".length());
             } else if (arg.equals("--version") || arg.equals("-v")) {
                 System.out.println("ApiBridge Generator " + getVersion());
                 System.exit(0);
@@ -89,8 +92,12 @@ public class ApiBridgeRunner {
                 model.getFlags().setDeployTarget(deployTargetOverride);
                 System.out.println("Deploy Target Override: " + deployTargetOverride);
             }
+            if (securityLevelOverride != null && !securityLevelOverride.isBlank()) {
+                model.getFlags().setSecurityLevel(securityLevelOverride);
+                System.out.println("Security Level Override: " + securityLevelOverride);
+            }
 
-            if (feFlavorOverride != null || beFlavorOverride != null || deployTargetOverride != null) {
+            if (feFlavorOverride != null || beFlavorOverride != null || deployTargetOverride != null || securityLevelOverride != null) {
                 parser.validate(model);
             }
 
@@ -137,6 +144,7 @@ public class ApiBridgeRunner {
         System.out.println("  --fe-flavor=<val>      Frontend framework: angular | react | vue");
         System.out.println("  --be-flavor=<val>      Backend framework: spring-boot | quarkus");
         System.out.println("  --deploy-target=<val>  Deployment config: docker-compose | kubernetes | openshift");
+        System.out.println("  --security-level=<val> Security mode: bearer-token | apiKey");
         System.out.println("  --version, -v          Print version and exit");
         System.out.println("  -h, --help             Show this help menu\n");
     }

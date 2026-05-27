@@ -7,6 +7,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 public class YamlParser {
 
@@ -60,12 +62,6 @@ public class YamlParser {
                     throw new IllegalArgumentException("Schema validation error: Invalid flags.backendFlavor value '" + flavor + "'. Must be 'spring-boot' or 'quarkus'.");
                 }
             }
-            if (model.getFlags().getUiPattern() != null) {
-                String pattern = model.getFlags().getUiPattern().toLowerCase();
-                if (!pattern.equals("web-component") && !pattern.equals("form-engine")) {
-                    throw new IllegalArgumentException("Schema validation error: Invalid flags.uiPattern value '" + pattern + "'. Must be 'web-component' or 'form-engine'.");
-                }
-            }
         }
 
         if (model.getFlags() != null && model.getFlags().getFeFlavor() != null) {
@@ -89,13 +85,6 @@ public class YamlParser {
             }
         }
 
-        if (model.getFlags() != null && model.getFlags().getNavigationMode() != null) {
-            String mode = model.getFlags().getNavigationMode().toLowerCase();
-            if (!mode.equals("spa") && !mode.equals("mpa")) {
-                throw new IllegalArgumentException("Schema validation error: Invalid flags.navigationMode value '" + mode + "'. Must be 'spa' or 'mpa'.");
-            }
-        }
-
         if (model.getFlags() != null && model.getFlags().getPagination() != null) {
             BridgeSchemaModel.Pagination p = model.getFlags().getPagination();
             if (p.getDefaultPageSize() <= 0) {
@@ -103,6 +92,7 @@ public class YamlParser {
             }
         }
 
+        Set<String> seenEndpoints = new HashSet<>();
         for (int i = 0; i < model.getEndpoints().size(); i++) {
             BridgeSchemaModel.Endpoint endpoint = model.getEndpoints().get(i);
             String location = "endpoints[" + i + "]";
@@ -112,6 +102,15 @@ public class YamlParser {
             }
             if (endpoint.getMethod() == null || endpoint.getMethod().isBlank()) {
                 throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty HTTP 'method'.");
+            }
+            String methodUpper = endpoint.getMethod().toUpperCase();
+            if (!methodUpper.equals("GET") && !methodUpper.equals("POST") && !methodUpper.equals("PUT")
+                    && !methodUpper.equals("DELETE") && !methodUpper.equals("PATCH")) {
+                throw new IllegalArgumentException("Schema validation error at " + location + ": Invalid HTTP method '" + endpoint.getMethod() + "'. Must be GET, POST, PUT, DELETE, or PATCH.");
+            }
+            String endpointKey = endpoint.getMethod().toUpperCase() + " " + endpoint.getPath();
+            if (!seenEndpoints.add(endpointKey)) {
+                throw new IllegalArgumentException("Schema validation error at " + location + ": Duplicate endpoint " + endpointKey + ".");
             }
             if (endpoint.getBackendUrl() == null || endpoint.getBackendUrl().isBlank()) {
                 throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty 'backendUrl'.");
@@ -128,8 +127,8 @@ public class YamlParser {
                 if (layout.getComponent() == null || layout.getComponent().isBlank()) {
                     throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout: Missing or empty layout 'component' type.");
                 }
-                String comp = layout.getComponent();
-                if (!comp.equals("Form") && !comp.equals("List") && !comp.equals("View")) {
+                String comp = layout.getComponent().toLowerCase();
+                if (!comp.equals("form") && !comp.equals("list") && !comp.equals("view")) {
                     throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.component: Must be 'Form', 'List', or 'View'.");
                 }
                 if (layout.getFields() != null) {
@@ -139,7 +138,7 @@ public class YamlParser {
                         if (field.getName() == null || field.getName().isBlank()) {
                             throw new IllegalArgumentException("Schema validation error at " + fieldLocation + ": Missing or empty field 'name'.");
                         }
-                        if (comp.equals("Form") && (field.getType() == null || field.getType().isBlank())) {
+                        if (comp.equals("form") && (field.getType() == null || field.getType().isBlank())) {
                             throw new IllegalArgumentException("Schema validation error at " + fieldLocation + ": Missing or empty field 'type'.");
                         }
                     }

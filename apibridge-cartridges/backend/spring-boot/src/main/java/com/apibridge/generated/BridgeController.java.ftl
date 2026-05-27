@@ -116,7 +116,7 @@ public class BridgeController {
             @RequestBody(required = false) String body,
             HttpServletRequest request) {
         if (blockTraffic) return ResponseEntity.status(503).body("{\"error\":\"Service temporarily unavailable\"}");
-        if (mockMode) return ResponseEntity.ok("{\"status\":\"mock\",\"endpoint\":\"${endpoint.path}\",\"method\":\"${endpoint.method}\"}");
+        if (mockMode) return ResponseEntity.ok("{\"status\":\"mock\",\"endpoint\":\"${endpoint.path}\",\"method\":\"${endpoint.method?upper_case}\"}");
 <#if (flags.securityLevel!"") == "apiKey">
         if (expectedApiKey != null && !expectedApiKey.isBlank()) {
             String providedKey = request.getHeader("X-API-Key");

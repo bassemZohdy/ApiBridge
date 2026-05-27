@@ -27,7 +27,7 @@ JSONSERVER_STATUS="PENDING"
 
 # 1. Run Spring Boot E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [1/6] Executing Spring Boot E2E Validation..."
+echo "📋 [1/8] Executing Spring Boot E2E Validation..."
 echo "--------------------------------------------------"
 if ./maven-spring-boot-test/run-e2e.sh; then
   SPRING_BOOT_STATUS="SUCCESS"
@@ -37,7 +37,7 @@ fi
 
 # 2. Run Quarkus E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [2/6] Executing Quarkus E2E Validation..."
+echo "📋 [2/8] Executing Quarkus E2E Validation..."
 echo "--------------------------------------------------"
 if ./maven-quarkus-test/run-e2e.sh; then
   QUARKUS_STATUS="SUCCESS"
@@ -47,7 +47,7 @@ fi
 
 # 3. Run Angular E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [3/6] Executing Angular Frontend E2E Validation..."
+echo "📋 [3/8] Executing Angular Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-angular-test/run-e2e.sh; then
   ANGULAR_STATUS="SUCCESS"
@@ -57,7 +57,7 @@ fi
 
 # 4. Run React E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [4/6] Executing React Frontend E2E Validation..."
+echo "📋 [4/8] Executing React Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-react-test/run-e2e.sh; then
   REACT_STATUS="SUCCESS"
@@ -67,7 +67,7 @@ fi
 
 # 5. Run Vue E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [5/6] Executing Vue Frontend E2E Validation..."
+echo "📋 [5/8] Executing Vue Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-vue-test/run-e2e.sh; then
   VUE_STATUS="SUCCESS"
@@ -77,7 +77,7 @@ fi
 
 # 6. Run Contract Symmetry check
 echo -e "\n--------------------------------------------------"
-echo "📋 [6/7] Executing Backend-Frontend Contract Symmetry Scanner..."
+echo "📋 [6/8] Executing Backend-Frontend Contract Symmetry Scanner..."
 echo "--------------------------------------------------"
 if ./verify-contract-symmetry.sh; then
   CONTRACT_STATUS="SUCCESS"

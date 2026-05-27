@@ -33,7 +33,7 @@ Config: `apibridge-generator/checkstyle.xml`. Key rules:
 ## Architecture
 
 - **Engine entry point**: `ApiBridgeRunner.main()` — CLI arg parser, calls `YamlParser.parse()` then `ApiBridgeCartridgeEngine.generate()` per cartridge.
-- **Model**: `BridgeSchemaModel` (in `.model` subpackage) — Jackson-deserialized from YAML. Contains `Flags` (with defaults: `backendFlavor="spring-boot"`, `navigationMode="spa"`, `uiPattern="form-engine"`), `Pagination`, `Endpoint`, `UiLayout`, `Field`, `Column`.
+- **Model**: `BridgeSchemaModel` (in `.model` subpackage) — Jackson-deserialized from YAML. Contains `Flags` (with defaults: `backendFlavor="spring-boot"`), `Pagination`, `Endpoint`, `UiLayout`, `Field`, `Column`. Full Javadoc on all classes and fields.
 - **Template engine**: FreeMarker 2.3.32. Cartridge dir = template root. `.ftl` suffix stripped for output filenames.
 - **Output prefixing**: cartridges nested under `backend/`, `frontend/`, or `k8s/` auto-prefix their output with that directory name (e.g. `backend/spring-boot/BridgeController.java.ftl` → `<output>/backend/BridgeController.java`). Other cartridges (e.g. `devops/dockerfile`) emit directly to output root.
 - **Empty template output**: if a template renders to blank, it is skipped (no file written). Use this for conditional files.
@@ -67,7 +67,7 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --output=output/my-app
 ```
 
-CLI overrides take precedence over schema `flags`: `--be-flavor=`, `--fe-flavor=`, `--deploy-target=`.
+CLI overrides take precedence over schema `flags`: `--be-flavor=`, `--fe-flavor=`, `--deploy-target=`, `--security-level=`.
 
 ## E2E tests
 
@@ -91,17 +91,17 @@ Required fields: `id`, `basePath`, `endpoints` (non-empty list, each with `path`
 Valid `flags` enums:
 - `backendFlavor`: `spring-boot` | `quarkus`
 - `feFlavor`: `angular` | `react` | `vue`
-- `uiPattern`: `form-engine` | `web-component`
 - `securityLevel`: `bearer-token` | `apiKey`
 - `deployTarget`: `docker-compose` | `kubernetes` | `openshift`
-- `navigationMode`: `spa` | `mpa`
-- `endpoints[].uiLayout.component`: `Form` | `List` | `View`
+- `endpoints[].uiLayout.component`: `Form` | `List` | `View` (case-insensitive)
+
+HTTP methods allowed: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`. Duplicate endpoints (same path + method) are rejected.
 
 Full reference: `docs/schema-reference.md`.
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `e2e-compile` (all cartridge compile checks) → `e2e-docker` (fullstack Docker build + runtime). Triggers on push to `main`/`feature/**`/`bugfix**` and PRs to `main`.
+GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `e2e-compile` (all cartridge compile checks) → `e2e-docker` (fullstack Docker build + runtime) → `e2e-json-server` (live API integration). Triggers on push to `main`/`feature/**`/`bugfix**` and PRs to `main`.
 
 ## Git
 

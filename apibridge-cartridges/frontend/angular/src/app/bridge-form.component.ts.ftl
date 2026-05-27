@@ -5,7 +5,7 @@
     <#assign viewEndpoint = ep />
   </#if>
 </#list>
-import { Component<#if (flags.uiPattern!"form-engine") == "web-component">, ViewChild, ElementRef, AfterViewInit</#if>, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { BridgeApiService } from './bridge-api.service';
 
@@ -20,67 +20,6 @@ interface FieldDef {
   selector: 'app-bridge-form',
   templateUrl: './bridge-form.component.html'
 })
-<#if (flags.uiPattern!"form-engine") == "web-component">
-export class BridgeFormComponent implements AfterViewInit {
-
-  @ViewChild('bridgeFormRef') bridgeFormRef!: ElementRef;
-
-  activeTabIndex = 0;
-  loading = false;
-  response: unknown = null;
-  error: string | null = null;
-
-  readonly endpointLabels: string[] = [<#list formEndpoints as ep>'${ep.path}'<#sep>, </#list>];
-
-  constructor(private bridgeApiService: BridgeApiService) {}
-
-  ngAfterViewInit(): void {}
-
-  onBridgeSubmit(event: Event): void {
-    const detail = ((event as CustomEvent).detail ?? {}) as Record<string, unknown>;
-    this.callEndpoint(this.activeTabIndex, detail);
-  }
-
-  private callEndpoint(index: number, payload: Record<string, unknown>): void {
-    this.loading = true;
-    this.error = null;
-    this.response = null;
-    switch (index) {
-<#list formEndpoints as endpoint>
-<#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
-<#assign baseName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "") />
-<#assign epPathParams = [] />
-<#list endpoint.path?split("{") as seg>
-  <#if seg?contains("}")>
-    <#assign epPathParams = epPathParams + [seg?split("}")?first] />
-  </#if>
-</#list>
-<#assign paramSuffix = "" />
-<#list epPathParams as param>
-  <#if param_index == 0>
-    <#assign paramSuffix = "By" + param?capitalize />
-  <#else>
-    <#assign paramSuffix = paramSuffix + "And" + param?capitalize />
-  </#if>
-</#list>
-      case ${endpoint?index}: {
-<#if epPathParams?has_content>
-        const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = payload;
-        this.bridgeApiService.${endpoint.method?lower_case}${baseName}${paramSuffix}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if (flags.securityLevel!"") == "bearer-token">, localStorage.getItem('token') ?? ''</#if>).subscribe({
-<#else>
-        this.bridgeApiService.${endpoint.method?lower_case}${baseName}${paramSuffix}(payload<#if (flags.securityLevel!"") == "bearer-token">, localStorage.getItem('token') ?? ''</#if>).subscribe({
-</#if>
-          next: (res) => { this.response = res; this.loading = false; },
-          error: (err: Error) => { this.error = err?.message ?? 'Request failed'; this.loading = false; }
-        });
-        break;
-      }
-</#list>
-      default: this.loading = false; break;
-    }
-  }
-}
-<#else>
 export class BridgeFormComponent implements OnChanges {
 
   @Input() editId = '';
@@ -213,4 +152,3 @@ export class BridgeFormComponent implements OnChanges {
     }
   }
 }
-</#if>

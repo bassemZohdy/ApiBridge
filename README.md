@@ -74,6 +74,7 @@ java -jar apibridge-generator.jar \
   [--be-flavor=<val>]       Override backend: spring-boot | quarkus
   [--fe-flavor=<val>]       Override frontend: angular | react | vue
   [--deploy-target=<val>]   Override deployment: docker-compose | kubernetes | openshift
+  [--security-level=<val>]  Override security: bearer-token | apiKey
   [--version | -v]          Print version and exit
   [-h | --help]             Show help
 ```
@@ -302,7 +303,6 @@ Checkstyle rules: 4-space indent, no star imports, no unused imports, braces req
 | `backendFlavor` | String | `spring-boot` or `quarkus` (never null) |
 | `feFlavor` | String | `react`, `angular`, `vue`, or `""` if unset |
 | `deployTarget` | String | `docker-compose`, `kubernetes`, `openshift`, or `""` |
-| `flags.navigationMode` | String | `spa` (default) or `mpa` |
 | `flags.pagination` | Pagination | Pagination param names; never null when flags is non-null |
 | `endpoint.uiLayout.component` | String | `Form`, `List`, or `View` |
 | `endpoint.uiLayout.columns` | List\<Column\> | Schema-defined list columns (optional; runtime fallback if absent) |
@@ -336,4 +336,4 @@ Use `(feFlavor!"") != ""` to gate FE-specific content in templates that apply to
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`): `build` job (`mvn verify` on JDK 21) → `e2e` job (full suite including Docker build). Triggers on push to `main`/`feature**`/`bugfix**` and PRs to `main`.
+GitHub Actions (`.github/workflows/ci.yml`): `build` job (`mvn verify` on JDK 21) → `e2e-compile` (all cartridge compile checks) → `e2e-docker` (fullstack Docker build + runtime) → `e2e-json-server` (live API integration). Triggers on push to `main`/`feature**`/`bugfix**` and PRs to `main`.

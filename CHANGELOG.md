@@ -7,6 +7,55 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Fixed — Compile-breaking and runtime bugs (BUG-1 to BUG-13)
+
+- **BUG-1**: Removed duplicate React `ApiBridgeView` component (old View without DELETE left as dead code).
+- **BUG-2**: Removed duplicate Angular `bridge-view.component.ts` class.
+- **BUG-3**: Fixed unescaped `${this.recordId}` in Angular View FreeMarker template.
+- **BUG-4**: Fixed uninitialized `upstream` variable in Quarkus `ProxyService` `finally` block (Java compile error).
+- **BUG-5**: Fixed unescaped `${id}` in React `ApiBridgeList` row-click handler (navigated to service ID instead of row ID).
+- **BUG-6**: Fixed broken URL construction in Angular `bridge-list.component.ts`.
+- **BUG-7**: Spring Boot error responses now use `Content-Type: application/json` (was `text/plain`).
+- **BUG-8**: Auth `RestTemplate` now has 5s connect / 10s read timeouts (was unbounded).
+- **BUG-9**: Quarkus auth `Response` from bearer validation now properly closed (connection leak).
+- **BUG-10**: Angular Form now has Back button and `@Output() navigate`.
+- **BUG-11**: CORS now includes `exposedHeaders("*")` and `maxAge(3600)` — upstream headers (e.g. `X-Total-Count`) visible to frontend JS.
+- **BUG-12**: Telemetry spans now set `StatusCode.ERROR` on exceptions.
+- **BUG-13**: All `flags` accesses are null-safe — templates handle missing `flags:` section without crashing.
+
+### Changed — Consistency and cleanup (M1–M16)
+
+- **M1/M2**: Removed `navigationMode` and `uiPattern` from entire codebase (model, parser, templates, tests, schemas, docs).
+- **M3**: `/api/bridge-config` now returns `securityLevel`, `basePath`, `enableTelemetry`, `customCssPath` (in addition to pagination).
+- **M4**: CORS aligned between backends: `allowCredentials`, `maxAge(3600)`, `exposedHeaders("*")`.
+- **M5**: DevOps templates now include all `PAGINATION_*` and `CUSTOM_CSS_PATH` env vars.
+- **M6**: Removed unused imports (Angular `HttpHeaders`, `BridgeApiService`; Quarkus `java.util.List`).
+- **M7**: Removed dead code (Vue `pathToMethod` FreeMarker function, unused `axios` dependency).
+- **M8**: Aligned mock-mode method case to uppercase in both backends.
+- **M9**: Quarkus FE static resource config is conditional on `feFlavor` with 365d cache headers.
+- **M10**: Angular list/view use `BridgeApiService.getAuthHeaders()` consistently.
+- **M11**: `UiLayoutSchema.json.ftl` now includes `columns` array and `field.label`.
+- **M12**: Fixed `feFlavor` default documentation (no default, not `react`).
+- **M13**: Quarkus `BridgeConfigResource` has `@ApplicationScoped`.
+- **M14**: Quarkus `pom.xml.ftl` has `<name>` and `<description>`.
+- **M15**: Angular `styles.css.ftl` has `.apib-spinner--dark` variant.
+- **M16**: Vue `ApiBridgeView.vue.ftl` has `<style scoped>` section.
+
+### Added — Schema and engine improvements (S1–S6)
+
+- **S1**: HTTP method validation — only `GET`, `POST`, `PUT`, `DELETE`, `PATCH` allowed.
+- **S2**: Case-insensitive `uiLayout.component` validation.
+- **S3**: CLI override `--security-level=` added to `ApiBridgeRunner`.
+- **S4**: Duplicate endpoint detection — same `path` + `method` rejected.
+- **S5**: Proxy timeouts configurable via `PROXY_CONNECT_TIMEOUT` / `PROXY_READ_TIMEOUT` env vars.
+- **S6**: `BridgeSchemaModel` has full Javadoc on all classes and fields.
+
+### Testing — CI and E2E fixes (L3, L5, L6)
+
+- **L3**: CI wired with `e2e-json-server` job in `.github/workflows/ci.yml`.
+- **L5**: Vue E2E uses `vue-tsc` instead of `tsc`.
+- **L6**: Fixed `run-all-e2e.sh` step numbering.
+
 ### Fixed — Frontend API method naming collision
 
 - All 3 frontend `bridgeApi` templates (`bridgeApi.ts.ftl` for React/Vue, `bridge-api.service.ts.ftl` for Angular) now generate unique method names by combining HTTP method prefix + path segments + "By" suffix for path params. Previously, `GET /submissions` and `GET /submissions/{id}` both produced `submissions()` — a TypeScript compile error due to duplicate function declarations.
@@ -65,7 +114,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ### Added — Test coverage for new model fields
 
-- **`YamlParserTest`**: 10 new tests covering `navigationMode` default/validation, `Pagination` defaults/custom/negative-size validation, `Column` parsing/field-required validation, View component fields without `type`, and optional `Field.label`.
+- **`YamlParserTest`**: 10 new tests covering `Pagination` defaults/custom/negative-size validation, `Column` parsing/field-required validation, View component fields without `type`, and optional `Field.label`.
 - **`ApiBridgeCartridgeEngineTest`**: 3 new integration tests (`testReactCartridgeWithListViewForm`, `testAngularCartridgeWithListViewForm`, `testVueCartridgeWithListViewForm`) verifying that List, View, and Form pages all generate correctly from a multi-endpoint model.
 - Total unit tests: **85** (up from 72).
 
@@ -114,16 +163,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - **FreeMarker context map**: engine now exposes `feFlavor`, `backendFlavor`, and `deployTarget` as top-level template variables alongside the full model object.
 - **Fullstack Spring Boot backend templates**: `Application.java`, `BridgeController.java` (HTTP method shortcuts, proxy/mock/block logic), `ProxyService.java` (RestTemplate, header passthrough), `pom.xml` (spring-boot-starter-parent 3.2.5), `application.properties`.
 - **Fullstack Quarkus backend templates**: `BridgeResource.java` (JAX-RS, `@ConfigProperty`, path-derived method names), `ProxyService.java` (JAX-RS Client, `@ApplicationScoped`), `pom.xml` (Quarkus platform BOM 3.9.4, uber-jar), `application.properties`.
-- **Fullstack Angular frontend templates** (11 files): `package.json`, `angular.json`, `tsconfig.json`, `index.html`, `main.ts`, `app.module.ts`, `app.component.ts/html`, `bridge-api.service.ts`, `bridge-form.component.ts/html`. Supports both `form-engine` (ngx-formly) and `web-component` rendering modes.
-- **Fullstack React frontend templates** (7 files): `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `main.tsx`, `bridgeApi.ts`, `ApiBridgeForm.tsx`. RJSF for `form-engine`, `useRef`/`useEffect` web-component integration.
-- **Fullstack Vue frontend templates** (7 files): `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `main.ts`, `bridgeApi.ts`, `ApiBridgeForm.vue`. Reactive `form-engine` with typed fields, `web-component` with `onMounted` listener.
+- **Fullstack Angular frontend templates** (11 files): `package.json`, `angular.json`, `tsconfig.json`, `index.html`, `main.ts`, `app.module.ts`, `app.component.ts/html`, `bridge-api.service.ts`, `bridge-form.component.ts/html`. Dynamic form engine with ngx-formly.
+- **Fullstack React frontend templates** (7 files): `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `main.tsx`, `bridgeApi.ts`, `ApiBridgeForm.tsx`. RJSF form engine.
+- **Fullstack Vue frontend templates** (7 files): `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `main.ts`, `bridgeApi.ts`, `ApiBridgeForm.vue`. Reactive form engine with typed fields.
 - **Fullstack Docker E2E test** (`e2e-tests/docker-fullstack-test/run-e2e.sh`): 8-stage test — (1) builds generator JAR, (2) verifies no deployment configs generated when `deployTarget` absent, (3) verifies conditional `docker-compose.yml` with `--deploy-target=docker-compose`, (4–5) verifies backend/frontend file structure, (6) Docker build, (7) container runtime test with `MOCK_MODE=true` — polls health, asserts `"status":"mock"` response, (8) container runtime test with `BLOCK_TRAFFIC=true` — asserts 503. Docker stages auto-skipped if daemon unavailable. Integrated into `run-all-e2e.sh` as step 7.
 - **GitHub Actions CI** (`.github/workflows/ci.yml`): two-job pipeline — `build` (`mvn verify` on JDK 21) and `e2e` (full E2E suite including Docker build). Triggers on push to `main`/`feature**`/`bugfix**` and PRs to `main`.
 - **Checkstyle** (`apibridge-generator/checkstyle.xml`): 4-space indent, naming conventions, no star/unused imports, braces required. Bound to `mvn verify`; 0 violations on all sources.
 - **Schema reference documentation** (`docs/schema-reference.md`): complete field reference with types, valid values, defaults, and validation rules.
 - **CLAUDE.md project instructions**: persistent guidance for Claude Code sessions covering build commands, cartridge architecture, schema enum values, and git workflow.
 - **Engine routing unit tests**: five new tests covering `testFlavorDirSelectionPicksMatchingBeDir`, `testFlavorDirSelectionSkipsMismatchedFeDir`, `testOutputPathMappingStripsFlavorPrefix`, `testSkipsEmptyRenderedOutput`, and `testRootTemplatesStillOutputToRoot`.
-- **YamlParser unit tests**: 36 tests covering all validation paths — null/missing/directory/malformed file input, required field presence, all flags enum validation (including blank values and case-insensitivity for all four enum flags), endpoint validation for all required fields (null and blank), second-endpoint index in error messages, uiLayout/field validation, uiLayout with null fields, and happy-path cases.
+- **YamlParser unit tests**: 36 tests covering all validation paths — null/missing/directory/malformed file input, required field presence, all flags enum validation (including blank values and case-insensitivity for all enum flags), endpoint validation for all required fields (null and blank), second-endpoint index in error messages, uiLayout/field validation, uiLayout with null fields, and happy-path cases.
 - **Engine unit tests**: 23 tests covering input guard contracts (null model, null/missing/file cartridge dir, null output dir), empty cartridge error, output dir auto-creation, `deployTarget` FreeMarker context (conditional skip when absent, conditional render when set), and default BE/FE flavor routing when `flags` is null.
 - Total test suite: **59 tests, 0 failures**.
 
@@ -144,4 +193,4 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - Standalone cartridges: `backend-spring-boot`, `backend-quarkus`, `frontend-ui-schema`, `frontend-angular`, `frontend-react`, `frontend-vue`.
 - E2E test suite: Maven compile verification for Spring Boot and Quarkus; TypeScript compile verification for Angular, React, and Vue; backend-frontend contract symmetry check.
 - Multi-module Maven reactor POM with `maven-shade-plugin` fat JAR packaging.
-- Schema validation: `id`, `basePath`, `endpoints` required; `backendFlavor` enum; `uiPattern` enum; telemetry-name conditional requirement; uiLayout field validation.
+- Schema validation: `id`, `basePath`, `endpoints` required; `backendFlavor` enum; `securityLevel` enum; telemetry-name conditional requirement; uiLayout field validation.

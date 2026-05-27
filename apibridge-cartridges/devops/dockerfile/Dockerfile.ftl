@@ -107,6 +107,13 @@ ENV \
     # CORS allowed origins (comma-separated; * = allow all)
     CORS_ALLOWED_ORIGINS=* \
 </#if>
+    # Pagination defaults
+    PAGINATION_PAGE_PARAM=page \
+    PAGINATION_SIZE_PARAM=size \
+    PAGINATION_DEFAULT_PAGE_SIZE=20 \
+    PAGINATION_SORT_PARAM=sort \
+    PAGINATION_DIRECTION_PARAM=dir \
+    CUSTOM_CSS_PATH= \
 <#if flags.enableTelemetry>
 <#if backendFlavor == "spring-boot">
     # Distributed tracing — OTLP exporter (Spring Boot)

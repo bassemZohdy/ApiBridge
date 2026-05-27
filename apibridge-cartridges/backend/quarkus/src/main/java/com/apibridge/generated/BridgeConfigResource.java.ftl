@@ -1,5 +1,6 @@
 package com.apibridge.generated;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -10,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Path("/api")
+@ApplicationScoped
 public class BridgeConfigResource {
 
     @ConfigProperty(name = "PAGINATION_PAGE_PARAM", defaultValue = "<#if (flags.pagination.pageParam)??>${flags.pagination.pageParam}<#else>page</#if>")
@@ -27,6 +29,9 @@ public class BridgeConfigResource {
     @ConfigProperty(name = "PAGINATION_DIRECTION_PARAM", defaultValue = "<#if (flags.pagination.directionParam)??>${flags.pagination.directionParam}<#else>dir</#if>")
     String directionParam;
 
+    @ConfigProperty(name = "CUSTOM_CSS_PATH", defaultValue = "")
+    String customCssPath;
+
     @GET
     @Path("/bridge-config")
     @Produces(MediaType.APPLICATION_JSON)
@@ -39,8 +44,11 @@ public class BridgeConfigResource {
         pagination.put("directionParam", directionParam);
 
         Map<String, Object> config = new LinkedHashMap<>();
-        config.put("navigationMode", "${(flags.navigationMode)!"spa"}");
+        config.put("securityLevel", "${(flags.securityLevel)!""}");
+        config.put("basePath", "${basePath}");
+        config.put("enableTelemetry", ${((flags.enableTelemetry)!false)?c});
         config.put("pagination", pagination);
+        config.put("customCssPath", customCssPath);
 
         return config;
     }

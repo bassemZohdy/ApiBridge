@@ -2,10 +2,18 @@ package com.apibridge.engine.model;
 
 import java.util.List;
 
+/**
+ * Root model representing a parsed ApiBridge YAML schema.
+ * Contains the service identity, base REST path, configuration flags, and endpoint definitions.
+ */
 public class BridgeSchemaModel {
+    /** Unique service identifier used as the application name and for logging. */
     private String id;
+    /** REST base path prepended to all endpoint paths (e.g. "/api/v1"). */
     private String basePath;
+    /** Optional configuration flags controlling code generation and runtime behavior. */
     private Flags flags;
+    /** Ordered list of endpoint definitions to generate proxy routes and UI components for. */
     private List<Endpoint> endpoints;
 
     public String getId() { return id; }
@@ -27,14 +35,22 @@ public class BridgeSchemaModel {
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Configuration flags controlling code generation and runtime behavior.
+     * All fields have sensible defaults; only overrides need to be specified in the schema.
+     */
     public static class Flags {
+        /** Whether to emit OpenTelemetry tracing spans in generated backend code. */
         private boolean enableTelemetry;
+        /** Security validation mode: "bearer-token", "apiKey", or null for no security. */
         private String securityLevel;
+        /** Backend framework to generate: "spring-boot" (default) or "quarkus". */
         private String backendFlavor = "spring-boot";
-        private String uiPattern = "form-engine";
+        /** Frontend framework to generate: "angular", "react", "vue", or null if no frontend. */
         private String feFlavor;
+        /** Deployment target to generate configs for: "docker-compose", "kubernetes", "openshift", or null. */
         private String deployTarget;
-        private String navigationMode = "spa";
+        /** Pagination defaults applied to List-type endpoints. */
         private Pagination pagination = new Pagination();
 
         public boolean isEnableTelemetry() { return enableTelemetry; }
@@ -46,17 +62,11 @@ public class BridgeSchemaModel {
         public String getBackendFlavor() { return backendFlavor; }
         public void setBackendFlavor(String backendFlavor) { this.backendFlavor = backendFlavor; }
 
-        public String getUiPattern() { return uiPattern; }
-        public void setUiPattern(String uiPattern) { this.uiPattern = uiPattern; }
-
         public String getFeFlavor() { return feFlavor; }
         public void setFeFlavor(String feFlavor) { this.feFlavor = feFlavor; }
 
         public String getDeployTarget() { return deployTarget; }
         public void setDeployTarget(String deployTarget) { this.deployTarget = deployTarget; }
-
-        public String getNavigationMode() { return navigationMode; }
-        public void setNavigationMode(String navigationMode) { this.navigationMode = navigationMode; }
 
         public Pagination getPagination() { return pagination; }
         public void setPagination(Pagination pagination) { this.pagination = pagination; }
@@ -64,19 +74,28 @@ public class BridgeSchemaModel {
         @Override
         public String toString() {
             return "Flags{enableTelemetry=" + enableTelemetry + ", securityLevel='" + securityLevel
-                    + "', backendFlavor='" + backendFlavor + "', uiPattern='" + uiPattern
+                    + "', backendFlavor='" + backendFlavor
                     + "', feFlavor='" + feFlavor + "', deployTarget='" + deployTarget
-                    + "', navigationMode='" + navigationMode + "', pagination=" + pagination + '}';
+                    + "', pagination=" + pagination + '}';
         }
     }
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Pagination configuration for list-style endpoints.
+     * Controls query parameter names and default page sizing.
+     */
     public static class Pagination {
+        /** Query parameter name for the page number (default: "page"). */
         private String pageParam = "page";
+        /** Query parameter name for the page size (default: "size"). */
         private String sizeParam = "size";
+        /** Default number of items per page when no size parameter is provided (default: 20). */
         private int defaultPageSize = 20;
+        /** Query parameter name for the sort field (default: "sort"). */
         private String sortParam = "sort";
+        /** Query parameter name for the sort direction, e.g. "asc" or "desc" (default: "dir"). */
         private String directionParam = "dir";
 
         public String getPageParam() { return pageParam; }
@@ -104,11 +123,20 @@ public class BridgeSchemaModel {
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Defines a single REST endpoint to proxy, including its upstream backend URL
+     * and optional UI layout for rendering a form, list, or detail view.
+     */
     public static class Endpoint {
+        /** URL path relative to basePath (e.g. "/orders/{id}"). */
         private String path;
+        /** HTTP method: GET, POST, PUT, DELETE, or PATCH. */
         private String method;
+        /** Fully-qualified upstream backend URL to proxy requests to. */
         private String backendUrl;
+        /** Custom span name used when enableTelemetry is active. */
         private String telemetryName;
+        /** Optional UI layout describing how this endpoint should be rendered in the frontend. */
         private UiLayout uiLayout;
 
         public String getPath() { return path; }
@@ -135,9 +163,16 @@ public class BridgeSchemaModel {
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Describes the frontend UI layout for an endpoint.
+     * The component type determines whether a form, list, or detail view is rendered.
+     */
     public static class UiLayout {
+        /** Component type to render: "Form", "List", or "View" (case-insensitive). */
         private String component;
+        /** Form fields for Form-type components. Each field defines a labeled input. */
         private List<Field> fields;
+        /** Table columns for List-type components. Each column maps to a data field. */
         private List<Column> columns;
 
         public String getComponent() { return component; }
@@ -157,10 +192,18 @@ public class BridgeSchemaModel {
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Represents a single form input field within a Form-type UI layout.
+     * Defines the field name, display label, input type, and whether it is required.
+     */
     public static class Field {
+        /** Programmatic field name matching the JSON property key. */
         private String name;
+        /** Human-readable label shown next to the input. */
         private String label;
+        /** Input type for form rendering (e.g. "text", "number", "email", "date"). Required for Form components. */
         private String type;
+        /** Whether the field must be filled in before submission. */
         private boolean required;
 
         public String getName() { return name; }
@@ -183,10 +226,18 @@ public class BridgeSchemaModel {
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Represents a single column in a List-type UI layout (data table).
+     * Maps a data field to a sortable, optionally sized table column.
+     */
     public static class Column {
+        /** Data field name this column displays, matching a JSON property key. */
         private String field;
+        /** Human-readable column header text. */
         private String label;
+        /** Whether the user can sort the table by this column. */
         private boolean sortable;
+        /** CSS width hint for the column (e.g. "200px", "20%"). */
         private String width;
 
         public String getField() { return field; }

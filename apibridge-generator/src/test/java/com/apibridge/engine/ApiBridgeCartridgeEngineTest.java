@@ -119,7 +119,7 @@ public class ApiBridgeCartridgeEngineTest {
     @Test
     public void testAngularCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
-        model.getFlags().setUiPattern("form-engine");
+        model.getFlags().setFeFlavor("angular");
         File cartridgeDir = findCartridgeDir("frontend/angular");
         File outputDir = tempDir.resolve("output-angular").toFile();
 
@@ -140,7 +140,7 @@ public class ApiBridgeCartridgeEngineTest {
     @Test
     public void testReactCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
-        model.getFlags().setUiPattern("web-component");
+        model.getFlags().setFeFlavor("react");
         File cartridgeDir = findCartridgeDir("frontend/react");
         File outputDir = tempDir.resolve("output-react").toFile();
 
@@ -157,7 +157,7 @@ public class ApiBridgeCartridgeEngineTest {
     @Test
     public void testVueCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
-        model.getFlags().setUiPattern("form-engine");
+        model.getFlags().setFeFlavor("vue");
         File cartridgeDir = findCartridgeDir("frontend/vue");
         File outputDir = tempDir.resolve("output-vue").toFile();
 
@@ -200,7 +200,7 @@ public class ApiBridgeCartridgeEngineTest {
     @Test
     public void testAngularCartridgeWithListViewForm(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createListViewFormModel();
-        model.getFlags().setUiPattern("form-engine");
+        model.getFlags().setFeFlavor("angular");
         File cartridgeDir = findCartridgeDir("frontend/angular");
         File outputDir = tempDir.resolve("output-angular-lvf").toFile();
 

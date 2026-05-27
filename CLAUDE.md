@@ -21,6 +21,7 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --be-flavor=spring-boot        # spring-boot | quarkus
   --fe-flavor=react              # angular | react | vue (omit for BE-only)
   --deploy-target=docker-compose # docker-compose | kubernetes | openshift
+  --security-level=bearer-token  # bearer-token | apiKey
 ```
 
 ## Testing & Linting
@@ -51,16 +52,14 @@ Cartridges are **independent, composable directories of `.ftl` FreeMarker templa
 
 Full reference: @docs/schema-reference.md
 
-Required fields (validated by `YamlParser`): `id` (non-empty), `basePath` (non-empty), `endpoints` (non-empty list).
+Required fields (validated by `YamlParser`): `id` (non-empty), `basePath` (non-empty), `endpoints` (non-empty list). HTTP method must be GET/POST/PUT/DELETE/PATCH. Duplicate endpoints (same path + method) are rejected.
 
 Valid enum values:
 - `flags.backendFlavor`: `spring-boot` | `quarkus`
 - `flags.feFlavor`: `angular` | `react` | `vue`
-- `flags.uiPattern`: `form-engine` | `web-component`
 - `flags.securityLevel`: `bearer-token` | `apiKey`
 - `flags.deployTarget`: `docker-compose` | `kubernetes` | `openshift` (absent = no deployment config generated)
-- `flags.navigationMode`: `spa` (default) | `mpa`
-- `uiLayout.component`: `Form` | `List` | `View`
+- `uiLayout.component`: `Form` | `List` | `View` (case-insensitive)
 
 `flags.pagination` sub-fields: `pageParam` (default `page`), `sizeParam` (default `size`), `defaultPageSize` (default `20`), `sortParam` (default `sort`), `directionParam` (default `dir`). All overrideable at runtime via `PAGINATION_*` ENV VARs via `/api/bridge-config`.
 
@@ -73,6 +72,7 @@ Valid enum values:
 - **Auth helper**: all 3 frameworks now export `getAuthHeaders()`. React/Vue export from `bridgeApi.ts`; Angular exposes `getAuthHeaders()` on `BridgeApiService`. New components must use these instead of building headers inline.
 - **Backend method naming**: generated Java method names include the HTTP method prefix (`getMethod()`, `postMethod()`) to avoid collision when endpoints share a path with different verbs.
 - **ProxyService forwarding**: both backends forward all request headers (excluding hop-by-hop set) and all response headers. Query parameters are appended to the upstream URL. Do not regress to the old allow-list approach.
+- **Null-safe flags**: all templates must handle missing `flags:` section. Use `(flags!"")` or `<#if flags??>` guards.
 
 ## Git Workflow
 
