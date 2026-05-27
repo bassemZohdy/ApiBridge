@@ -24,10 +24,13 @@ VUE_STATUS="PENDING"
 CONTRACT_STATUS="PENDING"
 FULLSTACK_STATUS="PENDING"
 JSONSERVER_STATUS="PENDING"
+KUBERNETES_STATUS="PENDING"
+OPENSHIFT_STATUS="PENDING"
+REACT_PROD_STATUS="PENDING"
 
 # 1. Run Spring Boot E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [1/8] Executing Spring Boot E2E Validation..."
+echo "📋 [1/11] Executing Spring Boot E2E Validation..."
 echo "--------------------------------------------------"
 if ./maven-spring-boot-test/run-e2e.sh; then
   SPRING_BOOT_STATUS="SUCCESS"
@@ -37,7 +40,7 @@ fi
 
 # 2. Run Quarkus E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [2/8] Executing Quarkus E2E Validation..."
+echo "📋 [2/11] Executing Quarkus E2E Validation..."
 echo "--------------------------------------------------"
 if ./maven-quarkus-test/run-e2e.sh; then
   QUARKUS_STATUS="SUCCESS"
@@ -47,7 +50,7 @@ fi
 
 # 3. Run Angular E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [3/8] Executing Angular Frontend E2E Validation..."
+echo "📋 [3/11] Executing Angular Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-angular-test/run-e2e.sh; then
   ANGULAR_STATUS="SUCCESS"
@@ -57,7 +60,7 @@ fi
 
 # 4. Run React E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [4/8] Executing React Frontend E2E Validation..."
+echo "📋 [4/11] Executing React Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-react-test/run-e2e.sh; then
   REACT_STATUS="SUCCESS"
@@ -67,7 +70,7 @@ fi
 
 # 5. Run Vue E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [5/8] Executing Vue Frontend E2E Validation..."
+echo "📋 [5/11] Executing Vue Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-vue-test/run-e2e.sh; then
   VUE_STATUS="SUCCESS"
@@ -77,7 +80,7 @@ fi
 
 # 6. Run Contract Symmetry check
 echo -e "\n--------------------------------------------------"
-echo "📋 [6/8] Executing Backend-Frontend Contract Symmetry Scanner..."
+echo "📋 [6/11] Executing Backend-Frontend Contract Symmetry Scanner..."
 echo "--------------------------------------------------"
 if ./verify-contract-symmetry.sh; then
   CONTRACT_STATUS="SUCCESS"
@@ -87,7 +90,7 @@ fi
 
 # 7. Run Fullstack Docker E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [7/8] Executing Fullstack Docker E2E Validation..."
+echo "📋 [7/11] Executing Fullstack Docker E2E Validation..."
 echo "--------------------------------------------------"
 if ./docker-fullstack-test/run-e2e.sh; then
   FULLSTACK_STATUS="SUCCESS"
@@ -97,12 +100,42 @@ fi
 
 # 8. Run json-server List/View/Form E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [8/8] Executing json-server List/View/Form E2E..."
+echo "📋 [8/11] Executing json-server List/View/Form E2E..."
 echo "--------------------------------------------------"
 if ./json-server-test/run-e2e.sh; then
   JSONSERVER_STATUS="SUCCESS"
 else
   JSONSERVER_STATUS="FAILED"
+fi
+
+# 9. Run Kubernetes manifest validation
+echo -e "\n--------------------------------------------------"
+echo "📋 [9/11] Executing Kubernetes Manifest Validation..."
+echo "--------------------------------------------------"
+if ./kubernetes-test/run-e2e.sh; then
+  KUBERNETES_STATUS="SUCCESS"
+else
+  KUBERNETES_STATUS="FAILED"
+fi
+
+# 10. Run OpenShift manifest validation
+echo -e "\n--------------------------------------------------"
+echo "📋 [10/11] Executing OpenShift Manifest Validation..."
+echo "--------------------------------------------------"
+if ./openshift-test/run-e2e.sh; then
+  OPENSHIFT_STATUS="SUCCESS"
+else
+  OPENSHIFT_STATUS="FAILED"
+fi
+
+# 11. Run React production build
+echo -e "\n--------------------------------------------------"
+echo "📋 [11/11] Executing React Production Build E2E..."
+echo "--------------------------------------------------"
+if ./react-prod-build-test/run-e2e.sh; then
+  REACT_PROD_STATUS="SUCCESS"
+else
+  REACT_PROD_STATUS="FAILED"
 fi
 
 # Print final report card dashboard
@@ -158,6 +191,24 @@ if [ "$JSONSERVER_STATUS" = "SUCCESS" ]; then
 else
   printf "  %-35s | \033[0;31m%s\033[0m\n" "json-server List/View/Form E2E" "FAILED"
 fi
+
+if [ "$KUBERNETES_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "Kubernetes Manifest Validation" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "Kubernetes Manifest Validation" "FAILED"
+fi
+
+if [ "$OPENSHIFT_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "OpenShift Manifest Validation" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "OpenShift Manifest Validation" "FAILED"
+fi
+
+if [ "$REACT_PROD_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "React Production Build" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "React Production Build" "FAILED"
+fi
 echo "=================================================="
 
 # Exit with error if any pipeline failed
@@ -168,7 +219,10 @@ if [ "$SPRING_BOOT_STATUS" != "SUCCESS" ] || \
    [ "$VUE_STATUS" != "SUCCESS" ] || \
    [ "$CONTRACT_STATUS" != "SUCCESS" ] || \
    [ "$FULLSTACK_STATUS" != "SUCCESS" ] || \
-   [ "$JSONSERVER_STATUS" != "SUCCESS" ]; then
+   [ "$JSONSERVER_STATUS" != "SUCCESS" ] || \
+   [ "$KUBERNETES_STATUS" != "SUCCESS" ] || \
+   [ "$OPENSHIFT_STATUS" != "SUCCESS" ] || \
+   [ "$REACT_PROD_STATUS" != "SUCCESS" ]; then
   echo "❌ Error: One or more integration pipelines failed."
   exit 1
 else

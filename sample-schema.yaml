@@ -49,6 +49,31 @@ endpoints:
         - name: "status"
           label: "Status"
 
+  - path: "/submissions/{id}"
+    method: "PUT"
+    backendUrl: "https://internal-mesh.local/customer/submissions/1"
+    telemetryName: "apibridge_onboarding_update"
+    uiLayout:
+      component: "Form"
+      fields:
+        - name: "email"
+          type: "string"
+          label: "Email Address"
+          required: true
+        - name: "companyName"
+          type: "string"
+          label: "Company Name"
+          required: true
+        - name: "status"
+          type: "string"
+          label: "Status"
+          required: false
+
+  - path: "/submissions/{id}"
+    method: "DELETE"
+    backendUrl: "https://internal-mesh.local/customer/submissions/1"
+    telemetryName: "apibridge_onboarding_delete"
+
   - path: "/initiate"
     method: "POST"
     backendUrl: "https://internal-mesh.local/customer/create"

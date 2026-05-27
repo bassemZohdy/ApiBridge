@@ -1,3 +1,12 @@
+<#function mapInputType ft>
+  <#if ft == "boolean"><#return "checkbox">
+  <#elseif ft == "number" || ft == "integer"><#return "number">
+  <#elseif ft == "email"><#return "email">
+  <#elseif ft == "date"><#return "date">
+  <#elseif ft == "url"><#return "url">
+  <#elseif ft == "password"><#return "password">
+  <#else><#return "text"></#if>
+</#function>
 <#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
 <#assign viewEndpoint = "" />
 <#list endpoints as ep>
@@ -12,8 +21,9 @@ import { BridgeApiService } from './bridge-api.service';
 interface FieldDef {
   key: string;
   label: string;
-  inputType: 'text' | 'number' | 'checkbox';
+  inputType: 'text' | 'number' | 'checkbox' | 'email' | 'date' | 'url' | 'password';
   required: boolean;
+  fieldType: string;
 }
 
 @Component({
@@ -45,7 +55,7 @@ export class BridgeFormComponent implements OnChanges {
 </#list>
 <#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>
-      { key: '${field.name}', label: '${field.name?upper_case}', inputType: '${(field.type == "boolean")?then("checkbox", (field.type == "number")?then("number", "text"))}', required: ${field.required?c} },
+      { key: '${field.name}', label: '${field.name?upper_case}', inputType: '${mapInputType(field.type!"text")}' as const, required: ${field.required?c}, fieldType: '${field.type!"text"}' },
 </#list>
 </#if>
     ]<#if endpoint?has_next>,</#if>
@@ -57,7 +67,10 @@ export class BridgeFormComponent implements OnChanges {
     fields.forEach(f => {
       const initVal: string | number | boolean =
         f.inputType === 'checkbox' ? false : f.inputType === 'number' ? 0 : '';
-      controls[f.key] = new FormControl(initVal, f.required ? [Validators.required] : []);
+      const validators = [];
+      if (f.required) validators.push(Validators.required);
+      if (f.fieldType === 'email') validators.push(Validators.email);
+      controls[f.key] = new FormControl(initVal, validators);
     });
     return new FormGroup(controls);
   });

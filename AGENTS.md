@@ -73,7 +73,7 @@ CLI overrides take precedence over schema `flags`: `--be-flavor=`, `--fe-flavor=
 
 - Script: `./e2e-tests/run-all-e2e.sh` (bash — requires Linux/macOS or WSL).
 - Set `SKIP_GENERATOR_BUILD=true` to skip rebuilding the JAR (used in CI).
-- Suites: Spring Boot compile, Quarkus compile, Angular/React/Vue strict TypeScript compile, contract symmetry, fullstack Docker, json-server integration.
+- Suites: Spring Boot compile, Quarkus compile, Angular/React/Vue strict TypeScript compile, React production build, contract symmetry, Kubernetes manifest validation, OpenShift manifest validation, fullstack Docker, json-server integration (11 suites total).
 - **Slow** — run on CI/PR only, not before every local commit.
 - Individual suite: e.g. `./e2e-tests/maven-spring-boot-test/run-e2e.sh`.
 
@@ -94,6 +94,7 @@ Valid `flags` enums:
 - `securityLevel`: `bearer-token` | `apiKey`
 - `deployTarget`: `docker-compose` | `kubernetes` | `openshift`
 - `endpoints[].uiLayout.component`: `Form` | `List` | `View` (case-insensitive)
+- `endpoints[].uiLayout.fields[].type` (for Form components): `string` | `number` | `integer` | `boolean` | `email` | `date` | `url` | `password` — maps to HTML input types; `email` adds pattern validation
 
 HTTP methods allowed: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`. Duplicate endpoints (same path + method) are rejected.
 
@@ -101,7 +102,7 @@ Full reference: `docs/schema-reference.md`.
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `e2e-compile` (all cartridge compile checks) → `e2e-docker` (fullstack Docker build + runtime) → `e2e-json-server` (live API integration). Triggers on push to `main`/`feature/**`/`bugfix**` and PRs to `main`.
+GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `e2e-compile` (compile checks + K8s/OpenShift manifest validation + React prod build) → `e2e-docker` (fullstack Docker build + runtime) → `e2e-json-server` (live API integration). Triggers on push to `main`/`feature/**`/`bugfix**` and PRs to `main`.
 
 ## Git
 

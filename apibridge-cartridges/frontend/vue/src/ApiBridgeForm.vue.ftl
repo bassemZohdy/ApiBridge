@@ -27,6 +27,19 @@
   </#list>
   <#return method?lower_case + baseName?capitalize + suffix />
 </#function>
+<#function mapInputType ft>
+  <#if ft == "boolean"><#return "checkbox">
+  <#elseif ft == "number" || ft == "integer"><#return "number">
+  <#elseif ft == "email"><#return "email">
+  <#elseif ft == "date"><#return "date">
+  <#elseif ft == "url"><#return "url">
+  <#elseif ft == "password"><#return "password">
+  <#else><#return "text"></#if>
+</#function>
+<#function mapPattern ft>
+  <#if ft == "email"><#return "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$">
+  <#else><#return ""></#if>
+</#function>
 <#assign securityLevel = (flags.securityLevel)!"" />
 <#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
 <#assign viewEndpoint = "" />
@@ -58,7 +71,7 @@ const error = ref('');
 const response = ref<unknown>(null);
 const loadingRecord = ref(false);
 
-interface FieldDef { key: string; label: string; inputType: string; required: boolean }
+interface FieldDef { key: string; label: string; inputType: string; required: boolean; pattern: string }
 
 const FIELD_DEFS: FieldDef[][] = [
 <#list formEndpoints as endpoint>
@@ -74,7 +87,7 @@ const FIELD_DEFS: FieldDef[][] = [
 </#list>
 <#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>
-    { key: '${field.name}', label: '${field.name?upper_case}', inputType: '${(field.type == "boolean")?then("checkbox", (field.type == "number")?then("number", "text"))}', required: ${field.required?c} },
+    { key: '${field.name}', label: '${field.name?upper_case}', inputType: '${mapInputType(field.type!"text")}', required: ${field.required?c}, pattern: '${mapPattern(field.type!"text")}' },
 </#list>
 </#if>
   ]<#if endpoint?has_next>,</#if>
@@ -217,6 +230,7 @@ async function onSubmit(endpointIndex: number): Promise<void> {
             class="apib-input"
             v-model="(formDatas[${endpoint?index}] as Record<string, string | number | boolean>)[field.key]"
             :required="field.required"
+            :pattern="field.pattern || undefined"
             :placeholder="'enter ' + field.label.toLowerCase()"
           />
         </div>

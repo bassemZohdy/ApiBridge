@@ -118,39 +118,58 @@ jobs:
       - name: Build fat JAR
         run: mvn clean package -pl apibridge-generator -DskipTests -B -q
 
-      - name: '[1/6] Spring Boot — generate + Maven compile'
+      - name: '[1/9] Spring Boot — generate + Maven compile'
         id: spring_boot
         continue-on-error: true
         env:
           SKIP_GENERATOR_BUILD: 'true'
         run: ./e2e-tests/maven-spring-boot-test/run-e2e.sh
 
-      - name: '[2/6] Quarkus — generate + Maven compile'
+      - name: '[2/9] Quarkus — generate + Maven compile'
         id: quarkus
         continue-on-error: true
         env:
           SKIP_GENERATOR_BUILD: 'true'
         run: ./e2e-tests/maven-quarkus-test/run-e2e.sh
 
-      - name: '[3/6] Angular — generate + strict TypeScript compile'
+      - name: '[3/9] Angular — generate + strict TypeScript compile'
         id: angular
         continue-on-error: true
         run: ./e2e-tests/typescript-angular-test/run-e2e.sh
 
-      - name: '[4/6] React — generate + strict TypeScript compile'
+      - name: '[4/9] React — generate + strict TypeScript compile'
         id: react
         continue-on-error: true
         run: ./e2e-tests/typescript-react-test/run-e2e.sh
 
-      - name: '[5/6] Vue — generate + strict TypeScript compile'
+      - name: '[5/9] Vue — generate + strict TypeScript compile'
         id: vue
         continue-on-error: true
         run: ./e2e-tests/typescript-vue-test/run-e2e.sh
 
-      - name: '[6/6] Backend-frontend contract symmetry'
+      - name: '[6/9] Backend-frontend contract symmetry'
         id: contract
         continue-on-error: true
         run: ./e2e-tests/verify-contract-symmetry.sh
+
+      - name: '[7/9] Kubernetes — manifest validation'
+        id: kubernetes
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/kubernetes-test/run-e2e.sh
+
+      - name: '[8/9] OpenShift — manifest validation'
+        id: openshift
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/openshift-test/run-e2e.sh
+
+      - name: '[9/9] React — production build'
+        id: react_prod
+        continue-on-error: true
+        run: ./e2e-tests/react-prod-build-test/run-e2e.sh
 
       - name: Write E2E compile summary
         if: always()
@@ -161,6 +180,9 @@ jobs:
           R_REACT:    ${{ steps.react.outcome }}
           R_VUE:      ${{ steps.vue.outcome }}
           R_CONTRACT: ${{ steps.contract.outcome }}
+          R_K8S:      ${{ steps.kubernetes.outcome }}
+          R_OCP:      ${{ steps.openshift.outcome }}
+          R_REACT_PR: ${{ steps.react_prod.outcome }}
         run: |
           icon() { [ "$1" = "success" ] && echo "✅" || echo "❌"; }
           {
@@ -174,6 +196,9 @@ jobs:
             echo "| 4 | React (generate + strict tsc) | $(icon "$R_REACT") \`$R_REACT\` |"
             echo "| 5 | Vue (generate + strict tsc) | $(icon "$R_VUE") \`$R_VUE\` |"
             echo "| 6 | Backend-frontend contract symmetry | $(icon "$R_CONTRACT") \`$R_CONTRACT\` |"
+            echo "| 7 | Kubernetes manifest validation | $(icon "$R_K8S") \`$R_K8S\` |"
+            echo "| 8 | OpenShift manifest validation | $(icon "$R_OCP") \`$R_OCP\` |"
+            echo "| 9 | React production build | $(icon "$R_REACT_PR") \`$R_REACT_PR\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail if any compile check failed
@@ -184,7 +209,10 @@ jobs:
             steps.angular.outcome   == 'failure' ||
             steps.react.outcome     == 'failure' ||
             steps.vue.outcome       == 'failure' ||
-            steps.contract.outcome  == 'failure'
+            steps.contract.outcome  == 'failure' ||
+            steps.kubernetes.outcome == 'failure' ||
+            steps.openshift.outcome == 'failure' ||
+            steps.react_prod.outcome == 'failure'
           )
         run: |
           echo "One or more E2E compile checks failed — see summary above."

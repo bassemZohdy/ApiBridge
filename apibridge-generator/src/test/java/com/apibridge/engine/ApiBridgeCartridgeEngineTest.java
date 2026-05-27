@@ -442,6 +442,204 @@ public class ApiBridgeCartridgeEngineTest {
         assertEquals("target=", Files.readString(new File(output, "info.txt").toPath()));
     }
 
+    // --- L8: API method name tests ---
+
+    @Test
+    public void testSpringBootMethodNamesSingleEndpoint(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("output-method-names").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path controllerPath = outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java");
+        String content = Files.readString(controllerPath);
+        assertTrue(content.contains("public ResponseEntity<String> postLogin("),
+                "Expected method 'postLogin' for POST /login");
+    }
+
+    @Test
+    public void testSpringBootMethodNamesMultipleEndpoints(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createMultiEndpointModel();
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("output-multi-method").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path controllerPath = outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java");
+        String content = Files.readString(controllerPath);
+        assertTrue(content.contains("public ResponseEntity<String> get("),
+                "Expected method 'get' for GET /");
+        assertTrue(content.contains("public ResponseEntity<String> getSubmissions("),
+                "Expected method 'getSubmissions' for GET /submissions");
+        assertTrue(content.contains("public ResponseEntity<String> postSubmissions("),
+                "Expected method 'postSubmissions' for POST /submissions");
+        assertTrue(content.contains("public ResponseEntity<String> getSubmissions("),
+                "Expected method 'getSubmissions' for GET /submissions/{id}");
+        assertTrue(content.contains("public ResponseEntity<String> putSubmissions("),
+                "Expected method 'putSubmissions' for PUT /submissions/{id}");
+        assertTrue(content.contains("public ResponseEntity<String> deleteSubmissions("),
+                "Expected method 'deleteSubmissions' for DELETE /submissions/{id}");
+    }
+
+    @Test
+    public void testQuarkusMethodNamesMultipleEndpoints(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createMultiEndpointModel();
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("output-quarkus-method").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path resourcePath = outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeResource.java");
+        String content = Files.readString(resourcePath);
+        assertTrue(content.contains("public Response get("),
+                "Expected method 'get' for GET /");
+        assertTrue(content.contains("public Response getSubmissions("),
+                "Expected method 'getSubmissions' for GET /submissions");
+        assertTrue(content.contains("public Response postSubmissions("),
+                "Expected method 'postSubmissions' for POST /submissions");
+        assertTrue(content.contains("public Response putSubmissions("),
+                "Expected method 'putSubmissions' for PUT /submissions/{id}");
+        assertTrue(content.contains("public Response deleteSubmissions("),
+                "Expected method 'deleteSubmissions' for DELETE /submissions/{id}");
+    }
+
+    @Test
+    public void testMethodNamesWithHyphenatedPaths(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = new BridgeSchemaModel();
+        model.setId("test-service");
+        model.setBasePath("/api/test");
+        BridgeSchemaModel.Flags flags = new BridgeSchemaModel.Flags();
+        model.setFlags(flags);
+        BridgeSchemaModel.Endpoint ep = new BridgeSchemaModel.Endpoint();
+        ep.setPath("/user-profiles");
+        ep.setMethod("GET");
+        ep.setBackendUrl("https://example.com/user-profiles");
+        model.setEndpoints(java.util.List.of(ep));
+
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("output-hyphen").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path controllerPath = outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java");
+        String content = Files.readString(controllerPath);
+        assertTrue(content.contains("public ResponseEntity<String> getUserProfiles("),
+                "Hyphens should be removed and segments capitalized: 'getUserProfiles'");
+    }
+
+    // --- L9: DevOps cartridge tests ---
+
+    @Test
+    public void testDockerfileCartridgeSpringBoot(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("devops/dockerfile");
+        File outputDir = tempDir.resolve("output-dockerfile-sb").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path dockerfilePath = outputDir.toPath().resolve("Dockerfile");
+        assertTrue(Files.exists(dockerfilePath), "Dockerfile must be generated");
+        String content = Files.readString(dockerfilePath);
+        assertTrue(content.contains("FROM maven:3.9-amazoncorretto-21-alpine"), "Backend build stage");
+        assertTrue(content.contains("FROM amazoncorretto:21-alpine"), "Runtime stage");
+        assertTrue(content.contains("SERVER_PORT=8080"), "Spring Boot port env var");
+        assertTrue(content.contains("BACKEND_URL_LOGIN="), "Per-endpoint URL env var");
+        assertTrue(content.contains("AUTH_SERVER_URL="), "Bearer token env var");
+        assertTrue(content.contains("USER 1001"), "Non-root user");
+        assertTrue(content.contains("actuator/health/liveness"), "Spring Boot health check");
+    }
+
+    @Test
+    public void testDockerfileCartridgeQuarkus(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setBackendFlavor("quarkus");
+        File cartridgeDir = findCartridgeDir("devops/dockerfile");
+        File outputDir = tempDir.resolve("output-dockerfile-q").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path dockerfilePath = outputDir.toPath().resolve("Dockerfile");
+        assertTrue(Files.exists(dockerfilePath), "Dockerfile must be generated");
+        String content = Files.readString(dockerfilePath);
+        assertTrue(content.contains("QUARKUS_HTTP_PORT=8080"), "Quarkus port env var");
+        assertTrue(content.contains("q/health/live"), "Quarkus health check");
+        assertFalse(content.contains("actuator/health"), "No Spring Boot health check in Quarkus build");
+    }
+
+    @Test
+    public void testDockerfileCartridgeWithFrontend(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setFeFlavor("react");
+        File cartridgeDir = findCartridgeDir("devops/dockerfile");
+        File outputDir = tempDir.resolve("output-dockerfile-fe").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path dockerfilePath = outputDir.toPath().resolve("Dockerfile");
+        String content = Files.readString(dockerfilePath);
+        assertTrue(content.contains("FROM node:20-alpine AS frontend-build"),
+                "Frontend build stage must be present when feFlavor is set");
+        assertTrue(content.contains("npm run build"), "npm build step");
+        assertTrue(content.contains("static"), "Static assets copy");
+    }
+
+    @Test
+    public void testDockerfileCartridgeNoFrontend(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("devops/dockerfile");
+        File outputDir = tempDir.resolve("output-dockerfile-nofe").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path dockerfilePath = outputDir.toPath().resolve("Dockerfile");
+        String content = Files.readString(dockerfilePath);
+        assertFalse(content.contains("frontend-build"), "No frontend stage when feFlavor is empty");
+    }
+
+    @Test
+    public void testDockerComposeCartridgeSpringBoot(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("output-compose-sb").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path composePath = outputDir.toPath().resolve("docker-compose.yml");
+        assertTrue(Files.exists(composePath), "docker-compose.yml must be generated");
+        String content = Files.readString(composePath);
+        assertTrue(content.contains("services:"), "Must have services section");
+        assertTrue(content.contains("user-auth-service:"), "Service named after id");
+        assertTrue(content.contains("SERVER_PORT: \"8080\""), "Spring Boot port");
+        assertTrue(content.contains("BACKEND_URL_LOGIN:"), "Per-endpoint URL");
+        assertTrue(content.contains("user-auth-service-net"), "Network definition");
+        assertTrue(content.contains("cpus: \"1.0\""), "Resource limits");
+        assertTrue(content.contains("restart: unless-stopped"), "Restart policy");
+    }
+
+    @Test
+    public void testDockerComposeCartridgeQuarkus(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setBackendFlavor("quarkus");
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("output-compose-q").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path composePath = outputDir.toPath().resolve("docker-compose.yml");
+        String content = Files.readString(composePath);
+        assertTrue(content.contains("QUARKUS_HTTP_PORT: \"8080\""), "Quarkus port");
+        assertFalse(content.contains("SERVER_PORT"), "No Spring Boot port in Quarkus build");
+    }
+
+    @Test
+    public void testDockerComposeCartridgeWithApiKey(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setSecurityLevel("apiKey");
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("output-compose-apikey").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path composePath = outputDir.toPath().resolve("docker-compose.yml");
+        String content = Files.readString(composePath);
+        assertTrue(content.contains("API_KEY:"), "API key env var");
+        assertFalse(content.contains("AUTH_SERVER_URL"), "No bearer-token env in apiKey build");
+    }
+
     // --- Helpers ---
 
     private BridgeSchemaModel createTestModel() {
@@ -504,6 +702,48 @@ public class ApiBridgeCartridgeEngineTest {
 
         listEp.setUiLayout(listLayout);
         model.setEndpoints(java.util.List.of(listEp, viewEp, formEp));
+        return model;
+    }
+
+    private BridgeSchemaModel createMultiEndpointModel() {
+        BridgeSchemaModel model = new BridgeSchemaModel();
+        model.setId("submission-service");
+        model.setBasePath("/api/v1/submissions");
+
+        BridgeSchemaModel.Flags flags = new BridgeSchemaModel.Flags();
+        model.setFlags(flags);
+
+        BridgeSchemaModel.Endpoint ep1 = new BridgeSchemaModel.Endpoint();
+        ep1.setPath("/");
+        ep1.setMethod("GET");
+        ep1.setBackendUrl("https://backend.test/submissions");
+
+        BridgeSchemaModel.Endpoint ep2 = new BridgeSchemaModel.Endpoint();
+        ep2.setPath("/submissions");
+        ep2.setMethod("GET");
+        ep2.setBackendUrl("https://backend.test/submissions");
+
+        BridgeSchemaModel.Endpoint ep3 = new BridgeSchemaModel.Endpoint();
+        ep3.setPath("/submissions");
+        ep3.setMethod("POST");
+        ep3.setBackendUrl("https://backend.test/submissions");
+
+        BridgeSchemaModel.Endpoint ep4 = new BridgeSchemaModel.Endpoint();
+        ep4.setPath("/submissions/{id}");
+        ep4.setMethod("GET");
+        ep4.setBackendUrl("https://backend.test/submissions/1");
+
+        BridgeSchemaModel.Endpoint ep5 = new BridgeSchemaModel.Endpoint();
+        ep5.setPath("/submissions/{id}");
+        ep5.setMethod("PUT");
+        ep5.setBackendUrl("https://backend.test/submissions/1");
+
+        BridgeSchemaModel.Endpoint ep6 = new BridgeSchemaModel.Endpoint();
+        ep6.setPath("/submissions/{id}");
+        ep6.setMethod("DELETE");
+        ep6.setBackendUrl("https://backend.test/submissions/1");
+
+        model.setEndpoints(java.util.List.of(ep1, ep2, ep3, ep4, ep5, ep6));
         return model;
     }
 
