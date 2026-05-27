@@ -10,7 +10,7 @@ echo "=================================================="
 echo "Backend-Frontend Contract Symmetry Check"
 echo "=================================================="
 
-SCHEMA="../../sample-schema.yaml"
+SCHEMA="../sample-schema.yaml"
 
 SPRING_CONTROLLER="maven-spring-boot-test/generated/backend/src/main/java/com/apibridge/generated/BridgeController.java"
 QUARKUS_RESOURCE="maven-quarkus-test/generated/backend/src/main/java/com/apibridge/generated/BridgeResource.java"
@@ -30,7 +30,10 @@ echo "  All artifacts present."
 
 # 2. Extract base path and endpoint paths from the schema
 BASE_PATH=$(grep 'basePath:' "$SCHEMA" | awk '{print $2}' | tr -d '"')
-mapfile -t ENDPOINT_PATHS < <(grep '    path:' "$SCHEMA" | awk '{print $2}' | tr -d '"')
+ENDPOINT_PATHS=()
+while IFS= read -r line; do
+  ENDPOINT_PATHS+=("$line")
+done < <(grep '^\s*- path:' "$SCHEMA" | awk '{print $3}' | tr -d '"')
 
 echo "Schema basePath   : $BASE_PATH"
 echo "Schema endpoints  : ${ENDPOINT_PATHS[*]}"

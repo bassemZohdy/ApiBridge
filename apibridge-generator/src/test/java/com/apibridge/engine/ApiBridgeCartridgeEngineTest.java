@@ -104,12 +104,12 @@ public class ApiBridgeCartridgeEngineTest {
     @Test
     public void testFrontendUiSchemaCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
-        File cartridgeDir = findCartridgeDir("frontend-ui-schema");
+        File cartridgeDir = findCartridgeDir("frontend/ui-schema");
         File outputDir = tempDir.resolve("output-frontend").toFile();
 
         engine.generate(model, cartridgeDir, outputDir);
 
-        Path uiSchemaPath = outputDir.toPath().resolve("UiLayoutSchema.json");
+        Path uiSchemaPath = outputDir.toPath().resolve("frontend/UiLayoutSchema.json");
         assertTrue(Files.exists(uiSchemaPath));
         String uiContent = Files.readString(uiSchemaPath);
         assertTrue(uiContent.contains("\"id\": \"user-auth-service\""));
@@ -169,6 +169,71 @@ public class ApiBridgeCartridgeEngineTest {
         assertTrue(Files.exists(pkgPath));
         String vueContent = Files.readString(vuePath);
         assertTrue(vueContent.contains("<template>"));
+    }
+
+    @Test
+    public void testReactCartridgeWithListViewForm(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createListViewFormModel();
+        File cartridgeDir = findCartridgeDir("frontend/react");
+        File outputDir = tempDir.resolve("output-react-lvf").toFile();
+
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path listPath = outputDir.toPath().resolve("frontend/src/ApiBridgeList.tsx");
+        Path viewPath = outputDir.toPath().resolve("frontend/src/ApiBridgeView.tsx");
+        Path formPath = outputDir.toPath().resolve("frontend/src/ApiBridgeForm.tsx");
+        Path appPath  = outputDir.toPath().resolve("frontend/src/App.tsx");
+        assertTrue(Files.exists(listPath), "ApiBridgeList.tsx must be generated");
+        assertTrue(Files.exists(viewPath), "ApiBridgeView.tsx must be generated");
+        assertTrue(Files.exists(formPath), "ApiBridgeForm.tsx must be generated");
+        assertTrue(Files.exists(appPath),  "App.tsx must be generated");
+
+        String listContent = Files.readString(listPath);
+        assertTrue(listContent.contains("ApiBridgeList"));
+        assertTrue(listContent.contains("apib-table"));
+
+        String viewContent = Files.readString(viewPath);
+        assertTrue(viewContent.contains("ApiBridgeView"));
+        assertTrue(viewContent.contains("apib-detail-grid"));
+    }
+
+    @Test
+    public void testAngularCartridgeWithListViewForm(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createListViewFormModel();
+        model.getFlags().setUiPattern("form-engine");
+        File cartridgeDir = findCartridgeDir("frontend/angular");
+        File outputDir = tempDir.resolve("output-angular-lvf").toFile();
+
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path listTs   = outputDir.toPath().resolve("frontend/src/app/bridge-list.component.ts");
+        Path listHtml = outputDir.toPath().resolve("frontend/src/app/bridge-list.component.html");
+        Path viewTs   = outputDir.toPath().resolve("frontend/src/app/bridge-view.component.ts");
+        Path viewHtml = outputDir.toPath().resolve("frontend/src/app/bridge-view.component.html");
+        assertTrue(Files.exists(listTs),   "bridge-list.component.ts must be generated");
+        assertTrue(Files.exists(listHtml), "bridge-list.component.html must be generated");
+        assertTrue(Files.exists(viewTs),   "bridge-view.component.ts must be generated");
+        assertTrue(Files.exists(viewHtml), "bridge-view.component.html must be generated");
+
+        assertTrue(Files.readString(listTs).contains("BridgeListComponent"));
+        assertTrue(Files.readString(viewTs).contains("BridgeViewComponent"));
+    }
+
+    @Test
+    public void testVueCartridgeWithListViewForm(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createListViewFormModel();
+        File cartridgeDir = findCartridgeDir("frontend/vue");
+        File outputDir = tempDir.resolve("output-vue-lvf").toFile();
+
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path listPath = outputDir.toPath().resolve("frontend/src/ApiBridgeList.vue");
+        Path viewPath = outputDir.toPath().resolve("frontend/src/ApiBridgeView.vue");
+        assertTrue(Files.exists(listPath), "ApiBridgeList.vue must be generated");
+        assertTrue(Files.exists(viewPath), "ApiBridgeView.vue must be generated");
+
+        assertTrue(Files.readString(listPath).contains("apib-table"));
+        assertTrue(Files.readString(viewPath).contains("apib-detail-grid"));
     }
 
     // --- Composable cartridge tests ---
@@ -396,6 +461,49 @@ public class ApiBridgeCartridgeEngineTest {
         endpoint.setTelemetryName("apibridge_auth_login");
         model.setEndpoints(java.util.List.of(endpoint));
 
+        return model;
+    }
+
+    private BridgeSchemaModel createListViewFormModel() {
+        BridgeSchemaModel model = new BridgeSchemaModel();
+        model.setId("customer-service");
+        model.setBasePath("/api/customers");
+
+        BridgeSchemaModel.Flags flags = new BridgeSchemaModel.Flags();
+        flags.setEnableTelemetry(false);
+        model.setFlags(flags);
+
+        BridgeSchemaModel.Endpoint listEp = new BridgeSchemaModel.Endpoint();
+        listEp.setPath("/");
+        listEp.setMethod("GET");
+        listEp.setBackendUrl("https://example.com/customers");
+        BridgeSchemaModel.UiLayout listLayout = new BridgeSchemaModel.UiLayout();
+        listLayout.setComponent("List");
+        model.getEndpoints();
+
+        BridgeSchemaModel.Endpoint viewEp = new BridgeSchemaModel.Endpoint();
+        viewEp.setPath("/{id}");
+        viewEp.setMethod("GET");
+        viewEp.setBackendUrl("https://example.com/customers/1");
+        BridgeSchemaModel.UiLayout viewLayout = new BridgeSchemaModel.UiLayout();
+        viewLayout.setComponent("View");
+        viewEp.setUiLayout(viewLayout);
+
+        BridgeSchemaModel.Endpoint formEp = new BridgeSchemaModel.Endpoint();
+        formEp.setPath("/");
+        formEp.setMethod("POST");
+        formEp.setBackendUrl("https://example.com/customers");
+        BridgeSchemaModel.UiLayout formLayout = new BridgeSchemaModel.UiLayout();
+        formLayout.setComponent("Form");
+        BridgeSchemaModel.Field nameField = new BridgeSchemaModel.Field();
+        nameField.setName("name");
+        nameField.setType("string");
+        nameField.setRequired(true);
+        formLayout.setFields(java.util.List.of(nameField));
+        formEp.setUiLayout(formLayout);
+
+        listEp.setUiLayout(listLayout);
+        model.setEndpoints(java.util.List.of(listEp, viewEp, formEp));
         return model;
     }
 

@@ -1,0 +1,75 @@
+id: "customer-mgmt-bridge"
+basePath: "/api/v1"
+flags:
+  backendFlavor: "spring-boot"
+  feFlavor: "react"
+  navigationMode: "spa"
+  pagination:
+    pageParam: "_page"
+    sizeParam: "_limit"
+    defaultPageSize: 5
+    sortParam: "_sort"
+    directionParam: "_order"
+endpoints:
+  - path: "/customers"
+    method: "GET"
+    backendUrl: "http://json-server:3000/customers"
+    uiLayout:
+      component: "List"
+      columns:
+        - field: "id"
+          label: "ID"
+          sortable: true
+        - field: "name"
+          label: "Name"
+          sortable: true
+        - field: "email"
+          label: "Email"
+          sortable: true
+        - field: "company"
+          label: "Company"
+          sortable: true
+        - field: "status"
+          label: "Status"
+          sortable: false
+
+  - path: "/customers/{id}"
+    method: "GET"
+    backendUrl: "http://json-server:3000/customers/{id}"
+    uiLayout:
+      component: "View"
+      fields:
+        - name: "id"
+          label: "ID"
+          type: "string"
+        - name: "name"
+          label: "Full Name"
+          type: "string"
+        - name: "email"
+          label: "Email Address"
+          type: "string"
+        - name: "company"
+          label: "Company"
+          type: "string"
+        - name: "status"
+          label: "Status"
+          type: "string"
+
+  - path: "/customers"
+    method: "POST"
+    backendUrl: "http://json-server:3000/customers"
+    uiLayout:
+      component: "Form"
+      fields:
+        - name: "name"
+          label: "Full Name"
+          type: "string"
+          required: true
+        - name: "email"
+          label: "Email Address"
+          type: "string"
+          required: true
+        - name: "company"
+          label: "Company"
+          type: "string"
+          required: false

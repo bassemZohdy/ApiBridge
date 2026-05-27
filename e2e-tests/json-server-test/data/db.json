@@ -1,0 +1,14 @@
+{
+  "customers": [
+    { "id": 1, "name": "Alice Martin",   "email": "alice@acme.com",   "company": "Acme Corp",      "status": "active"   },
+    { "id": 2, "name": "Bob Chen",       "email": "bob@globex.io",    "company": "Globex",         "status": "active"   },
+    { "id": 3, "name": "Clara Diaz",     "email": "clara@initech.co", "company": "Initech",        "status": "inactive" },
+    { "id": 4, "name": "David Nguyen",   "email": "david@umbrella.io","company": "Umbrella LLC",   "status": "active"   },
+    { "id": 5, "name": "Eva Petrov",     "email": "eva@soylent.net",  "company": "Soylent Green",  "status": "active"   },
+    { "id": 6, "name": "Frank Okafor",   "email": "frank@bfg.org",    "company": "BFG Industries", "status": "inactive" },
+    { "id": 7, "name": "Grace Li",       "email": "grace@cyberdyne.ai","company": "Cyberdyne",     "status": "active"   },
+    { "id": 8, "name": "Hector Reyes",   "email": "hector@weyland.co","company": "Weyland-Yutani", "status": "active"   },
+    { "id": 9, "name": "Iris Schulz",    "email": "iris@nakatomi.de", "company": "Nakatomi Corp",  "status": "inactive" },
+    { "id": 10,"name": "James Okonkwo",  "email": "james@bluth.com",  "company": "Bluth Company",  "status": "active"   }
+  ]
+}

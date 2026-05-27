@@ -7,9 +7,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Changed — Cartridge layout finalised
+
+- **`frontend-ui-schema/` renamed to `frontend/ui-schema/`**: now grouped under `frontend/` alongside Angular/React/Vue. Output auto-prefixed to `frontend/UiLayoutSchema.json` by the engine prefix convention.
+- **`devops/kubernetes/` and `devops/openshift/` collapsed under `devops/k8s/`**: new paths are `devops/k8s/kubernetes/` and `devops/k8s/openshift/`. Cartridge templates sit directly in these directories (no inner `k8s/` subdirectory); the engine auto-prefixes their output to `k8s/`.
+- **`backend/` and `frontend/` inner subdirectories removed from all cartridges**: templates now live directly under `backend/<flavor>/` and `frontend/<flavor>/`. The engine auto-prefixes output via the `OUTPUT_PREFIX_CATEGORIES` convention instead of requiring the inner directory.
+- **Engine `OUTPUT_PREFIX_CATEGORIES` extended to `{backend, frontend, k8s}`**: any cartridge whose immediate parent directory matches one of these names has its output rooted at `<outputDir>/<category>/`.
+
 ### Changed — Composable cartridge architecture
 
-- **Cartridge directory restructured**: `spring-boot/` → `backend/spring-boot/`, `quarkus/` → `backend/quarkus/`, `angular/` → `frontend/angular/`, `react/` → `frontend/react/`, `vue/` → `frontend/vue/`; `dockerfile/`, `docker-compose/`, `kubernetes/`, `openshift/` moved under `devops/`.
+- **Cartridge directory restructured**: `spring-boot/` → `backend/spring-boot/`, `quarkus/` → `backend/quarkus/`, `angular/` → `frontend/angular/`, `react/` → `frontend/react/`, `vue/` → `frontend/vue/`; `dockerfile/`, `docker-compose/` moved under `devops/`; `kubernetes/` → `devops/k8s/kubernetes/`, `openshift/` → `devops/k8s/openshift/`.
 - **Standalone component-only cartridges removed** (`frontend-angular/`, `frontend-react/`, `frontend-vue/`): the full-project cartridges (`frontend/angular`, `frontend/react`, `frontend/vue`) supersede them.
 - **Monolithic `fullstack/` cartridge removed**: replaced by independent composable cartridges applied via repeatable `--cartridge=` flag.
 - **`backend-spring-boot/` and `backend-quarkus/` removed**: superseded by `backend/spring-boot` and `backend/quarkus`.
@@ -17,6 +24,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - **`--cartridge=` is repeatable**: `ApiBridgeRunner` accepts multiple `--cartridge=` arguments, applying each in order.
 - **`feFlavor` default changed to null**: absence of FE flavor is now detectable in templates via `(feFlavor!"") != ""`; the Dockerfile FE build stage and static-resource properties are gated on this.
 - **E2E tests updated**: Maven backend tests compile the generated `backend/pom.xml` directly; TypeScript tests run on full generated `frontend/` projects; contract symmetry check uses schema-derived paths.
+
+### Fixed — E2E template and script correctness
+
+- **Angular `package.json.ftl`**: added missing `@ngx-formly/bootstrap` dependency (imported in `app.module.ts` but absent from `package.json`).
+- **React `tsconfig.json.ftl`**: added `"types": ["vite/client"]` so `import.meta.env` resolves under strict TypeScript.
+- **React `ApiBridgeForm.tsx.ftl`**: cast RJSF v5 `AJV8Validator` to `any` to satisfy `Form`'s `ValidatorType` generic constraint under `strict: true`.
+- **Vue `tsconfig.json.ftl`**: added `"types": ["vite/client"]`; new `src/vite-env.d.ts.ftl` declares `.vue` module types so `import './ApiBridgeForm.vue'` resolves under strict TypeScript.
+- **`verify-contract-symmetry.sh`**: fixed schema path (`../../` → `../`); replaced `mapfile` (bash 4+) with `while read` for macOS bash 3.2 compatibility; fixed endpoint grep pattern (`'    path:'` → `'^\s*- path:'`).
+- **`docker-fullstack-test/run-e2e.sh`**: fixed empty-array expansion (`"${extra_args[@]}"` → `${extra_args[@]+"${extra_args[@]}"}`) under `set -u` on bash 3.2.
+- **`run-all-e2e.sh`**: builds the generator JAR once up front and exports `SKIP_GENERATOR_BUILD=true` to all sub-scripts, eliminating 7 redundant Maven builds per suite run.
+
+### Removed — Stale e2e test harness
+
+- Deleted leftover per-test `pom.xml`, `package.json`, `tsconfig.json`, `package-lock.json`, and `src/` source files from `e2e-tests/maven-*/` and `e2e-tests/typescript-*/`. These were scaffolding from the old single-compile approach; the current e2e tests compile the generated output directly.
 
 ### Added — Previous unreleased
 - **Fullstack Docker cartridge** (`apibridge-cartridges/fullstack`): generates a complete, self-contained app with a three-stage multi-stage `Dockerfile` (node:20-alpine FE build → maven:3.9-amazoncorretto-21-alpine BE build → amazoncorretto:21-alpine runtime). The generated backend proxies all schema endpoints, with `MOCK_MODE` and `BLOCK_TRAFFIC` ENV flags for runtime control.

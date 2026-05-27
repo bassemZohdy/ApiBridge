@@ -21,6 +21,11 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # ── White-label CSS override ───────────────────────────────────────────
+      # Mount your brand CSS file and point CUSTOM_CSS_PATH at it; the app
+      # serves it at /custom.css — override any :root CSS variable defined
+      # in the frontend.  Omit (or leave blank) to use the built-in theme.
+      # CUSTOM_CSS_PATH: "/config/custom.css"
       # ── Feature flags ──────────────────────────────────────────────────────
       MOCK_MODE: "false"
       BLOCK_TRAFFIC: "false"
@@ -74,6 +79,8 @@ services:
       start_period: 60s
       retries: 3
     restart: unless-stopped
+    # volumes:
+    #   - ./brand/custom.css:/config/custom.css:ro   # white-label CSS override
     networks:
       - ${id}-net
 

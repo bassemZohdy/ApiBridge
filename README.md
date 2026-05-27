@@ -17,13 +17,14 @@ apibridge-cartridges/             # Pluggable cartridge directories (not Maven m
 ├── frontend/
 │   ├── angular/                  # Angular 17 full project (output: frontend/)
 │   ├── react/                    # React 18 + Vite full project (output: frontend/)
-│   └── vue/                      # Vue 3 + Vite full project (output: frontend/)
+│   ├── vue/                      # Vue 3 + Vite full project (output: frontend/)
+│   └── ui-schema/                # UiLayoutSchema.json for UI-driven forms (output: frontend/)
 ├── devops/
 │   ├── dockerfile/               # Multi-stage Dockerfile (FE stage conditional)
 │   ├── docker-compose/           # docker-compose.yml
-│   ├── kubernetes/               # K8s Deployment + Service + ConfigMap + Kustomization
-│   └── openshift/                # Extends kubernetes with TLS Route
-└── frontend-ui-schema/           # UiLayoutSchema.json for UI-driven forms
+│   └── k8s/
+│       ├── kubernetes/           # K8s Deployment + Service + ConfigMap + Kustomization
+│       └── openshift/            # Extends kubernetes with TLS Route
 docs/                             # Reference documentation
 sample-schema.yaml                # Working example PIM schema
 e2e-tests/                        # Integration tests — run on CI, not before every commit
@@ -104,6 +105,7 @@ Both backends:
 | `frontend/angular` | `frontend/` — Angular 17 + TypeScript, form-engine (ngx-formly) or web-component |
 | `frontend/react` | `frontend/` — React 18 + Vite + TypeScript, form-engine (RJSF) or web-component |
 | `frontend/vue` | `frontend/` — Vue 3 + Vite + TypeScript, form-engine or web-component |
+| `frontend/ui-schema` | `frontend/UiLayoutSchema.json` — JSON schema for UI-driven form rendering |
 
 Frontend rendering mode is controlled by `flags.uiPattern`:
 - **`form-engine`** (default) — dynamic form driven by `uiLayout.fields` in the schema
@@ -115,12 +117,12 @@ Frontend rendering mode is controlled by `flags.uiPattern`:
 |---|---|
 | `devops/dockerfile` | `Dockerfile` — three-stage: FE build (node), BE build + embed (maven), runtime (JRE) |
 | `devops/docker-compose` | `docker-compose.yml` — local dev with healthcheck and resource limits |
-| `devops/kubernetes` | `k8s/` — Deployment + Service + ConfigMap + Kustomization |
-| `devops/openshift` | `k8s/route.yaml` + updated `k8s/kustomization.yaml` — apply on top of kubernetes |
+| `devops/k8s/kubernetes` | `k8s/` — Deployment + Service + ConfigMap + Kustomization |
+| `devops/k8s/openshift` | `k8s/route.yaml` + updated `k8s/kustomization.yaml` — apply on top of kubernetes |
 
 The `devops/dockerfile` FE build stage is automatically omitted when no `feFlavor` is set (BE-only output).
 
-For OpenShift: apply both `devops/kubernetes` and `devops/openshift` to get the full manifest set including a TLS edge-terminated Route.
+For OpenShift: apply both `devops/k8s/kubernetes` and `devops/k8s/openshift` to get the full manifest set including a TLS edge-terminated Route.
 
 ### Single-JAR deployment
 
@@ -189,7 +191,7 @@ java -jar "$JAR" \
   --cartridge=apibridge-cartridges/backend/quarkus \
   --cartridge=apibridge-cartridges/frontend/angular \
   --cartridge=apibridge-cartridges/devops/dockerfile \
-  --cartridge=apibridge-cartridges/devops/kubernetes \
+  --cartridge=apibridge-cartridges/devops/k8s/kubernetes \
   --output=output/quarkus-angular-k8s \
   --be-flavor=quarkus \
   --fe-flavor=angular
@@ -199,14 +201,14 @@ java -jar "$JAR" \
   --schema=sample-schema.yaml \
   --cartridge=apibridge-cartridges/backend/spring-boot \
   --cartridge=apibridge-cartridges/devops/dockerfile \
-  --cartridge=apibridge-cartridges/devops/kubernetes \
-  --cartridge=apibridge-cartridges/devops/openshift \
+  --cartridge=apibridge-cartridges/devops/k8s/kubernetes \
+  --cartridge=apibridge-cartridges/devops/k8s/openshift \
   --output=output/spring-openshift
 
 # UI schema only
 java -jar "$JAR" \
   --schema=sample-schema.yaml \
-  --cartridge=apibridge-cartridges/frontend-ui-schema \
+  --cartridge=apibridge-cartridges/frontend/ui-schema \
   --output=output/ui-schema
 ```
 

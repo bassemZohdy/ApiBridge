@@ -8,6 +8,13 @@ echo "=================================================="
 echo "🌟 Initiating ApiBridge Master E2E Validation 🌟"
 echo "=================================================="
 
+# Build the generator once up front, then let each sub-test skip it.
+if [ "${SKIP_GENERATOR_BUILD:-false}" != "true" ]; then
+  echo "Building ApiBridge Generator..."
+  (cd .. && mvn package -q -DskipTests)
+fi
+export SKIP_GENERATOR_BUILD=true
+
 # Track results
 SPRING_BOOT_STATUS="PENDING"
 QUARKUS_STATUS="PENDING"
@@ -16,6 +23,7 @@ REACT_STATUS="PENDING"
 VUE_STATUS="PENDING"
 CONTRACT_STATUS="PENDING"
 FULLSTACK_STATUS="PENDING"
+JSONSERVER_STATUS="PENDING"
 
 # 1. Run Spring Boot E2E
 echo -e "\n--------------------------------------------------"
@@ -79,12 +87,22 @@ fi
 
 # 7. Run Fullstack Docker E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [7/7] Executing Fullstack Docker E2E Validation..."
+echo "📋 [7/8] Executing Fullstack Docker E2E Validation..."
 echo "--------------------------------------------------"
 if ./docker-fullstack-test/run-e2e.sh; then
   FULLSTACK_STATUS="SUCCESS"
 else
   FULLSTACK_STATUS="FAILED"
+fi
+
+# 8. Run json-server List/View/Form E2E
+echo -e "\n--------------------------------------------------"
+echo "📋 [8/8] Executing json-server List/View/Form E2E..."
+echo "--------------------------------------------------"
+if ./json-server-test/run-e2e.sh; then
+  JSONSERVER_STATUS="SUCCESS"
+else
+  JSONSERVER_STATUS="FAILED"
 fi
 
 # Print final report card dashboard
@@ -134,6 +152,12 @@ if [ "$FULLSTACK_STATUS" = "SUCCESS" ]; then
 else
   printf "  %-35s | \033[0;31m%s\033[0m\n" "Fullstack Docker (Struct + Content)" "FAILED"
 fi
+
+if [ "$JSONSERVER_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "json-server List/View/Form E2E" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "json-server List/View/Form E2E" "FAILED"
+fi
 echo "=================================================="
 
 # Exit with error if any pipeline failed
@@ -143,7 +167,8 @@ if [ "$SPRING_BOOT_STATUS" != "SUCCESS" ] || \
    [ "$REACT_STATUS" != "SUCCESS" ] || \
    [ "$VUE_STATUS" != "SUCCESS" ] || \
    [ "$CONTRACT_STATUS" != "SUCCESS" ] || \
-   [ "$FULLSTACK_STATUS" != "SUCCESS" ]; then
+   [ "$FULLSTACK_STATUS" != "SUCCESS" ] || \
+   [ "$JSONSERVER_STATUS" != "SUCCESS" ]; then
   echo "❌ Error: One or more integration pipelines failed."
   exit 1
 else

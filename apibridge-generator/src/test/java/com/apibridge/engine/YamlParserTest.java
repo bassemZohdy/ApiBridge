@@ -780,6 +780,230 @@ public class YamlParserTest {
         assertNull(layout.getFields());
     }
 
+    // --- navigationMode tests ---
+
+    @Test
+    public void testNavigationModeDefaultsSpa(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("spa", model.getFlags().getNavigationMode());
+    }
+
+    @Test
+    public void testNavigationModeMpa(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  navigationMode: "mpa"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("mpa", model.getFlags().getNavigationMode());
+    }
+
+    @Test
+    public void testInvalidNavigationModeThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  navigationMode: "invalid"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().toLowerCase().contains("navigationmode") ||
+                   ex.getMessage().toLowerCase().contains("navigation"));
+    }
+
+    // --- Pagination tests ---
+
+    @Test
+    public void testPaginationDefaults(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        BridgeSchemaModel.Pagination p = model.getFlags().getPagination();
+        assertNotNull(p);
+        assertEquals("page", p.getPageParam());
+        assertEquals("size", p.getSizeParam());
+        assertEquals(20, p.getDefaultPageSize());
+        assertEquals("sort", p.getSortParam());
+        assertEquals("dir", p.getDirectionParam());
+    }
+
+    @Test
+    public void testPaginationCustomValues(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  pagination:
+                    pageParam: "_page"
+                    sizeParam: "_limit"
+                    defaultPageSize: 50
+                    sortParam: "_sort"
+                    directionParam: "_order"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        BridgeSchemaModel.Pagination p = model.getFlags().getPagination();
+        assertEquals("_page", p.getPageParam());
+        assertEquals("_limit", p.getSizeParam());
+        assertEquals(50, p.getDefaultPageSize());
+        assertEquals("_sort", p.getSortParam());
+        assertEquals("_order", p.getDirectionParam());
+    }
+
+    @Test
+    public void testPaginationNegativePageSizeThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  pagination:
+                    defaultPageSize: -1
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().toLowerCase().contains("pagesize") ||
+                   ex.getMessage().toLowerCase().contains("page size"));
+    }
+
+    // --- Column tests ---
+
+    @Test
+    public void testUiLayoutColumnsForListComponent(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      columns:
+                        - field: "name"
+                          label: "Full Name"
+                          sortable: true
+                        - field: "email"
+                          sortable: false
+                          width: "200px"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        BridgeSchemaModel.UiLayout layout = model.getEndpoints().get(0).getUiLayout();
+        assertEquals("List", layout.getComponent());
+        assertEquals(2, layout.getColumns().size());
+        BridgeSchemaModel.Column col0 = layout.getColumns().get(0);
+        assertEquals("name", col0.getField());
+        assertEquals("Full Name", col0.getLabel());
+        assertTrue(col0.isSortable());
+        assertNull(col0.getWidth());
+        BridgeSchemaModel.Column col1 = layout.getColumns().get(1);
+        assertEquals("email", col1.getField());
+        assertFalse(col1.isSortable());
+        assertEquals("200px", col1.getWidth());
+    }
+
+    @Test
+    public void testColumnMissingFieldThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      columns:
+                        - label: "Name"
+                          sortable: true
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().toLowerCase().contains("column") ||
+                   ex.getMessage().toLowerCase().contains("field"));
+    }
+
+    @Test
+    public void testViewComponentDoesNotRequireFieldType(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items/{id}"
+                    method: "GET"
+                    backendUrl: "https://example.com/items/1"
+                    uiLayout:
+                      component: "View"
+                      fields:
+                        - name: "name"
+                          label: "Full Name"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        BridgeSchemaModel.Field f = model.getEndpoints().get(0).getUiLayout().getFields().get(0);
+        assertEquals("name", f.getName());
+        assertEquals("Full Name", f.getLabel());
+        assertNull(f.getType());
+    }
+
+    // --- Field label test ---
+
+    @Test
+    public void testFieldLabelOptional(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/submit"
+                    method: "POST"
+                    backendUrl: "https://example.com/submit"
+                    uiLayout:
+                      component: "Form"
+                      fields:
+                        - name: "email"
+                          type: "string"
+                          label: "Email Address"
+                        - name: "age"
+                          type: "number"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        var fields = model.getEndpoints().get(0).getUiLayout().getFields();
+        assertEquals("Email Address", fields.get(0).getLabel());
+        assertNull(fields.get(1).getLabel());
+    }
+
     // --- Helper ---
 
     private File writeYaml(Path dir, String name, String content) throws IOException {

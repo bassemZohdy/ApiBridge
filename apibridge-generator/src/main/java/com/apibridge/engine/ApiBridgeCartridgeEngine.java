@@ -17,22 +17,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Pluggable MDA Cartridge Engine.
- *
- * Each cartridge is an independent directory of .ftl templates. The engine mirrors the
- * cartridge directory tree directly to the output directory — no subdirectory routing.
- * Multiple cartridges are composed by calling generate() once per cartridge against the
- * same output directory; their outputs merge without conflict provided they write to
- * different paths (e.g. spring-boot → backend/, react → frontend/, dockerfile → root).
- */
 public class ApiBridgeCartridgeEngine {
 
-    /**
-     * Applies a single cartridge's templates to the output directory.
-     * The cartridge directory tree is mirrored 1-to-1 into outputDir.
-     * Call once per cartridge to compose multiple cartridges.
-     */
+    // Cartridges nested under one of these category dirs auto-prefix their output with that dir name.
+    private static final java.util.Set<String> OUTPUT_PREFIX_CATEGORIES =
+            java.util.Set.of("backend", "frontend", "k8s");
+
     public void generate(BridgeSchemaModel model, File cartridgeDir, File outputDir)
             throws IOException, TemplateException {
         if (model == null) {
@@ -45,8 +35,10 @@ public class ApiBridgeCartridgeEngine {
             throw new IllegalArgumentException("Output directory cannot be null.");
         }
 
-        if (!outputDir.exists() && !outputDir.mkdirs()) {
-            throw new IOException("Failed to create target output directory: " + outputDir.getAbsolutePath());
+        File effectiveOutputDir = resolveEffectiveOutputDir(cartridgeDir, outputDir);
+
+        if (!effectiveOutputDir.exists() && !effectiveOutputDir.mkdirs()) {
+            throw new IOException("Failed to create target output directory: " + effectiveOutputDir.getAbsolutePath());
         }
 
         Configuration cfg = new Configuration(Configuration.VERSION_2_3_32);
@@ -57,7 +49,7 @@ public class ApiBridgeCartridgeEngine {
         cfg.setWrapUncheckedExceptions(true);
 
         List<TemplateEntry> entries = new ArrayList<>();
-        collectTemplates(cartridgeDir, cartridgeDir, outputDir, entries);
+        collectTemplates(cartridgeDir, cartridgeDir, effectiveOutputDir, entries);
 
         if (entries.isEmpty()) {
             throw new IllegalArgumentException(
@@ -94,11 +86,6 @@ public class ApiBridgeCartridgeEngine {
         }
     }
 
-    /**
-     * Recursively collects all .ftl templates, mirroring the cartridge directory structure
-     * directly to the output. No flavor-based routing; the cartridge itself places files
-     * in the correct subdirectory (e.g. backend/, frontend/).
-     */
     private void collectTemplates(File cartridgeRoot, File dir, File outputBase,
                                    List<TemplateEntry> entries) {
         File[] children = dir.listFiles();
@@ -126,6 +113,14 @@ public class ApiBridgeCartridgeEngine {
         context.put("backendFlavor", resolvedBeFlavor(model));
         context.put("deployTarget", resolvedDeployTarget(model));
         return context;
+    }
+
+    private File resolveEffectiveOutputDir(File cartridgeDir, File baseOutputDir) {
+        File parent = cartridgeDir.getParentFile();
+        if (parent != null && OUTPUT_PREFIX_CATEGORIES.contains(parent.getName())) {
+            return new File(baseOutputDir, parent.getName());
+        }
+        return baseOutputDir;
     }
 
     private String resolvedBeFlavor(BridgeSchemaModel model) {

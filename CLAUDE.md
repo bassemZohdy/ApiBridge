@@ -36,15 +36,15 @@ Cartridges are **independent, composable directories of `.ftl` FreeMarker templa
 - FreeMarker template root = the cartridge directory; directory tree is mirrored 1:1 to output
 - Generated file names strip the `.ftl` suffix: `BridgeController.java.ftl` → `BridgeController.java`
 - All templates in a cartridge are processed in a single pass; FreeMarker context is bound once from the parsed `BridgeSchemaModel`
-- **`--cartridge=` is repeatable**: each cartridge is applied to the same output dir in order, enabling composition (e.g. `spring-boot` + `react` + `dockerfile` + `kubernetes`)
+- **`--cartridge=` is repeatable**: each cartridge is applied to the same output dir in order, enabling composition (e.g. `spring-boot` + `react` + `dockerfile` + `k8s/kubernetes`)
 - **Available cartridges** under `apibridge-cartridges/`:
   - `backend/spring-boot` / `backend/quarkus` — backend source under `backend/`; Spring Boot serves FE static assets from `classpath:/static/`, Quarkus from `META-INF/resources/`
   - `frontend/angular` / `frontend/react` / `frontend/vue` — full FE project under `frontend/` (for embedding in the JAR via multi-stage Dockerfile)
   - `devops/dockerfile` — multi-stage `Dockerfile`; FE build stage is conditional on `feFlavor` being set
   - `devops/docker-compose` — `docker-compose.yml`
-  - `devops/kubernetes` — kustomization + deployment + service + configmap under `k8s/`
-  - `devops/openshift` — adds `route.yaml` and overrides `kustomization.yaml` (apply on top of `kubernetes`)
-  - `frontend-ui-schema` — generates `UiLayoutSchema.json` for UI-driven forms
+  - `devops/k8s/kubernetes` — kustomization + deployment + service + configmap under `k8s/`
+  - `devops/k8s/openshift` — adds `route.yaml` and overrides `kustomization.yaml` (apply on top of `k8s/kubernetes`)
+  - `frontend/ui-schema` — generates `UiLayoutSchema.json` for UI-driven forms
 - **Single deployable JAR**: the generated project is one unit. FE source lives in `frontend/`, BE in `backend/`, but the multi-stage Dockerfile compiles FE and copies the dist into the BE `static/` resources directory before the Maven build, producing a single runnable JAR.
 
 ## YAML Schema

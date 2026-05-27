@@ -1,0 +1,16 @@
+/* Sample white-label override for the json-server E2E test */
+:root {
+  --bg: #f0f4ff;
+  --card: #ffffff;
+  --card-border: #c7d2fe;
+  --accent: #4f46e5;
+  --accent-dim: rgba(79, 70, 229, 0.08);
+  --text: #1e1b4b;
+  --text-muted: #6b7280;
+  --input-bg: #ffffff;
+  --input-border: #a5b4fc;
+}
+
+.apib-topbar {
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+}

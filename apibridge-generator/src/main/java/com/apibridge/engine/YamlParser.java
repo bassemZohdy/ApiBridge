@@ -16,14 +16,6 @@ public class YamlParser {
         this.mapper = new ObjectMapper(new YAMLFactory());
     }
 
-    /**
-     * Parses a YAML file into BridgeSchemaModel with deep validation checks.
-     *
-     * @param schemaFile The YAML schema file to parse
-     * @return Fully validated BridgeSchemaModel
-     * @throws IOException If file access fails or YAML structure is malformed
-     * @throws IllegalArgumentException If validation fails
-     */
     public BridgeSchemaModel parse(File schemaFile) throws IOException {
         if (schemaFile == null) {
             throw new IllegalArgumentException("Schema file reference cannot be null.");
@@ -50,11 +42,6 @@ public class YamlParser {
         return model;
     }
 
-    /**
-     * Performs strict validation checks on the parsed domain model.
-     *
-     * @param model Model to validate
-     */
     public void validate(BridgeSchemaModel model) {
         if (model.getId() == null || model.getId().isBlank()) {
             throw new IllegalArgumentException("Schema validation error: Missing or empty 'id' parameter.");
@@ -102,6 +89,20 @@ public class YamlParser {
             }
         }
 
+        if (model.getFlags() != null && model.getFlags().getNavigationMode() != null) {
+            String mode = model.getFlags().getNavigationMode().toLowerCase();
+            if (!mode.equals("spa") && !mode.equals("mpa")) {
+                throw new IllegalArgumentException("Schema validation error: Invalid flags.navigationMode value '" + mode + "'. Must be 'spa' or 'mpa'.");
+            }
+        }
+
+        if (model.getFlags() != null && model.getFlags().getPagination() != null) {
+            BridgeSchemaModel.Pagination p = model.getFlags().getPagination();
+            if (p.getDefaultPageSize() <= 0) {
+                throw new IllegalArgumentException("Schema validation error: flags.pagination.defaultPageSize must be a positive integer.");
+            }
+        }
+
         for (int i = 0; i < model.getEndpoints().size(); i++) {
             BridgeSchemaModel.Endpoint endpoint = model.getEndpoints().get(i);
             String location = "endpoints[" + i + "]";
@@ -127,6 +128,10 @@ public class YamlParser {
                 if (layout.getComponent() == null || layout.getComponent().isBlank()) {
                     throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout: Missing or empty layout 'component' type.");
                 }
+                String comp = layout.getComponent();
+                if (!comp.equals("Form") && !comp.equals("List") && !comp.equals("View")) {
+                    throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.component: Must be 'Form', 'List', or 'View'.");
+                }
                 if (layout.getFields() != null) {
                     for (int j = 0; j < layout.getFields().size(); j++) {
                         BridgeSchemaModel.Field field = layout.getFields().get(j);
@@ -134,8 +139,17 @@ public class YamlParser {
                         if (field.getName() == null || field.getName().isBlank()) {
                             throw new IllegalArgumentException("Schema validation error at " + fieldLocation + ": Missing or empty field 'name'.");
                         }
-                        if (field.getType() == null || field.getType().isBlank()) {
+                        if (comp.equals("Form") && (field.getType() == null || field.getType().isBlank())) {
                             throw new IllegalArgumentException("Schema validation error at " + fieldLocation + ": Missing or empty field 'type'.");
+                        }
+                    }
+                }
+                if (layout.getColumns() != null) {
+                    for (int j = 0; j < layout.getColumns().size(); j++) {
+                        BridgeSchemaModel.Column col = layout.getColumns().get(j);
+                        String colLocation = location + ".uiLayout.columns[" + j + "]";
+                        if (col.getField() == null || col.getField().isBlank()) {
+                            throw new IllegalArgumentException("Schema validation error at " + colLocation + ": Missing or empty column 'field'.");
                         }
                     }
                 }

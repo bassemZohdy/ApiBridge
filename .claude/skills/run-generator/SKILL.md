@@ -38,7 +38,7 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --output=output/$ARGUMENTS
 ```
 
-Available cartridges: `backend-spring-boot`, `backend-quarkus`, `frontend-angular`, `frontend-react`, `frontend-vue`, `frontend-ui-schema`
+Available cartridges: `backend/spring-boot`, `backend/quarkus`, `frontend/angular`, `frontend/react`, `frontend/vue`, `frontend/ui-schema`, `devops/dockerfile`, `devops/docker-compose`, `devops/k8s/kubernetes`, `devops/k8s/openshift`
 
 ## Inspect output
 

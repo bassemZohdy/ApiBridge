@@ -60,7 +60,7 @@ run_generator() {
     --cartridge="../../apibridge-cartridges/backend/${BE_FLAVOR}" \
     --cartridge="../../apibridge-cartridges/frontend/${FE_FLAVOR}" \
     --cartridge="../../apibridge-cartridges/devops/dockerfile" \
-    "${extra_args[@]}" \
+    ${extra_args[@]+"${extra_args[@]}"} \
     --output="$out" \
     --be-flavor="$BE_FLAVOR" \
     --fe-flavor="$FE_FLAVOR"
