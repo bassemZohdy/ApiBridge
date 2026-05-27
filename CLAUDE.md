@@ -59,6 +59,17 @@ Valid enum values:
 - `flags.uiPattern`: `form-engine` | `web-component`
 - `flags.securityLevel`: `bearer-token` | `apiKey`
 - `flags.deployTarget`: `docker-compose` | `kubernetes` | `openshift` (absent = no deployment config generated)
+- `flags.navigationMode`: `spa` (default) | `mpa`
+- `uiLayout.component`: `Form` | `List` | `View`
+
+`flags.pagination` sub-fields: `pageParam` (default `page`), `sizeParam` (default `size`), `defaultPageSize` (default `20`), `sortParam` (default `sort`), `directionParam` (default `dir`). All overrideable at runtime via `PAGINATION_*` ENV VARs via `/api/bridge-config`.
+
+## FreeMarker template conventions
+
+- **JS/TS template literals**: `${...}` inside backtick strings conflicts with FreeMarker interpolation. Escape with `${r"${...}"}` — e.g. `` `HTTP ${r"${res.status}"}` ``.
+- **Form endpoint filter**: assign `<#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />` at the top of any Form template. All Form cartridge templates already do this — do not regress it.
+- **`field.type` is nullable**: only required for `Form` component fields. Guard with `(field.type!"")` or check component type before accessing.
+- **CSS load order**: custom CSS must be injected dynamically in JS (`document.head.appendChild`) after the Vite bundle, not as a static `<link>` in `index.html`. All FE cartridges already follow this pattern.
 
 ## Git Workflow
 

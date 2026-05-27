@@ -71,8 +71,9 @@ Each item in the `endpoints` array:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `name` | string | Yes | Field identifier (camelCase, e.g. `companyName`). |
-| `type` | string | Yes | Field type (e.g. `string`, `number`, `boolean`). |
-| `required` | boolean | No | Whether the field is required. Defaults to `false`. |
+| `label` | string | No | Display label for the field. Defaults to the field name when absent. |
+| `type` | string | Conditional | Field type (`string`, `number`, `boolean`). Required for `Form` component; optional for `View` (display-only). |
+| `required` | boolean | No | Whether the field is required. Defaults to `false`. Only meaningful for `Form` fields. |
 
 ---
 
@@ -101,10 +102,43 @@ flags:
   deployTarget: "docker-compose"
   navigationMode: "spa"
   pagination:
-    pageParam: "pageIndex"
-    sizeParam: "pageSize"
-    defaultPageSize: 15
+    pageParam: "page"
+    sizeParam: "size"
+    defaultPageSize: 20
+    sortParam: "sort"
+    directionParam: "dir"
 endpoints:
+  - path: "/submissions"
+    method: "GET"
+    backendUrl: "https://internal-mesh.local/customer/submissions"
+    telemetryName: "apibridge_onboarding_list"
+    uiLayout:
+      component: "List"
+      columns:
+        - field: "email"
+          label: "Email"
+          sortable: true
+        - field: "companyName"
+          label: "Company"
+          sortable: true
+        - field: "status"
+          label: "Status"
+          sortable: false
+
+  - path: "/submissions/{id}"
+    method: "GET"
+    backendUrl: "https://internal-mesh.local/customer/submissions/1"
+    telemetryName: "apibridge_onboarding_view"
+    uiLayout:
+      component: "View"
+      fields:
+        - name: "email"
+          label: "Email Address"    # type is optional for View
+        - name: "companyName"
+          label: "Company Name"
+        - name: "status"
+          label: "Status"
+
   - path: "/initiate"
     method: "POST"
     backendUrl: "https://internal-mesh.local/customer/create"
@@ -113,23 +147,13 @@ endpoints:
       component: "Form"
       fields:
         - name: "email"
-          type: "string"
+          type: "string"            # type is required for Form
+          label: "Email Address"
           required: true
         - name: "companyName"
           type: "string"
+          label: "Company Name"
           required: true
-  - path: "/list"
-    method: "GET"
-    backendUrl: "https://internal-mesh.local/customer/list"
-    uiLayout:
-      component: "List"
-      columns:
-        - field: "email"
-          label: "Customer Email"
-          sortable: true
-        - field: "companyName"
-          label: "Company"
-          sortable: true
 ```
 
 ---
