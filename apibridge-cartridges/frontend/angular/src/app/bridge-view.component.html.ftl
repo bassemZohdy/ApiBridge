@@ -1,8 +1,11 @@
-<#-- Check if edit (PUT /{id}) endpoint exists -->
 <#assign hasEdit = false />
+<#assign hasDelete = false />
 <#list endpoints as ep>
   <#if ep.method?upper_case == "PUT" && ep.path?contains("{")>
     <#assign hasEdit = true />
+  </#if>
+  <#if ep.method?upper_case == "DELETE" && ep.path?contains("{")>
+    <#assign hasDelete = true />
   </#if>
 </#list>
 <div class="apib-shell">
@@ -14,6 +17,9 @@
       <div class="apib-view-actions">
 <#if hasEdit>
         <button class="apib-btn apib-btn--primary" (click)="goEdit()">Edit</button>
+</#if>
+<#if hasDelete>
+        <button class="apib-btn apib-btn--danger" (click)="handleDelete()" [disabled]="deleting">{{ deleting ? 'Deleting…' : 'Delete' }}</button>
 </#if>
       </div>
     </div>

@@ -33,6 +33,9 @@ services:
 <#if (flags.securityLevel!"") == "apiKey">
       API_KEY: ""                # Set to enforce X-API-Key validation; empty = disabled
 </#if>
+<#if (flags.securityLevel!"") == "bearer-token">
+      AUTH_SERVER_URL: ""        # JWT introspection URL; empty = pass-through (non-empty header check only)
+</#if>
       # ── CORS ───────────────────────────────────────────────────────────────
       CORS_ALLOWED_ORIGINS: "*"  # Restrict to specific origins in production
       # ── Server / JVM ───────────────────────────────────────────────────────

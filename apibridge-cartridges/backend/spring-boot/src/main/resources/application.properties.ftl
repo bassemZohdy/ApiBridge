@@ -58,6 +58,9 @@ management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                      Expected X-API-Key header value; empty = validation disabled
 </#if>
+<#if (flags.securityLevel!"") == "bearer-token">
+#   AUTH_SERVER_URL=              URL of JWT introspection endpoint; empty = pass-through (non-empty header check only)
+</#if>
 <#if flags.enableTelemetry>
 #   MANAGEMENT_TRACING_ENABLED=true
 #   MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0

@@ -58,6 +58,9 @@ quarkus.otel.service.name=${id}
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                          Expected X-API-Key header; empty = validation disabled
 </#if>
+<#if (flags.securityLevel!"") == "bearer-token">
+#   AUTH_SERVER_URL=                  URL of JWT introspection endpoint; empty = pass-through (non-empty header check only)
+</#if>
 <#if flags.enableTelemetry>
 #   QUARKUS_OTEL_ENABLED=true
 #   QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://<collector>:4317

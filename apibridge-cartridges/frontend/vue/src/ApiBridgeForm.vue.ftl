@@ -1,32 +1,46 @@
-<#function pathToMethod path>
+<#function endpointMethodName method path>
   <#local clean = path?remove_beginning("/") />
-  <#local parts = clean?split("/") />
-  <#local segment = "" />
-  <#list parts as p>
-    <#if !p?contains("{") && p?has_content>
-      <#local segment = p />
+  <#local parts = clean?split("[/\\-]", "r") />
+  <#local baseName = "" />
+  <#list parts as part>
+    <#if part?has_content && !part?contains("{")>
+      <#if baseName == "">
+        <#local baseName = part />
+      <#else>
+        <#local baseName = baseName + part?capitalize />
+      </#if>
     </#if>
   </#list>
-  <#if !segment?has_content>
-    <#local segment = parts[0]?replace("[{][^}]*[}]", "", "r") />
-  </#if>
-  <#local words = segment?split("-") />
-  <#local result = words[0] />
-  <#list words as word>
-    <#if word_index gt 0>
-      <#local result = result + word?cap_first />
+  <#local pp = [] />
+  <#list path?split("{") as seg>
+    <#if seg?contains("}")>
+      <#local pp = pp + [seg?split("}")?first] />
     </#if>
   </#list>
-  <#return result />
+  <#local suffix = "" />
+  <#list pp as param>
+    <#if param_index == 0>
+      <#local suffix = "By" + param?capitalize />
+    <#else>
+      <#local suffix = suffix + "And" + param?capitalize />
+    </#if>
+  </#list>
+  <#return method?lower_case + baseName?capitalize + suffix />
 </#function>
 <#assign uiPattern = (flags.uiPattern)!"form-engine" />
 <#assign securityLevel = (flags.securityLevel)!"" />
 <#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
+<#assign viewEndpoint = "" />
+<#list endpoints as ep>
+  <#if ep.method?upper_case == "GET" && ep.path?contains("{") && viewEndpoint == "">
+    <#assign viewEndpoint = ep />
+  </#if>
+</#list>
 <#if uiPattern == "web-component">
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 <#list formEndpoints as endpoint>
-import { ${pathToMethod(endpoint.path)} } from './api/bridgeApi';
+import { ${endpointMethodName(endpoint.method, endpoint.path)} } from './api/bridgeApi';
 </#list>
 
 const props = withDefaults(defineProps<{
@@ -58,9 +72,9 @@ onMounted(() => {
           case ${endpoint?index}: {
 <#if epPathParams?has_content>
             const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = detail;
-            await ${pathToMethod(endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, detail.token as string | undefined</#if>);
+            await ${endpointMethodName(endpoint.method, endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, detail.token as string | undefined</#if>);
 <#else>
-            await ${pathToMethod(endpoint.path)}(detail<#if securityLevel == "bearer-token">, detail.token as string | undefined</#if>);
+            await ${endpointMethodName(endpoint.method, endpoint.path)}(detail<#if securityLevel == "bearer-token">, detail.token as string | undefined</#if>);
 </#if>
             break;
           }
@@ -103,10 +117,13 @@ onMounted(() => {
 </template>
 <#else>
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch, onMounted } from 'vue';
 <#list formEndpoints as endpoint>
-import { ${pathToMethod(endpoint.path)} } from './api/bridgeApi';
+import { ${endpointMethodName(endpoint.method, endpoint.path)} } from './api/bridgeApi';
 </#list>
+<#if viewEndpoint != "">
+import { ${endpointMethodName(viewEndpoint.method, viewEndpoint.path)} } from './api/bridgeApi';
+</#if>
 
 const props = withDefaults(defineProps<{
   editId?: string;
@@ -120,6 +137,7 @@ const activeTab = ref(0);
 const loading = ref(false);
 const error = ref('');
 const response = ref<unknown>(null);
+const loadingRecord = ref(false);
 
 interface FieldDef { key: string; label: string; inputType: string; required: boolean }
 
@@ -165,6 +183,26 @@ const formData${endpoint?index} = reactive<Record<string, string | number | bool
 
 const formDatas = [<#list formEndpoints as endpoint>formData${endpoint?index}<#sep>, </#list>];
 
+<#if viewEndpoint != "">
+watch(() => props.editId, (newId) => {
+  if (!newId) return;
+  loadingRecord.value = true;
+  ${endpointMethodName(viewEndpoint.method, viewEndpoint.path)}(newId<#if securityLevel == "bearer-token">, undefined</#if>)
+    .then((data: unknown) => {
+      const record = data as Record<string, unknown>;
+      const updated = { ...formDatas[0] };
+      for (const key of Object.keys(updated)) {
+        if (record[key] !== undefined) {
+          (updated as Record<string, unknown>)[key] = record[key];
+        }
+      }
+      Object.assign(formDatas[0], updated);
+    })
+    .catch(() => {})
+    .finally(() => { loadingRecord.value = false; });
+}, { immediate: true });
+</#if>
+
 async function onSubmit(endpointIndex: number): Promise<void> {
   error.value = '';
   response.value = null;
@@ -182,9 +220,9 @@ async function onSubmit(endpointIndex: number): Promise<void> {
       case ${endpoint?index}: {
 <#if epPathParams?has_content>
         const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = data;
-        response.value = await ${pathToMethod(endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, (data as Record<string, unknown>).token as string | undefined</#if>);
+        response.value = await ${endpointMethodName(endpoint.method, endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, (data as Record<string, unknown>).token as string | undefined</#if>);
 <#else>
-        response.value = await ${pathToMethod(endpoint.path)}(data<#if securityLevel == "bearer-token">, (data as Record<string, unknown>).token as string | undefined</#if>);
+        response.value = await ${endpointMethodName(endpoint.method, endpoint.path)}(data<#if securityLevel == "bearer-token">, (data as Record<string, unknown>).token as string | undefined</#if>);
 </#if>
         break;
       }
@@ -209,8 +247,13 @@ async function onSubmit(endpointIndex: number): Promise<void> {
 
       <div class="apib-header">
         <span class="apib-badge">${id?upper_case}</span>
-        <h1 class="apib-title">API Bridge</h1>
+        <h1 class="apib-title">{{ editId ? 'Edit Record' : 'API Bridge' }}</h1>
       </div>
+
+<#if viewEndpoint != "">
+      <div v-if="loadingRecord && editId" class="apib-loading"><span class="apib-spinner apib-spinner--dark"></span></div>
+      <template v-else>
+</#if>
 
 <#if formEndpoints?size gt 1>
       <div class="apib-tabs">
@@ -265,7 +308,7 @@ async function onSubmit(endpointIndex: number): Promise<void> {
 
         <button type="submit" class="apib-submit" :disabled="loading">
           <span v-if="loading" class="apib-spinner"></span>
-          <span v-else>Execute Request</span>
+          <span v-else>{{ editId ? 'Update Record' : 'Execute Request' }}</span>
         </button>
       </form>
 </#list>
@@ -278,6 +321,9 @@ async function onSubmit(endpointIndex: number): Promise<void> {
         <pre class="apib-response-body">{{ JSON.stringify(response, null, 2) }}</pre>
       </div>
 
+<#if viewEndpoint != "">
+      </template>
+</#if>
     </div>
   </div>
 </template>

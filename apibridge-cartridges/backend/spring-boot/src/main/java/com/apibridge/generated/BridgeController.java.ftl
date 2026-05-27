@@ -6,8 +6,9 @@
 package com.apibridge.generated;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 <#if flags.enableTelemetry>
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -29,6 +30,35 @@ public class BridgeController {
 <#if (flags.securityLevel!"") == "apiKey">
     @Value("${r"${API_KEY:}"}")
     private String expectedApiKey;
+</#if>
+<#if (flags.securityLevel!"") == "bearer-token">
+    @Value("${r"${AUTH_SERVER_URL:}"}")
+    private String authServerUrl;
+
+    private final RestTemplate authRestTemplate = new RestTemplate();
+
+    private boolean validateBearerToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return false;
+        }
+        String token = authHeader.substring(7);
+        if (token.isBlank()) {
+            return false;
+        }
+        if (authServerUrl != null && !authServerUrl.isBlank()) {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("Authorization", "Bearer " + token);
+                ResponseEntity<Void> resp = authRestTemplate.exchange(
+                    authServerUrl, HttpMethod.GET, new HttpEntity<>(headers), Void.class);
+                return resp.getStatusCode().is2xxSuccessful();
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return true;
+    }
 </#if>
 
     // Per-endpoint backend URLs — override at runtime via ENV VAR
@@ -53,7 +83,8 @@ public class BridgeController {
 
 <#list endpoints as endpoint>
 <#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
-<#assign methodName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first />
+<#assign baseName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "") />
+<#assign methodName = endpoint.method?lower_case + baseName />
 <#assign pathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -92,6 +123,11 @@ public class BridgeController {
             if (!expectedApiKey.equals(providedKey)) {
                 return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
             }
+        }
+</#if>
+<#if (flags.securityLevel!"") == "bearer-token">
+        if (!validateBearerToken(request)) {
+            return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
         }
 </#if>
         String resolvedUrl = ${urlFieldName}<#list pathParams as param>.replace("{${param}}", ${param})</#list>;

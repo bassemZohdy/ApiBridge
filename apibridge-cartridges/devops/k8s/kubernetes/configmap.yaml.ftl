@@ -18,6 +18,10 @@ data:
   API_KEY: ""             # Set to enforce X-API-Key validation; empty = disabled
   # Note: for production, store API_KEY in a Secret rather than a ConfigMap
 </#if>
+<#if (flags.securityLevel!"") == "bearer-token">
+  AUTH_SERVER_URL: ""     # JWT introspection URL; empty = pass-through (non-empty header check only)
+  # Note: for production, store AUTH_SERVER_URL in a Secret rather than a ConfigMap
+</#if>
   # ── CORS ─────────────────────────────────────────────────────────────────────
   CORS_ALLOWED_ORIGINS: "*"  # Restrict to specific origins in production
   # ── Server / JVM ─────────────────────────────────────────────────────────────

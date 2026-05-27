@@ -1,25 +1,48 @@
-<#function pathToMethod path>
+<#function endpointMethodName method path>
   <#local clean = path?remove_beginning("/") />
   <#local parts = clean?split("[/\\-]", "r") />
-  <#local result = "" />
+  <#local baseName = "" />
   <#list parts as part>
     <#if part?has_content && !part?contains("{")>
-      <#if result == "">
-        <#local result = part />
+      <#if baseName == "">
+        <#local baseName = part />
       <#else>
-        <#local result = result + part?capitalize />
+        <#local baseName = baseName + part?capitalize />
       </#if>
     </#if>
   </#list>
-  <#return result />
+  <#local pp = [] />
+  <#list path?split("{") as seg>
+    <#if seg?contains("}")>
+      <#local pp = pp + [seg?split("}")?first] />
+    </#if>
+  </#list>
+  <#local suffix = "" />
+  <#list pp as param>
+    <#if param_index == 0>
+      <#local suffix = "By" + param?capitalize />
+    <#else>
+      <#local suffix = suffix + "And" + param?capitalize />
+    </#if>
+  </#list>
+  <#return method?lower_case + baseName?capitalize + suffix />
 </#function>
 <#assign uiPattern = (flags.uiPattern)!"form-engine" />
 <#assign securityLevel = (flags.securityLevel)!"" />
 <#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
-import React, { useState<#if uiPattern == "web-component">, useRef, useEffect</#if> } from 'react';
-<#list formEndpoints as endpoint>
-import { ${pathToMethod(endpoint.path)} } from './api/bridgeApi';
+<#assign viewEndpoint = "" />
+<#list endpoints as ep>
+  <#if ep.method?upper_case == "GET" && ep.path?contains("{") && viewEndpoint == "">
+    <#assign viewEndpoint = ep />
+  </#if>
 </#list>
+import React, { useState, useEffect<#if uiPattern == "web-component">, useRef</#if> } from 'react';
+<#list formEndpoints as endpoint>
+import { ${endpointMethodName(endpoint.method, endpoint.path)} } from './api/bridgeApi';
+</#list>
+<#if viewEndpoint != "" && uiPattern != "web-component">
+import { ${endpointMethodName(viewEndpoint.method, viewEndpoint.path)} } from './api/bridgeApi';
+</#if>
 
 <#if uiPattern == "web-component">
 declare global {
@@ -115,9 +138,9 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
           case ${ep?index}: {
 <#if epPathParams?has_content>
             const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${ep?index} } = detail;
-            const result${ep?index} = await ${pathToMethod(ep.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${ep?index}<#if securityLevel == "bearer-token">, token</#if>);
+            const result${ep?index} = await ${endpointMethodName(ep.method, ep.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${ep?index}<#if securityLevel == "bearer-token">, token</#if>);
 <#else>
-            const result${ep?index} = await ${pathToMethod(ep.path)}(detail<#if securityLevel == "bearer-token">, token</#if>);
+            const result${ep?index} = await ${endpointMethodName(ep.method, ep.path)}(detail<#if securityLevel == "bearer-token">, token</#if>);
 </#if>
             if (onSuccess) onSuccess(result${ep?index});
             break;
@@ -166,6 +189,33 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
   const [response, setResponse] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [formState, setFormState] = useState<Record<string, string | number | boolean>[]>(INITIAL_STATE);
+  const [loadingRecord, setLoadingRecord] = useState(false);
+
+  useEffect(() => {
+    if (!editId<#if viewEndpoint != ""> || ${endpointMethodName(viewEndpoint.method, viewEndpoint.path)} === undefined</#if>) return;
+<#if viewEndpoint != "">
+    setLoadingRecord(true);
+    ${endpointMethodName(viewEndpoint.method, viewEndpoint.path)}(editId<#if securityLevel == "bearer-token">, token</#if>)
+      .then((data: unknown) => {
+        const record = data as Record<string, unknown>;
+        setFormState(prev => {
+          const next = [...prev];
+          const updated = { ...next[0] };
+          for (const key of Object.keys(updated)) {
+            if (record[key] !== undefined) {
+              updated[key] = record[key] as string | number | boolean;
+            }
+          }
+          next[0] = updated;
+          return next;
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoadingRecord(false));
+<#else>
+    setLoadingRecord(false);
+</#if>
+  }, [editId<#if securityLevel == "bearer-token">, token</#if>]);
 
   const updateField = (idx: number, key: string, value: string | number | boolean) => {
     setFormState(prev => {
@@ -194,9 +244,9 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
         case ${endpoint?index}: {
 <#if epPathParams?has_content>
           const { <#list epPathParams as param>${param}<#sep>, </#sep></#list>, ...rest${endpoint?index} } = data;
-          result = await ${pathToMethod(endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, token</#if>);
+          result = await ${endpointMethodName(endpoint.method, endpoint.path)}(<#list epPathParams as param>String(${param} ?? '')<#sep>, </#sep></#list>, rest${endpoint?index}<#if securityLevel == "bearer-token">, token</#if>);
 <#else>
-          result = await ${pathToMethod(endpoint.path)}(data<#if securityLevel == "bearer-token">, token</#if>);
+          result = await ${endpointMethodName(endpoint.method, endpoint.path)}(data<#if securityLevel == "bearer-token">, token</#if>);
 </#if>
           break;
         }
@@ -229,6 +279,10 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
           <h1 className="apib-title">{editId ? 'Edit Record' : 'API Bridge'}</h1>
         </div>
 
+        {loadingRecord ? (
+          <div className="apib-loading"><span className="apib-spinner" /></div>
+        ) : (
+        <>
         {ENDPOINT_LABELS.length > 1 && (
           <div className="apib-tabs">
             {ENDPOINT_LABELS.map((label, i) => (
@@ -284,7 +338,7 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
           )}
 
           <button type="submit" className="apib-submit" disabled={loading}>
-            {loading ? <span className="apib-spinner" /> : 'Execute Request'}
+            {loading ? <span className="apib-spinner" /> : editId ? 'Update Record' : 'Execute Request'}
           </button>
         </form>
 
@@ -296,6 +350,8 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
             </div>
             <pre className="apib-response-body">{JSON.stringify(response, null, 2)}</pre>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

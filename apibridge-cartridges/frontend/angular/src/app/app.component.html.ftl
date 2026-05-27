@@ -20,7 +20,7 @@
   <app-bridge-view *ngIf="currentPage === 'view'" [recordId]="currentId" (navigate)="onNavigate($event)"></app-bridge-view>
 </#if>
 <#if hasFormEndpoint>
-  <app-bridge-form *ngIf="currentPage === 'form'"></app-bridge-form>
+  <app-bridge-form *ngIf="currentPage === 'form'" [editId]="currentId"></app-bridge-form>
 </#if>
   <div *ngIf="currentPage === 'unknown'" class="apib-shell">
     <div class="apib-topbar"></div>

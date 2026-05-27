@@ -1,7 +1,8 @@
-<#-- Identify view (GET /{id}), edit (PUT /{id}), delete (DELETE /{id}) endpoints -->
 <#assign viewEndpoint = "" />
 <#assign viewFields = [] />
 <#assign hasEdit = false />
+<#assign hasDelete = false />
+<#assign deleteEndpoint = "" />
 <#list endpoints as ep>
   <#if ep.method?upper_case == "GET" && ep.path?contains("{") && viewEndpoint == "">
     <#assign viewEndpoint = ep />
@@ -11,6 +12,10 @@
   </#if>
   <#if ep.method?upper_case == "PUT" && ep.path?contains("{")>
     <#assign hasEdit = true />
+  </#if>
+  <#if ep.method?upper_case == "DELETE" && ep.path?contains("{")>
+    <#assign hasDelete = true />
+    <#assign deleteEndpoint = ep />
   </#if>
 </#list>
 <script setup lang="ts">
@@ -29,10 +34,18 @@ type RecordData = Record<string, unknown>;
 <#if viewEndpoint != "">
 const URL_PATTERN = '${basePath}${viewEndpoint.path}';
 </#if>
+<#if hasDelete>
+<#if deleteEndpoint?has_content>
+const DELETE_URL_PATTERN = '${basePath}${deleteEndpoint.path}';
+<#else>
+const DELETE_URL_PATTERN = '${basePath}${viewEndpoint.path}';
+</#if>
+</#if>
 
 const record = ref<RecordData | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const deleting = ref(false);
 
 watch(
   () => props.recordId,
@@ -64,6 +77,31 @@ watch(
   { immediate: true }
 );
 
+<#if hasDelete>
+async function handleDelete(): Promise<void> {
+  if (!window.confirm('Are you sure you want to delete this record?')) return;
+  deleting.value = true;
+  error.value = null;
+  try {
+    const url = DELETE_URL_PATTERN.replace(/\{[^}]+\}/, props.recordId);
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+<#if (flags.securityLevel!"") != "">
+        ...getAuthHeaders(),
+</#if>
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${r"${res.status}"}`);
+    props.onNavigate('list');
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Delete failed';
+    deleting.value = false;
+  }
+}
+</#if>
+
 <#if viewFields?has_content>
 const fields = [
   <#list viewFields as f>
@@ -88,6 +126,9 @@ const fields = computed(() =>
         <div class="apib-view-actions">
 <#if hasEdit>
           <button class="apib-btn apib-btn--primary" @click="onNavigate(`form/${r"${recordId}"}`)">Edit</button>
+</#if>
+<#if hasDelete>
+          <button class="apib-btn apib-btn--danger" @click="handleDelete" :disabled="deleting">{{ deleting ? 'Deleting…' : 'Delete' }}</button>
 </#if>
         </div>
       </div>

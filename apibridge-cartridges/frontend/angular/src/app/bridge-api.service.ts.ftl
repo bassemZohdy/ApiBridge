@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environment';
 
@@ -8,25 +8,50 @@ export class BridgeApiService {
 
   constructor(private http: HttpClient) {}
 
-<#list endpoints as endpoint>
-<#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
-<#assign methodName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first />
-<#assign pathParams = [] />
-<#list endpoint.path?split("{") as seg>
-  <#if seg?contains("}")>
-    <#assign pathParams = pathParams + [seg?split("}")?first] />
-  </#if>
-</#list>
-  ${methodName}(<#list pathParams as param>${param}: string, </#list>body: unknown<#if (flags.securityLevel!"") == "bearer-token">, token: string<#elseif (flags.securityLevel!"") == "apiKey">, key: string</#if>): Observable<unknown> {
-    const url = (environment.apiBaseUrl + '${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
-<#if (flags.securityLevel!"") == "bearer-token">
-    const headers = new HttpHeaders({ Authorization: 'Bearer ' + token });
-    return this.http.${endpoint.method?lower_case}<unknown>(url, body, { headers });
-<#elseif (flags.securityLevel!"") == "apiKey">
-    const headers = new HttpHeaders({ 'X-API-Key': key });
-    return this.http.${endpoint.method?lower_case}<unknown>(url, body, { headers });
+<#assign securityLevel = (flags.securityLevel)!"" />
+<#if securityLevel == "bearer-token">
+<#elseif securityLevel == "apiKey">
 <#else>
-    return this.http.${endpoint.method?lower_case}<unknown>(url, body);
+<#assign securityLevel = "" />
+</#if>
+  getAuthHeaders(<#if securityLevel == "bearer-token">token: string</#if>): HttpHeaders {
+<#if securityLevel == "bearer-token">
+    return new HttpHeaders({ Authorization: 'Bearer ' + token });
+<#elseif securityLevel == "apiKey">
+    const key = localStorage.getItem('apiKey') ?? '';
+    return new HttpHeaders({ 'X-API-Key': key });
+<#else>
+    return new HttpHeaders();
+</#if>
+  }
+
+  <#list endpoints as endpoint>
+  <#assign pathParams = [] />
+  <#list endpoint.path?split("{") as seg>
+    <#if seg?contains("}")>
+      <#assign pathParams = pathParams + [seg?split("}")?first] />
+    </#if>
+  </#list>
+  <#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
+  <#assign baseName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "") />
+  <#assign paramSuffix = "" />
+  <#list pathParams as param>
+    <#if param_index == 0>
+      <#assign paramSuffix = "By" + param?capitalize />
+    <#else>
+      <#assign paramSuffix = paramSuffix + "And" + param?capitalize />
+    </#if>
+  </#list>
+  <#assign method = endpoint.method?upper_case />
+  <#assign methodName = method?lower_case + baseName + paramSuffix />
+  <#assign hasBody = (method == "POST" || method == "PUT" || method == "PATCH") />
+  ${methodName}(<#list pathParams as param>${param}: string, </#list><#if hasBody>body: unknown<#else>_body?: unknown</#if><#if securityLevel == "bearer-token">, token: string</#if>): Observable<unknown> {
+    const url = (environment.apiBaseUrl + '${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
+    const headers = this.getAuthHeaders(<#if securityLevel == "bearer-token">token</#if>);
+<#if hasBody>
+    return this.http.request<unknown>('${endpoint.method}', url, { body, headers });
+<#else>
+    return this.http.request<unknown>('${endpoint.method}', url, { headers });
 </#if>
   }
 

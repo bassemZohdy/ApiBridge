@@ -124,6 +124,10 @@ ENV \
     # API key validation — empty value disables validation
     API_KEY="" \
 </#if>
+<#if (flags.securityLevel!"") == "bearer-token">
+    # JWT introspection URL — empty = pass-through (non-empty header check only)
+    AUTH_SERVER_URL="" \
+</#if>
     # Per-endpoint backend URLs — default to schema-defined values
 <#list endpoints as endpoint>
 <#if endpoint?has_next>

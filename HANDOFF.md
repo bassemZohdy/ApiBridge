@@ -44,8 +44,7 @@ All three are wired into an SPA hash router in `App` (`#/list`, `#/view/:id`, `#
 
 ### SPA/MPA flag — `flags.navigationMode`
 
-- `"spa"` (default): client-side hash routing, no page refreshes
-- `"mpa"`: multi-page layout mode
+> **Note**: `navigationMode` and `uiPattern` are scheduled for removal (M1/M2 in TODO.md). Currently all frontends use SPA hash routing regardless of this flag's value.
 
 ### Pagination — `flags.pagination`
 
@@ -117,6 +116,34 @@ Each frontend generates a hash-based router — no router library required:
 The `App` component (React: `App.tsx`, Vue: `App.vue`, Angular: `app.component.ts`) listens to `hashchange` events and routes accordingly.
 
 **Important**: `ApiBridgeForm` only processes `POST`/`PUT` endpoints — GET endpoints are filtered out at template generation time via `formEndpoints = endpoints.filter(ep -> method != "GET")`.
+
+---
+
+## Completed bug fixes and features (current session)
+
+| ID | Description |
+|---|---|
+| C1 | Added `getAuthHeaders()` to React/Vue `bridgeApi.ts.ftl` |
+| C2 | Fixed GET+body bug in all 3 frontend API layers |
+| C3 | Fixed Angular Form empty security credentials |
+| C4 | Fixed method name collision in both backends (HTTP prefix) |
+| H1 | Forward query parameters in both ProxyService templates |
+| H2 | DELETE support in all 3 View components |
+| H6 | Forward upstream response headers (non-hop-by-hop) |
+| M5 | Aligned header forwarding (consistent hop-by-hop exclusion) |
+| M6 | Generic 502 error (no internal detail leakage) |
+
+---
+
+## Remaining work (see TODO.md)
+
+| ID | Description |
+|---|---|
+| H3 | Edit-mode pre-population in Form components |
+| H4 | Configurable bearer-token security on backend |
+| H5 | Quarkus telemetry completion |
+| M1/M2 | Remove `navigationMode` and `uiPattern` flags |
+| M3–M7 | Minor improvements (bridge-config enrichment, CORS, E2E) |
 
 ---
 
@@ -201,3 +228,7 @@ endpoints:
 3. **Form templates filter GET endpoints** — `formEndpoints` assigned at template top; do not regress this.
 4. **Custom CSS loads after the Vite bundle** — injected dynamically in `main.ts`/`main.tsx` so brand overrides win the cascade.
 5. **`Pagination` is auto-initialized** in `BridgeSchemaModel.Flags` — `getPagination()` is never null when flags are present.
+6. **Backend method names include HTTP prefix** — `getUsers()`, `postUsers()` to avoid collision on shared paths.
+7. **ProxyService forwards headers and query params** — both backends forward all non-hop-by-hop request/response headers and append query parameters to the upstream URL.
+8. **All 3 frontends export `getAuthHeaders()`** — React/Vue from `bridgeApi.ts`, Angular on `BridgeApiService`. New components must use these helpers.
+9. **View components support DELETE** — if a DELETE endpoint exists for the same path pattern, the View page renders a delete button.

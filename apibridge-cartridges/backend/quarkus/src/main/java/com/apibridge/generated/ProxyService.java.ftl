@@ -8,12 +8,20 @@ import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @ApplicationScoped
 public class ProxyService {
+
+    private static final Set<String> HOP_BY_HOP = Set.of(
+            "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
+            "te", "trailers", "transfer-encoding", "upgrade", "content-length", "host"
+    );
 
     private Client client;
 
@@ -36,9 +44,14 @@ public class ProxyService {
         try {
             var target = client.target(targetUrl).request();
 
-            String authorization = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
-            if (authorization != null) {
-                target = target.header(HttpHeaders.AUTHORIZATION, authorization);
+            MultivaluedMap<String, String> requestHeaders = headers.getRequestHeaders();
+            for (var entry : requestHeaders.entrySet()) {
+                String name = entry.getKey().toLowerCase();
+                if (!HOP_BY_HOP.contains(name)) {
+                    for (String value : entry.getValue()) {
+                        target = target.header(entry.getKey(), value);
+                    }
+                }
             }
 
             String contentType = headers.getHeaderString(HttpHeaders.CONTENT_TYPE);
@@ -47,25 +60,35 @@ public class ProxyService {
             }
 
             Response upstream;
-            if (requestBody != null && !requestBody.isBlank()) {
-                upstream = target.method(method.toUpperCase(), Entity.entity(requestBody, contentType));
-            } else {
-                upstream = target.method(method.toUpperCase());
+            try {
+                if (requestBody != null && !requestBody.isBlank()) {
+                    upstream = target.method(method.toUpperCase(), Entity.entity(requestBody, contentType));
+                } else {
+                    upstream = target.method(method.toUpperCase());
+                }
+
+                String body = upstream.readEntity(String.class);
+
+                Response.ResponseBuilder builder = Response.status(upstream.getStatus()).entity(body);
+
+                MultivaluedMap<String, Object> upstreamHeaders = upstream.getHeaders();
+                for (var entry : upstreamHeaders.entrySet()) {
+                    String name = entry.getKey().toLowerCase();
+                    if (!HOP_BY_HOP.contains(name)) {
+                        for (Object value : entry.getValue()) {
+                            builder.header(entry.getKey(), value);
+                        }
+                    }
+                }
+
+                return builder.build();
+            } finally {
+                upstream.close();
             }
-
-            String body = upstream.readEntity(String.class);
-            String upstreamContentType = upstream.getMediaType() != null
-                    ? upstream.getMediaType().toString()
-                    : MediaType.APPLICATION_JSON;
-
-            return Response.status(upstream.getStatus())
-                    .entity(body)
-                    .type(upstreamContentType)
-                    .build();
 
         } catch (Exception e) {
             return Response.status(502)
-                    .entity("{\"error\":\"Bad Gateway\",\"detail\":\"" + e.getMessage() + "\"}")
+                    .entity("{\"error\":\"Bad Gateway\"}")
                     .type(MediaType.APPLICATION_JSON)
                     .build();
         }

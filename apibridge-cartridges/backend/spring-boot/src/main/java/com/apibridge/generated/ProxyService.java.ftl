@@ -10,9 +10,15 @@ import org.springframework.web.client.RestTemplate;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
+import java.util.Set;
 
 @Service
 public class ProxyService {
+
+    private static final Set<String> HOP_BY_HOP = Set.of(
+            "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
+            "te", "trailers", "transfer-encoding", "upgrade", "content-length", "host"
+    );
 
     private final RestTemplate restTemplate;
 
@@ -26,16 +32,18 @@ public class ProxyService {
             String requestBody,
             HttpServletRequest request) {
 
-        HttpHeaders outboundHeaders = new HttpHeaders();
+        String urlWithQuery = targetUrl;
+        String queryString = request.getQueryString();
+        if (queryString != null && !queryString.isBlank()) {
+            urlWithQuery = targetUrl + (targetUrl.contains("?") ? "&" : "?") + queryString;
+        }
 
+        HttpHeaders outboundHeaders = new HttpHeaders();
         Enumeration<String> headerNames = request.getHeaderNames();
         if (headerNames != null) {
             while (headerNames.hasMoreElements()) {
                 String name = headerNames.nextElement();
-                String lower = name.toLowerCase();
-                if (lower.equals("authorization")
-                        || lower.equals("content-type")
-                        || lower.startsWith("x-")) {
+                if (!HOP_BY_HOP.contains(name.toLowerCase())) {
                     outboundHeaders.set(name, request.getHeader(name));
                 }
             }
@@ -46,13 +54,14 @@ public class ProxyService {
 
         try {
             ResponseEntity<String> upstream = restTemplate.exchange(
-                    targetUrl, httpMethod, entity, String.class);
+                    urlWithQuery, httpMethod, entity, String.class);
 
             HttpHeaders responseHeaders = new HttpHeaders();
-            String contentType = upstream.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
-            if (contentType != null) {
-                responseHeaders.set(HttpHeaders.CONTENT_TYPE, contentType);
-            }
+            upstream.getHeaders().forEach((name, values) -> {
+                if (!HOP_BY_HOP.contains(name.toLowerCase())) {
+                    values.forEach(v -> responseHeaders.add(name, v));
+                }
+            });
 
             return ResponseEntity.status(upstream.getStatusCode())
                     .headers(responseHeaders)
@@ -65,7 +74,7 @@ public class ProxyService {
         } catch (Exception ex) {
             return ResponseEntity
                     .status(502)
-                    .body("{\"error\":\"Bad Gateway\",\"message\":\"" + ex.getMessage() + "\"}");
+                    .body("{\"error\":\"Bad Gateway\"}");
         }
     }
 }

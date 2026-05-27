@@ -66,10 +66,13 @@ Valid enum values:
 
 ## FreeMarker template conventions
 
-- **JS/TS template literals**: `${...}` inside backtick strings conflicts with FreeMarker interpolation. Escape with `${r"${...}"}` — e.g. `` `HTTP ${r"${res.status}"}` ``.
+- **JS/TS template literals**: `${...}` inside backtick strings conflicts with FreeMarker interpolation. Escape with `${r"${...}"}` — e.g. `` `HTTP ${r"${res.status}"}` ``. **Every** `${...}` inside a JS/TS template literal must use this escape. Search for unescaped instances before committing.
 - **Form endpoint filter**: assign `<#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />` at the top of any Form template. All Form cartridge templates already do this — do not regress it.
 - **`field.type` is nullable**: only required for `Form` component fields. Guard with `(field.type!"")` or check component type before accessing.
 - **CSS load order**: custom CSS must be injected dynamically in JS (`document.head.appendChild`) after the Vite bundle, not as a static `<link>` in `index.html`. All FE cartridges already follow this pattern.
+- **Auth helper**: all 3 frameworks now export `getAuthHeaders()`. React/Vue export from `bridgeApi.ts`; Angular exposes `getAuthHeaders()` on `BridgeApiService`. New components must use these instead of building headers inline.
+- **Backend method naming**: generated Java method names include the HTTP method prefix (`getMethod()`, `postMethod()`) to avoid collision when endpoints share a path with different verbs.
+- **ProxyService forwarding**: both backends forward all request headers (excluding hop-by-hop set) and all response headers. Query parameters are appended to the upstream URL. Do not regress to the old allow-list approach.
 
 ## Git Workflow
 

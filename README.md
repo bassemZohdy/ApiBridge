@@ -93,6 +93,7 @@ java -jar apibridge-generator.jar \
 
 Both backends:
 - Proxy every schema endpoint to its `backendUrl`
+- Forward all request/response headers (excluding hop-by-hop) and query parameters
 - `MOCK_MODE=true` returns a canned JSON response instead of proxying
 - `BLOCK_TRAFFIC=true` returns 503 for every request
 - Every config value is overridable at runtime via ENV VAR (see `application.properties`)
@@ -102,14 +103,16 @@ Both backends:
 
 | Cartridge | Output |
 |---|---|
-| `frontend/angular` | `frontend/` — Angular 17 + TypeScript, form-engine (ngx-formly) or web-component |
-| `frontend/react` | `frontend/` — React 18 + Vite + TypeScript, form-engine (RJSF) or web-component |
-| `frontend/vue` | `frontend/` — Vue 3 + Vite + TypeScript, form-engine or web-component |
+| `frontend/angular` | `frontend/` — Angular 17 + TypeScript, dynamic form engine |
+| `frontend/react` | `frontend/` — React 18 + Vite + TypeScript, dynamic form engine |
+| `frontend/vue` | `frontend/` — Vue 3 + Vite + TypeScript, dynamic form engine |
 | `frontend/ui-schema` | `frontend/UiLayoutSchema.json` — JSON schema for UI-driven form rendering |
 
-Frontend rendering mode is controlled by `flags.uiPattern`:
-- **`form-engine`** (default) — dynamic form driven by `uiLayout.fields` in the schema
-- **`web-component`** — thin wrapper driving a `<api-bridge-form>` custom element
+Frontend pages are generated from the schema:
+- **Form** — dynamic form driven by `uiLayout.fields` for POST/PUT endpoints
+- **List** — paginated table driven by `uiLayout.columns` for GET collection endpoints
+- **View** — detail view for GET by-ID endpoints, with optional DELETE support
+- All pages use a centralized `getAuthHeaders()` helper for security
 
 ### DevOps cartridges
 
@@ -159,10 +162,8 @@ basePath: "/api/v1/onboarding"
 flags:
   backendFlavor: "spring-boot"   # spring-boot | quarkus
   feFlavor: "react"              # angular | react | vue  (omit for BE-only)
-  uiPattern: "form-engine"       # form-engine | web-component
   securityLevel: "bearer-token"  # bearer-token | apiKey
   enableTelemetry: true
-  navigationMode: "spa"          # spa (default) | mpa
   pagination:
     pageParam: "page"            # overrideable via PAGINATION_PAGE_PARAM ENV VAR
     sizeParam: "size"

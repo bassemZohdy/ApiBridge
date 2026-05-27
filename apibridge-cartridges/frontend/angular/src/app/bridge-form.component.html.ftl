@@ -1,16 +1,30 @@
 <#assign uiPattern = (flags.uiPattern)!"form-engine" />
+<#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
+<#assign viewEndpoint = "" />
+<#list endpoints as ep>
+  <#if ep.method?upper_case == "GET" && ep.path?contains("{") && viewEndpoint == "">
+    <#assign viewEndpoint = ep />
+  </#if>
+</#list>
 <div class="apib-shell">
   <div class="apib-topbar"></div>
   <div class="apib-card">
 
     <div class="apib-header">
       <span class="apib-badge">${id?upper_case}</span>
-      <h1 class="apib-title">API Bridge</h1>
+      <h1 class="apib-title">{{ editId ? 'Edit Record' : 'API Bridge' }}</h1>
     </div>
 
-<#if endpoints?size gt 1>
+<#if uiPattern == "web-component">
+    <api-bridge-form #bridgeFormRef (bridgeSubmit)="onBridgeSubmit($event)"></api-bridge-form>
+<#else>
+<#if viewEndpoint != "">
+    <div *ngIf="loadingRecord && editId" class="apib-loading"><span class="apib-spinner"></span></div>
+    <ng-container *ngIf="!(loadingRecord && editId)">
+</#if>
+<#if formEndpoints?size gt 1>
     <div class="apib-tabs">
-<#list endpoints as ep>
+<#list formEndpoints as ep>
       <button
         class="apib-tab"
         [class.active]="activeTabIndex === ${ep?index}"
@@ -20,10 +34,7 @@
     </div>
 </#if>
 
-<#if uiPattern == "web-component">
-    <api-bridge-form #bridgeFormRef (bridgeSubmit)="onBridgeSubmit($event)"></api-bridge-form>
-<#else>
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
     <form
       *ngIf="activeTabIndex === ${endpoint?index}"
       [formGroup]="forms[${endpoint?index}]"
@@ -62,7 +73,7 @@
 
       <button type="submit" class="apib-submit" [attr.disabled]="loading ? '' : null">
         <span *ngIf="loading" class="apib-spinner"></span>
-        <span *ngIf="!loading">Execute Request</span>
+        <span *ngIf="!loading">{{ editId ? 'Update Record' : 'Execute Request' }}</span>
       </button>
     </form>
 </#list>
@@ -74,6 +85,9 @@
       </div>
       <pre class="apib-response-body">{{ jsonResponse }}</pre>
     </div>
+<#if viewEndpoint != "">
+    </ng-container>
+</#if>
 </#if>
 
   </div>

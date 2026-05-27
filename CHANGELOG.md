@@ -7,6 +7,50 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Fixed — Frontend API method naming collision
+
+- All 3 frontend `bridgeApi` templates (`bridgeApi.ts.ftl` for React/Vue, `bridge-api.service.ts.ftl` for Angular) now generate unique method names by combining HTTP method prefix + path segments + "By" suffix for path params. Previously, `GET /submissions` and `GET /submissions/{id}` both produced `submissions()` — a TypeScript compile error due to duplicate function declarations.
+
+### Added — Edit-mode pre-population (H3)
+
+- All 3 frontend Form components now pre-populate fields when `editId` is provided (navigating to `#/form/:id`). The component fetches the record from the View GET endpoint and fills the form state.
+- Angular `app.component.html.ftl` now passes `[editId]="currentId"` to `<app-bridge-form>`.
+- Form title changes to "Edit Record" and submit button to "Update Record" in edit mode.
+- Loading spinner shown while fetching the record for editing.
+
+### Added — Bearer-token security on backend (H4)
+
+- Both `BridgeController.java.ftl` (Spring Boot) and `BridgeResource.java.ftl` (Quarkus) now validate `Authorization: Bearer <token>` headers when `securityLevel` is `"bearer-token"`.
+- Configurable via `AUTH_SERVER_URL` env var: if set, the backend calls the auth server to validate the JWT; if empty, it performs a pass-through check (header must be present and non-empty).
+- `AUTH_SERVER_URL` documented in `application.properties.ftl`, `docker-compose.yml.ftl`, `Dockerfile.ftl`, and `configmap.yaml.ftl`.
+
+### Added — Quarkus telemetry (H5)
+
+- `BridgeResource.java.ftl` now generates OpenTelemetry spans for each endpoint when `enableTelemetry` is true. Matches the Spring Boot telemetry implementation with `spanBuilder`, `setAttribute("http.method", ...)`, `setAttribute("http.url", ...)`, `recordException`, and proper `Scope` management.
+
+### Fixed — Angular View FreeMarker escaping
+
+- `bridge-view.component.ts.ftl`: escaped `${token}` as `${r"${token}"}` in two JS template literals that caused `InvalidReferenceException` at generation time.
+
+### Fixed — Critical template and proxy bugs
+
+- **C1**: Added `getAuthHeaders()` export to React and Vue `bridgeApi.ts.ftl`. Previously, `ApiBridgeList` and `ApiBridgeView` imported a non-existent function, causing compile failure when `securityLevel` was set.
+- **C2**: Fixed GET+body bug in all 3 frontend API layers. React `axios.get(url, body, config)` misinterpreted body as config; Angular `http.get(url, body)` misinterpreted body as options; Vue `fetch` silently ignored body on GET. All three now conditionally omit body for GET/DELETE requests.
+- **C3**: Fixed Angular Form component hardcoding empty strings for security credentials. Now reads token from `localStorage.getItem('token')` (same as List/View components), consistent with the `BridgeApiService.getAuthHeaders()` pattern.
+- **C4**: Fixed method name collision in both backend cartridges. Method names now include the HTTP method prefix (e.g. `getUsers()`, `postUsers()`) instead of deriving from path alone, preventing compile errors when multiple methods share the same path.
+- **H1**: Forwarded query parameters in both `ProxyService` templates. Spring Boot appends `request.getQueryString()`; Quarkus appends `uriInfo.getRequestUri().getRawQuery()`. Pagination, filtering, and sorting now reach the upstream backend.
+- **H6**: Both `ProxyService` templates now forward all upstream response headers (excluding hop-by-hop headers), enabling REST pagination headers like `X-Total-Count` to pass through.
+- **M5**: Aligned header forwarding between backends. Both ProxyService templates now forward all request headers excluding a standard hop-by-hop set, replacing the previous inconsistent allow-list approach.
+- **M6**: Both `ProxyService` templates now return a generic `{"error":"Bad Gateway"}` instead of leaking `ex.getMessage()` in 502 responses.
+
+### Added — DELETE support in View components
+
+- **React `ApiBridgeView.tsx.ftl`**, **Vue `ApiBridgeView.vue.ftl`**, **Angular `bridge-view.component.ts.ftl` + `.html.ftl`**: View components now detect DELETE endpoints and render a "Delete" button with `window.confirm()` confirmation. On success, navigates back to the list page. Includes loading state ("Deleting…") and error handling.
+
+### Added — Centralized auth helper in Angular
+
+- **Angular `bridge-api.service.ts.ftl`**: Added `getAuthHeaders()` method (matching React/Vue pattern). Bearer-token reads from parameter; apiKey reads from `localStorage`. All endpoint methods now use `http.request(method, url, { body?, headers })` for correct GET vs POST/PUT handling.
+
 ### Fixed — Form templates filter GET endpoints
 
 - **`ApiBridgeForm.tsx.ftl` (React), `bridge-form.component.ts.ftl` (Angular), `ApiBridgeForm.vue.ftl` (Vue)**: added `formEndpoints` filter at template top (`endpoints.filter(ep -> method != "GET")`). Form components now correctly ignore List/View GET endpoints when building `FIELD_DEFS`, `INITIAL_STATE`, tab labels, and submit handlers. Previously crashed with a null `field.type` when a schema contained View endpoints with typeless fields.
