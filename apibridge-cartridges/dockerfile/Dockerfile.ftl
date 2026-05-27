@@ -3,6 +3,7 @@
   <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
   <#return s />
 </#function>
+<#if (feFlavor!"") != "">
 # =============================================================================
 # Stage 1 — Frontend build
 # =============================================================================
@@ -24,8 +25,9 @@ RUN npm install --prefer-offline --no-fund --no-audit
 COPY frontend/ ./
 RUN npm run build
 
+</#if>
 # =============================================================================
-# Stage 2 — Backend build (embeds compiled FE assets)
+# Stage 2 — Backend build<#if (feFlavor!"") != ""> (embeds compiled FE assets)</#if>
 # =============================================================================
 FROM maven:3.9-amazoncorretto-21-alpine AS backend-build
 
@@ -36,6 +38,7 @@ COPY backend/pom.xml ./
 RUN mvn dependency:go-offline -q
 
 COPY backend/src ./src
+<#if (feFlavor!"") != "">
 
 # Embed compiled frontend assets into the backend static-resource directory
 <#if backendFlavor == "spring-boot">
@@ -49,6 +52,7 @@ COPY --from=frontend-build /app/frontend/dist/ ./src/main/resources/static/
 COPY --from=frontend-build /app/frontend/dist/${id}-fe/browser/ ./src/main/resources/META-INF/resources/
 <#else>
 COPY --from=frontend-build /app/frontend/dist/ ./src/main/resources/META-INF/resources/
+</#if>
 </#if>
 </#if>
 

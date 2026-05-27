@@ -1,4 +1,3 @@
-<#if deployTarget == "openshift">
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -16,4 +15,3 @@ spec:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
   wildcardPolicy: None
-</#if>

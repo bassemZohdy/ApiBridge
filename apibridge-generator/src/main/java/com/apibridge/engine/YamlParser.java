@@ -83,7 +83,7 @@ public class YamlParser {
             }
         }
 
-        if (model.getFlags() != null) {
+        if (model.getFlags() != null && model.getFlags().getFeFlavor() != null) {
             String flavor = model.getFlags().getFeFlavor().toLowerCase();
             if (!flavor.equals("angular") && !flavor.equals("react") && !flavor.equals("vue")) {
                 throw new IllegalArgumentException("Schema validation error: Invalid flags.feFlavor value '" + flavor + "'. Must be 'angular', 'react', or 'vue'.");

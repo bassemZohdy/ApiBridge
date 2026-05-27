@@ -8,15 +8,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build fat JAR
 mvn clean package
 
-# Run generator (all three flags required)
+# Run generator — apply one or more cartridges to same output dir
 java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --schema=<path-to-schema.yaml> \
-  --cartridge=apibridge-cartridges/<cartridge-name> \
+  --cartridge=apibridge-cartridges/spring-boot \
+  --cartridge=apibridge-cartridges/react \
+  --cartridge=apibridge-cartridges/dockerfile \
+  --cartridge=apibridge-cartridges/docker-compose \
   --output=<output-dir>
 
 # Optional overrides (take precedence over schema flags)
   --be-flavor=spring-boot        # spring-boot | quarkus
-  --fe-flavor=react              # angular | react | vue
+  --fe-flavor=react              # angular | react | vue (omit for BE-only)
   --deploy-target=docker-compose # docker-compose | kubernetes | openshift
 ```
 
@@ -28,13 +31,22 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
 
 ## Cartridge Architecture
 
-Cartridges are **plain directories of `.ftl` FreeMarker templates** — they are NOT Maven modules and have no build config. Adding a cartridge means creating a new directory under `apibridge-cartridges/` with `.ftl` files.
+Cartridges are **independent, composable directories of `.ftl` FreeMarker templates**. Each addresses one concern; the engine applies them in sequence to the same output directory. There are no cross-cartridge dependencies.
 
-- FreeMarker template root = the cartridge directory (no nested package structure)
-- Generated file names strip the `.ftl` suffix: `Controller.java.ftl` → `Controller.java`
+- FreeMarker template root = the cartridge directory; directory tree is mirrored 1:1 to output
+- Generated file names strip the `.ftl` suffix: `BridgeController.java.ftl` → `BridgeController.java`
 - All templates in a cartridge are processed in a single pass; FreeMarker context is bound once from the parsed `BridgeSchemaModel`
-- **Subdirectory routing**: directories named `backend-{flavor}/` and `frontend-{flavor}/` are only entered when the model's `backendFlavor`/`feFlavor` matches; their content maps to `backend/` and `frontend/` in the output. All other directories recurse normally.
-- **`fullstack` cartridge** (`apibridge-cartridges/fullstack`): generates a self-contained project with a three-stage multi-stage `Dockerfile` (node:20-alpine FE build → maven:3.9-amazoncorretto-21-alpine BE build → amazoncorretto:21-alpine runtime). The generated app exposes port 8080; `MOCK_MODE=true` returns canned responses, `BLOCK_TRAFFIC=true` returns 503.
+- **`--cartridge=` is repeatable**: each cartridge is applied to the same output dir in order, enabling composition (e.g. `spring-boot` + `react` + `dockerfile` + `kubernetes`)
+- **Available cartridges** under `apibridge-cartridges/`:
+  - `spring-boot` / `quarkus` — backend source under `backend/`; Spring Boot serves FE static assets from `classpath:/static/`, Quarkus from `META-INF/resources/`
+  - `angular` / `react` / `vue` — full FE project under `frontend/` (for embedding in the JAR via multi-stage Dockerfile)
+  - `dockerfile` — multi-stage `Dockerfile`; FE build stage is conditional on `feFlavor` being set
+  - `docker-compose` — `docker-compose.yml`
+  - `kubernetes` — kustomization + deployment + service + configmap under `k8s/`
+  - `openshift` — adds `route.yaml` and overrides `kustomization.yaml` (apply on top of `kubernetes`)
+  - `frontend-angular` / `frontend-react` / `frontend-vue` — standalone component-only output (no full project scaffold)
+  - `frontend-ui-schema` — generates `UiLayoutSchema.json` for UI-driven forms
+- **Single deployable JAR**: the generated project is one unit. FE source lives in `frontend/`, BE in `backend/`, but the multi-stage Dockerfile compiles FE and copies the dist into the BE `static/` resources directory before the Maven build, producing a single runnable JAR.
 
 ## YAML Schema
 

@@ -18,22 +18,23 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Pluggable Model-Driven Architecture (MDA) Cartridge Engine.
- * Supports flat cartridges (all templates at root) and subdirectory-routed cartridges
- * where backend-{flavor}/ and frontend-{flavor}/ directories are selected by schema flags.
+ * Pluggable MDA Cartridge Engine.
+ *
+ * Each cartridge is an independent directory of .ftl templates. The engine mirrors the
+ * cartridge directory tree directly to the output directory — no subdirectory routing.
+ * Multiple cartridges are composed by calling generate() once per cartridge against the
+ * same output directory; their outputs merge without conflict provided they write to
+ * different paths (e.g. spring-boot → backend/, react → frontend/, dockerfile → root).
  */
 public class ApiBridgeCartridgeEngine {
 
     /**
-     * Executes single-pass compilation of all applicable templates in the cartridge directory.
-     *
-     * @param model       Fully validated schema PIM
-     * @param cartridgeDir Path to the pluggable Cartridge directory containing templates
-     * @param outputDir   Target Outlet directory where generated files will be written
-     * @throws IOException       If file access fails
-     * @throws TemplateException If template rendering fails
+     * Applies a single cartridge's templates to the output directory.
+     * The cartridge directory tree is mirrored 1-to-1 into outputDir.
+     * Call once per cartridge to compose multiple cartridges.
      */
-    public void generate(BridgeSchemaModel model, File cartridgeDir, File outputDir) throws IOException, TemplateException {
+    public void generate(BridgeSchemaModel model, File cartridgeDir, File outputDir)
+            throws IOException, TemplateException {
         if (model == null) {
             throw new IllegalArgumentException("Bridge Schema Model (PIM) cannot be null.");
         }
@@ -55,17 +56,16 @@ public class ApiBridgeCartridgeEngine {
         cfg.setLogTemplateExceptions(false);
         cfg.setWrapUncheckedExceptions(true);
 
-        String selectedBeFlavor = resolvedBeFlavor(model);
-        String selectedFeFlavor = resolvedFeFlavor(model);
-
         List<TemplateEntry> entries = new ArrayList<>();
-        collectTemplates(cartridgeDir, cartridgeDir, outputDir, selectedBeFlavor, selectedFeFlavor, entries);
+        collectTemplates(cartridgeDir, cartridgeDir, outputDir, entries);
 
         if (entries.isEmpty()) {
-            throw new IllegalArgumentException("No blueprint template files (*.ftl) found in cartridge: " + cartridgeDir.getAbsolutePath());
+            throw new IllegalArgumentException(
+                    "No blueprint template files (*.ftl) found in cartridge: " + cartridgeDir.getAbsolutePath());
         }
 
-        System.out.println("Discovered " + entries.size() + " blueprint templates inside cartridge: " + cartridgeDir.getName());
+        System.out.println("Discovered " + entries.size() + " blueprint templates inside cartridge: "
+                + cartridgeDir.getName());
 
         Map<String, Object> context = buildContext(model);
 
@@ -95,13 +95,11 @@ public class ApiBridgeCartridgeEngine {
     }
 
     /**
-     * Recursively collects all applicable .ftl templates, applying flavor-directory routing.
-     * Directories named backend-{flavor}/ and frontend-{flavor}/ are only entered when the
-     * flavor matches the selected BE/FE flavor; their content maps to backend/ and frontend/
-     * in the output. All other directories recurse normally.
+     * Recursively collects all .ftl templates, mirroring the cartridge directory structure
+     * directly to the output. No flavor-based routing; the cartridge itself places files
+     * in the correct subdirectory (e.g. backend/, frontend/).
      */
     private void collectTemplates(File cartridgeRoot, File dir, File outputBase,
-                                   String beFlavor, String feFlavor,
                                    List<TemplateEntry> entries) {
         File[] children = dir.listFiles();
         if (children == null) {
@@ -109,22 +107,7 @@ public class ApiBridgeCartridgeEngine {
         }
         for (File child : children) {
             if (child.isDirectory()) {
-                String dirName = child.getName();
-                if (dirName.startsWith("backend-")) {
-                    String dirFlavor = dirName.substring("backend-".length());
-                    if (!dirFlavor.equalsIgnoreCase(beFlavor)) {
-                        continue;
-                    }
-                    collectTemplates(cartridgeRoot, child, new File(outputBase, "backend"), beFlavor, feFlavor, entries);
-                } else if (dirName.startsWith("frontend-")) {
-                    String dirFlavor = dirName.substring("frontend-".length());
-                    if (!dirFlavor.equalsIgnoreCase(feFlavor)) {
-                        continue;
-                    }
-                    collectTemplates(cartridgeRoot, child, new File(outputBase, "frontend"), beFlavor, feFlavor, entries);
-                } else {
-                    collectTemplates(cartridgeRoot, child, new File(outputBase, dirName), beFlavor, feFlavor, entries);
-                }
+                collectTemplates(cartridgeRoot, child, new File(outputBase, child.getName()), entries);
             } else if (child.getName().endsWith(".ftl")) {
                 String templateName = cartridgeRoot.toURI().relativize(child.toURI()).getPath();
                 String outputFilename = child.getName().substring(0, child.getName().length() - ".ftl".length());
@@ -133,10 +116,6 @@ public class ApiBridgeCartridgeEngine {
         }
     }
 
-    /**
-     * Builds the FreeMarker context map from the schema model.
-     * Exposes all model fields plus top-level feFlavor and backendFlavor shortcuts.
-     */
     private Map<String, Object> buildContext(BridgeSchemaModel model) {
         Map<String, Object> context = new HashMap<>();
         context.put("id", model.getId());
@@ -150,17 +129,17 @@ public class ApiBridgeCartridgeEngine {
     }
 
     private String resolvedBeFlavor(BridgeSchemaModel model) {
-        if (model.getFlags() != null) {
+        if (model.getFlags() != null && model.getFlags().getBackendFlavor() != null) {
             return model.getFlags().getBackendFlavor().toLowerCase();
         }
         return "spring-boot";
     }
 
     private String resolvedFeFlavor(BridgeSchemaModel model) {
-        if (model.getFlags() != null) {
+        if (model.getFlags() != null && model.getFlags().getFeFlavor() != null) {
             return model.getFlags().getFeFlavor().toLowerCase();
         }
-        return "react";
+        return "";
     }
 
     private String resolvedDeployTarget(BridgeSchemaModel model) {

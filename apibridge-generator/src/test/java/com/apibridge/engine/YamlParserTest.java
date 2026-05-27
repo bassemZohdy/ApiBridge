@@ -380,7 +380,7 @@ public class YamlParserTest {
     }
 
     @Test
-    public void testFeFlavorDefaultsToReact(@TempDir Path tempDir) throws Exception {
+    public void testFeFlavorDefaultsToNull(@TempDir Path tempDir) throws Exception {
         File file = writeYaml(tempDir, "schema.yaml", """
                 id: "test"
                 basePath: "/api"
@@ -393,7 +393,7 @@ public class YamlParserTest {
                 """);
         BridgeSchemaModel model = parser.parse(file);
         assertNotNull(model);
-        assertEquals("react", model.getFlags().getFeFlavor());
+        assertNull(model.getFlags().getFeFlavor());
     }
 
     @Test

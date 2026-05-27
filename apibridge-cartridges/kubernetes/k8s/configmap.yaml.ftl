@@ -3,7 +3,6 @@
   <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
   <#return s />
 </#function>
-<#if deployTarget == "kubernetes" || deployTarget == "openshift">
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -46,4 +45,3 @@ data:
 <#list endpoints as endpoint>
   BACKEND_URL_${pathToEnvKey(endpoint.path)}: "${endpoint.backendUrl}"
 </#list>
-</#if>

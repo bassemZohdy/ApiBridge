@@ -1,4 +1,3 @@
-<#if deployTarget == "kubernetes" || deployTarget == "openshift">
 apiVersion: v1
 kind: Service
 metadata:
@@ -14,4 +13,3 @@ spec:
       port: 80
       targetPort: http
       protocol: TCP
-</#if>

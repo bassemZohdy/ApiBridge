@@ -58,7 +58,7 @@ public class BridgeSchemaModel {
         private String securityLevel;
         private String backendFlavor = "spring-boot";
         private String uiPattern = "form-engine";
-        private String feFlavor = "react";
+        private String feFlavor;
         private String deployTarget;
 
         public boolean isEnableTelemetry() {

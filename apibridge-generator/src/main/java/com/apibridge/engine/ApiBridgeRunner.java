@@ -3,6 +3,7 @@ package com.apibridge.engine;
 import com.apibridge.engine.model.BridgeSchemaModel;
 
 import java.io.File;
+import java.util.List;
 
 /**
  * Command-Line Interface (CLI) Entry Point for ApiBridge Generator.
@@ -17,7 +18,7 @@ public class ApiBridgeRunner {
         System.out.println("==================================================");
 
         String schemaPath = null;
-        String cartridgePath = null;
+        List<String> cartridgePaths = new java.util.ArrayList<>();
         String outputPath = null;
         String feFlavorOverride = null;
         String beFlavorOverride = null;
@@ -27,7 +28,7 @@ public class ApiBridgeRunner {
             if (arg.startsWith("--schema=")) {
                 schemaPath = arg.substring("--schema=".length());
             } else if (arg.startsWith("--cartridge=")) {
-                cartridgePath = arg.substring("--cartridge=".length());
+                cartridgePaths.add(arg.substring("--cartridge=".length()));
             } else if (arg.startsWith("--output=")) {
                 outputPath = arg.substring("--output=".length());
             } else if (arg.startsWith("--fe-flavor=")) {
@@ -52,8 +53,8 @@ public class ApiBridgeRunner {
             printUsage();
             System.exit(1);
         }
-        if (cartridgePath == null || cartridgePath.isBlank()) {
-            System.err.println("Error: Missing required argument '--cartridge=<path>'");
+        if (cartridgePaths.isEmpty()) {
+            System.err.println("Error: At least one '--cartridge=<path>' argument is required");
             printUsage();
             System.exit(1);
         }
@@ -65,7 +66,6 @@ public class ApiBridgeRunner {
 
         try {
             File schemaFile = new File(schemaPath);
-            File cartridgeDir = new File(cartridgePath);
             File outputDir = new File(outputPath);
 
             System.out.println("Parsing Unified PIM Schema: " + schemaFile.getAbsolutePath());
@@ -97,9 +97,12 @@ public class ApiBridgeRunner {
                 parser.validate(model);
             }
 
-            System.out.println("Initializing Pluggable Cartridge: " + cartridgeDir.getAbsolutePath());
             ApiBridgeCartridgeEngine engine = new ApiBridgeCartridgeEngine();
-            engine.generate(model, cartridgeDir, outputDir);
+            for (String cartridgePath : cartridgePaths) {
+                File cartridgeDir = new File(cartridgePath);
+                System.out.println("Applying cartridge: " + cartridgeDir.getAbsolutePath());
+                engine.generate(model, cartridgeDir, outputDir);
+            }
 
             long durationNs = System.nanoTime() - startTime;
             double durationMs = durationNs / 1_000_000.0;
@@ -128,10 +131,10 @@ public class ApiBridgeRunner {
 
     private static void printUsage() {
         System.out.println("\nUsage:");
-        System.out.println("  java -jar apibridge-generator.jar --schema=<path> --cartridge=<path> --output=<path> [options]");
+        System.out.println("  java -jar apibridge-generator.jar --schema=<path> --cartridge=<path> [--cartridge=<path2>...] --output=<path> [options]");
         System.out.println("\nRequired:");
         System.out.println("  --schema=<path>      Path to the unified YAML configuration schema (PIM)");
-        System.out.println("  --cartridge=<path>   Path to the Cartridge directory containing *.ftl templates");
+        System.out.println("  --cartridge=<path>   Cartridge to apply (repeatable; applied in order to same output dir)");
         System.out.println("  --output=<path>      Path to the output directory for generated artifacts");
         System.out.println("\nOptional overrides (override schema flags):");
         System.out.println("  --fe-flavor=<val>      Frontend framework: angular | react | vue");

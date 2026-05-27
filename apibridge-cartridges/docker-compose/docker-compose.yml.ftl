@@ -3,18 +3,19 @@
   <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
   <#return s />
 </#function>
-<#if deployTarget == "docker-compose">
 services:
   ${id}:
     build:
       context: .
       dockerfile: Dockerfile
+<#if (feFlavor!"") != "">
       args:
         # Frontend build-time base URL (leave empty when FE is co-hosted in the same container)
         VITE_API_BASE_URL: ""
 <#if (flags.securityLevel!"") == "apiKey">
         # API key injected into the frontend bundle at build time
         VITE_API_KEY: ""
+</#if>
 </#if>
     image: ${id}:latest
     ports:
@@ -79,4 +80,3 @@ services:
 networks:
   ${id}-net:
     driver: bridge
-</#if>

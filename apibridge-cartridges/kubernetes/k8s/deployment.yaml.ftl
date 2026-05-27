@@ -1,4 +1,3 @@
-<#if deployTarget == "kubernetes" || deployTarget == "openshift">
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -92,4 +91,3 @@ spec:
         - name: tmp
           emptyDir: {}
       terminationGracePeriodSeconds: 45
-</#if>

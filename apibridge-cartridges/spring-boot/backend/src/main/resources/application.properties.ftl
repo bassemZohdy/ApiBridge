@@ -15,10 +15,12 @@ server.compression.enabled=true
 server.compression.mime-types=application/json,application/javascript,text/css,text/html,text/plain
 server.compression.min-response-size=1024
 
-# Static resources (embedded FE dist, served at /)
+<#if (feFlavor!"") != "">
+# Static resources — FE dist is embedded in the JAR and served at /
 spring.web.resources.static-locations=classpath:/static/
 spring.web.resources.cache.cachecontrol.max-age=365d
 spring.web.resources.cache.cachecontrol.cache-public=true
+</#if>
 
 # Actuator — health probes used by Docker HEALTHCHECK and K8s probes
 management.endpoints.web.exposure.include=health,info
