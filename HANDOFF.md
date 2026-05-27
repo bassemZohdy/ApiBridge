@@ -37,14 +37,18 @@ apibridge-cartridges/
 | Value | Trigger | Generated component |
 |---|---|---|
 | `"List"` | `GET` without `{` in path | `ApiBridgeList` — paginated table with sort |
-| `"View"` | `GET` with `{id}` in path | `ApiBridgeView` — detail read-only grid |
-| `"Form"` | `POST` / `PUT` | `ApiBridgeForm` — submission form |
+| `"View"` | `GET` with `{id}` in path | `ApiBridgeView` — detail read-only grid, DELETE support |
+| `"Form"` | `POST` / `PUT` | `ApiBridgeForm` — submission form, edit pre-population |
 
 All three are wired into an SPA hash router in `App` (`#/list`, `#/view/:id`, `#/form`, `#/form/:id`).
 
-### SPA/MPA flag — `flags.navigationMode`
+### Security — `flags.securityLevel`
 
-> **Note**: `navigationMode` and `uiPattern` are scheduled for removal (M1/M2 in TODO.md). Currently all frontends use SPA hash routing regardless of this flag's value.
+| Value | Behavior |
+|---|---|
+| `"bearer-token"` | Backend validates `Authorization: Bearer` header. `AUTH_SERVER_URL` env var: if set, calls auth server to validate JWT; if empty, pass-through with non-empty header check. Frontend sends token from `localStorage`. |
+| `"apiKey"` | Backend validates `X-API-Key` header against `API_KEY` env var. Frontend reads key from `import.meta.env.VITE_API_KEY` (React/Vue) or `localStorage` (Angular). |
+| `""` (absent) | No security — all requests pass through. |
 
 ### Pagination — `flags.pagination`
 
@@ -68,7 +72,7 @@ Override **at runtime** (no rebuild) via Docker ENV VARs:
 | `PAGINATION_SORT_PARAM` | `sortParam` |
 | `PAGINATION_DIRECTION_PARAM` | `directionParam` |
 
-The backend `/api/bridge-config` endpoint serves the live values. The frontend fetches it at boot and falls back to schema-baked defaults if the endpoint is unreachable.
+> **Note:** These 5 env vars are currently missing from Dockerfile.ftl, docker-compose.yml.ftl, and configmap.yaml.ftl (M5 in TODO.md).
 
 ### Column definition — `endpoints[].uiLayout.columns[]`
 
@@ -110,7 +114,7 @@ Each frontend generates a hash-based router — no router library required:
 #/list      → List page
 #/view/:id  → View page (if GET /{id} endpoint exists)
 #/form      → New record form (if POST/PUT endpoint exists)
-#/form/:id  → Edit record form
+#/form/:id  → Edit record form (pre-populates from View endpoint)
 ```
 
 The `App` component (React: `App.tsx`, Vue: `App.vue`, Angular: `app.component.ts`) listens to `hashchange` events and routes accordingly.
@@ -119,7 +123,7 @@ The `App` component (React: `App.tsx`, Vue: `App.vue`, Angular: `app.component.t
 
 ---
 
-## Completed bug fixes and features (current session)
+## Completed work
 
 | ID | Description |
 |---|---|
@@ -129,21 +133,42 @@ The `App` component (React: `App.tsx`, Vue: `App.vue`, Angular: `app.component.t
 | C4 | Fixed method name collision in both backends (HTTP prefix) |
 | H1 | Forward query parameters in both ProxyService templates |
 | H2 | DELETE support in all 3 View components |
+| H3 | Edit-mode pre-population in all 3 Form components |
+| H4 | Configurable bearer-token security via `AUTH_SERVER_URL` (both backends) |
+| H5 | Quarkus OpenTelemetry telemetry spans |
 | H6 | Forward upstream response headers (non-hop-by-hop) |
 | M5 | Aligned header forwarding (consistent hop-by-hop exclusion) |
 | M6 | Generic 502 error (no internal detail leakage) |
+| — | Frontend API method naming: HTTP prefix + By-suffix (e.g. `getSubmissionsById`) |
+| — | Angular View FreeMarker `${token}` escaping fix |
+| — | Created AGENTS.md, updated CLAUDE.md, README.md, HANDOFF.md |
 
 ---
 
-## Remaining work (see TODO.md)
+## Known bugs — Deep review findings (see TODO.md for full plan)
 
-| ID | Description |
-|---|---|
-| H3 | Edit-mode pre-population in Form components |
-| H4 | Configurable bearer-token security on backend |
-| H5 | Quarkus telemetry completion |
-| M1/M2 | Remove `navigationMode` and `uiPattern` flags |
-| M3–M7 | Minor improvements (bridge-config enrichment, CORS, E2E) |
+### CRITICAL — Compile/runtime failures (Phase 1)
+
+| # | File | Issue |
+|---|------|-------|
+| BUG-1 | `react/ApiBridgeView.tsx.ftl:160-251` | Duplicate component — old View left as dead code, TS won't compile |
+| BUG-2 | `angular/bridge-view.component.ts.ftl:142-225` | Duplicate class — same issue |
+| BUG-3 | `angular/bridge-view.component.ts.ftl:135` | Unescaped `${this.recordId}` — FreeMarker crash when hasEdit |
+| BUG-4 | `quarkus/ProxyService.java.ftl:62-86` | Uninitialized `upstream` in `finally` — Java compile error |
+| BUG-5 | `react/ApiBridgeList.tsx.ftl:104` | Unescaped `${id}` — row clicks navigate to service ID, not row ID |
+| BUG-6 | `angular/bridge-list.component.ts.ftl:91` | Broken URL `${'$'}{r"${basePath}"}` — invalid JS at runtime |
+
+### HIGH — Functional bugs (Phase 2)
+
+| # | File | Issue |
+|---|------|-------|
+| BUG-7 | Spring Boot error responses | Served as `text/plain`, not `application/json` |
+| BUG-8 | Auth RestTemplate | No timeouts — can hang indefinitely |
+| BUG-9 | Quarkus auth validation | JAX-RS Response never closed — connection leak |
+| BUG-10 | Angular Form | No `@Output() navigate`, no Back button |
+| BUG-11 | Both CORS configs | Missing `exposedHeaders("*")` — upstream headers invisible to JS |
+| BUG-12 | Both telemetry blocks | Span status never set to ERROR |
+| BUG-13 | All backend templates | `flags` null access crashes when schema has no `flags:` section |
 
 ---
 
@@ -170,6 +195,14 @@ mvn test → 85/85 PASS
 | `YamlParserTest` | 57 | All schema validation paths, new fields (navigationMode, pagination, columns, field.label) |
 | `ApiBridgeCartridgeEngineTest` | 26 | All cartridge generations incl. List/View/Form model |
 | `ApiBridgeRunnerTest` | 2 | CLI argument handling |
+
+### Testing gaps identified
+
+- DevOps cartridges (dockerfile, docker-compose, k8s) have zero unit test coverage
+- k8s cartridges have zero E2E or CI coverage
+- json-server E2E not wired into `.github/workflows/ci.yml`
+- No test verifying generated API method naming convention
+- `ApiBridgeRunnerTest` only 2 trivial tests — no CLI arg parsing coverage
 
 ---
 
@@ -200,7 +233,11 @@ mvn test → 85/85 PASS
 id: "customer-onboarding-bridge"
 basePath: "/api/v1/onboarding"
 flags:
-  navigationMode: "spa"
+  securityLevel: "bearer-token"
+  enableTelemetry: true
+  backendFlavor: "spring-boot"
+  feFlavor: "react"
+  deployTarget: "docker-compose"
   pagination:
     pageParam: "page"
     sizeParam: "size"
@@ -224,11 +261,14 @@ endpoints:
 ## Key design invariants
 
 1. **No cross-cartridge dependencies** — each cartridge is self-contained.
-2. **FreeMarker `${...}` in JSX/TS template literals** must be escaped as `${r"${...}"}` to avoid FreeMarker interpolation.
+2. **FreeMarker `${...}` in JSX/TS template literals** must be escaped as `${r"${...}"}` to avoid FreeMarker interpolation. **Every** `${...}` inside a backtick string must use this escape.
 3. **Form templates filter GET endpoints** — `formEndpoints` assigned at template top; do not regress this.
 4. **Custom CSS loads after the Vite bundle** — injected dynamically in `main.ts`/`main.tsx` so brand overrides win the cascade.
 5. **`Pagination` is auto-initialized** in `BridgeSchemaModel.Flags` — `getPagination()` is never null when flags are present.
-6. **Backend method names include HTTP prefix** — `getUsers()`, `postUsers()` to avoid collision on shared paths.
+6. **Frontend API method names use HTTP prefix + By-suffix** — `getSubmissions()`, `getSubmissionsById(id)`, `postInitiate(body)`. All collision-free.
 7. **ProxyService forwards headers and query params** — both backends forward all non-hop-by-hop request/response headers and append query parameters to the upstream URL.
 8. **All 3 frontends export `getAuthHeaders()`** — React/Vue from `bridgeApi.ts`, Angular on `BridgeApiService`. New components must use these helpers.
 9. **View components support DELETE** — if a DELETE endpoint exists for the same path pattern, the View page renders a delete button.
+10. **Form components support edit pre-population** — when `editId` is set (`#/form/:id`), the Form fetches the record from the View GET endpoint and pre-populates fields.
+11. **Bearer-token security via `AUTH_SERVER_URL`** — if set, backend validates JWT against auth server; if empty, pass-through with non-empty header check.
+12. **Telemetry spans** — both backends generate OpenTelemetry spans with `http.method` and `http.url` attributes when `enableTelemetry: true`.
