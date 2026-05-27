@@ -8,6 +8,12 @@ package com.apibridge.generated;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+<#if flags.enableTelemetry>
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+</#if>
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -34,9 +40,15 @@ public class BridgeController {
 </#list>
 
     private final ProxyService proxyService;
+<#if flags.enableTelemetry>
+    private final Tracer otelTracer;
+</#if>
 
-    public BridgeController(ProxyService proxyService) {
+    public BridgeController(ProxyService proxyService<#if flags.enableTelemetry>, OpenTelemetry openTelemetry</#if>) {
         this.proxyService = proxyService;
+<#if flags.enableTelemetry>
+        this.otelTracer = openTelemetry.getTracer("apibridge", "1.0.0");
+</#if>
     }
 
 <#list endpoints as endpoint>
@@ -72,9 +84,6 @@ public class BridgeController {
 </#list>
             @RequestBody(required = false) String body,
             HttpServletRequest request) {
-<#if flags.enableTelemetry>
-        // OTel span: ${endpoint.telemetryName}
-</#if>
         if (blockTraffic) return ResponseEntity.status(503).body("{\"error\":\"Service temporarily unavailable\"}");
         if (mockMode) return ResponseEntity.ok("{\"status\":\"mock\",\"endpoint\":\"${endpoint.path}\",\"method\":\"${endpoint.method}\"}");
 <#if (flags.securityLevel!"") == "apiKey">
@@ -86,7 +95,22 @@ public class BridgeController {
         }
 </#if>
         String resolvedUrl = ${urlFieldName}<#list pathParams as param>.replace("{${param}}", ${param})</#list>;
+<#if flags.enableTelemetry>
+        Span span${endpoint?index} = otelTracer.spanBuilder("${(endpoint.telemetryName!methodName)}")
+                .setAttribute("http.method", "${endpoint.method?upper_case}")
+                .setAttribute("http.url", resolvedUrl)
+                .startSpan();
+        try (Scope scope${endpoint?index} = span${endpoint?index}.makeCurrent()) {
+            return proxyService.forward(resolvedUrl, "${endpoint.method}", body, request);
+        } catch (Exception e${endpoint?index}) {
+            span${endpoint?index}.recordException(e${endpoint?index});
+            throw e${endpoint?index};
+        } finally {
+            span${endpoint?index}.end();
+        }
+<#else>
         return proxyService.forward(resolvedUrl, "${endpoint.method}", body, request);
+</#if>
     }
 
 </#list>

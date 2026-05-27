@@ -103,6 +103,19 @@ ENV \
     # CORS allowed origins (comma-separated; * = allow all)
     CORS_ALLOWED_ORIGINS=* \
 </#if>
+<#if flags.enableTelemetry>
+<#if backendFlavor == "spring-boot">
+    # Distributed tracing — OTLP exporter (Spring Boot)
+    MANAGEMENT_TRACING_ENABLED=true \
+    MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0 \
+    MANAGEMENT_OTLP_TRACING_ENDPOINT=http://localhost:4318/v1/traces \
+<#else>
+    # Distributed tracing — OTLP exporter (Quarkus)
+    QUARKUS_OTEL_ENABLED=true \
+    QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4317 \
+    QUARKUS_OTEL_SERVICE_NAME=${id} \
+</#if>
+</#if>
 <#if (flags.securityLevel!"") == "apiKey">
     # API key validation — empty value disables validation
     API_KEY="" \

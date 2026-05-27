@@ -27,6 +27,14 @@ management.endpoint.health.show-details=never
 
 # Structured JSON logging for container log aggregators (EFK/Loki/CloudWatch)
 logging.structured.format.console=ecs
+<#if flags.enableTelemetry>
+
+# Distributed tracing — OTLP exporter
+# Override MANAGEMENT_OTLP_TRACING_ENDPOINT to point at your collector
+management.tracing.enabled=true
+management.tracing.sampling.probability=1.0
+management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
+</#if>
 
 # ─── Supported ENV VAR overrides ──────────────────────────────────────────────
 # All values below can be set as environment variables at runtime.
@@ -40,6 +48,11 @@ logging.structured.format.console=ecs
 #   CORS_ALLOWED_ORIGINS=*        Comma-separated allowed origins (CorsConfig)
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                      Expected X-API-Key header value; empty = validation disabled
+</#if>
+<#if flags.enableTelemetry>
+#   MANAGEMENT_TRACING_ENABLED=true
+#   MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+#   MANAGEMENT_OTLP_TRACING_ENDPOINT=http://<collector>:4318/v1/traces
 </#if>
 #
 #   Per-endpoint backend URL overrides (default = schema-defined URL):

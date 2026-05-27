@@ -29,6 +29,18 @@ data:
   QUARKUS_HTTP_PORT: "8080"
   QUARKUS_LOG_LEVEL: "INFO"
 </#if>
+  # ── Distributed tracing ──────────────────────────────────────────────────────
+<#if flags.enableTelemetry>
+<#if backendFlavor == "spring-boot">
+  MANAGEMENT_TRACING_ENABLED: "true"
+  MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: "http://localhost:4318/v1/traces"
+<#else>
+  QUARKUS_OTEL_ENABLED: "true"
+  QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://localhost:4317"
+  QUARKUS_OTEL_SERVICE_NAME: "${id}"
+</#if>
+</#if>
   # ── Per-endpoint backend URL overrides ───────────────────────────────────────
   # Override any URL without rebuilding the image
 <#list endpoints as endpoint>

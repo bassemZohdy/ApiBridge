@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 <#if flags.enableTelemetry>
-import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
@@ -31,8 +31,7 @@ public class BridgeController {
     private String expectedApiKey;
 </#if>
 <#if flags.enableTelemetry>
-    private static final Tracer otelTracer =
-            GlobalOpenTelemetry.getTracer("apibridge", "1.0.0");
+    private final Tracer otelTracer;
 </#if>
 
     // Per-endpoint backend URLs — override at runtime via ENV VAR
@@ -45,8 +44,11 @@ public class BridgeController {
 
     private final ProxyService proxyService;
 
-    public BridgeController(ProxyService proxyService) {
+    public BridgeController(ProxyService proxyService<#if flags.enableTelemetry>, OpenTelemetry openTelemetry</#if>) {
         this.proxyService = proxyService;
+<#if flags.enableTelemetry>
+        this.otelTracer = openTelemetry.getTracer("apibridge", "1.0.0");
+</#if>
     }
 
 <#list endpoints as endpoint>

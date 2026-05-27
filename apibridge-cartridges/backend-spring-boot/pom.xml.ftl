@@ -20,9 +20,6 @@
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-<#if flags.enableTelemetry>
-        <opentelemetry.version>1.38.0</opentelemetry.version>
-</#if>
     </properties>
 
     <dependencies>
@@ -36,19 +33,12 @@
         </dependency>
 <#if flags.enableTelemetry>
         <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-api</artifactId>
-            <version>${"$"}{opentelemetry.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-sdk</artifactId>
-            <version>${"$"}{opentelemetry.version}</version>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>${"$"}{opentelemetry.version}</version>
         </dependency>
 </#if>
     </dependencies>

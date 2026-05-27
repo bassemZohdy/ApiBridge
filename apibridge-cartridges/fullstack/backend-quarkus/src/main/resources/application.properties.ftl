@@ -33,6 +33,14 @@ quarkus.http.cors=true
 quarkus.http.cors.origins=${r"${CORS_ALLOWED_ORIGINS:*}"}
 quarkus.http.cors.methods=GET,POST,PUT,DELETE,PATCH,OPTIONS
 quarkus.http.cors.headers=*
+<#if flags.enableTelemetry>
+
+# Distributed tracing — OTLP exporter
+# Override QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT to point at your collector
+quarkus.otel.enabled=true
+quarkus.otel.exporter.otlp.traces.endpoint=http://localhost:4317
+quarkus.otel.service.name=${id}
+</#if>
 
 # ─── Supported ENV VAR overrides ──────────────────────────────────────────────
 #   MOCK_MODE=false                   Return canned responses instead of proxying
@@ -42,6 +50,11 @@ quarkus.http.cors.headers=*
 #   CORS_ALLOWED_ORIGINS=*            Comma-separated allowed origins
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                          Expected X-API-Key header; empty = validation disabled
+</#if>
+<#if flags.enableTelemetry>
+#   QUARKUS_OTEL_ENABLED=true
+#   QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://<collector>:4317
+#   QUARKUS_OTEL_SERVICE_NAME=${id}
 </#if>
 #
 #   Per-endpoint backend URL overrides (default = schema-defined URL):
