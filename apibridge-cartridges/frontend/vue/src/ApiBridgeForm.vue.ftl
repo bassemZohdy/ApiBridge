@@ -21,10 +21,11 @@
 </#function>
 <#assign uiPattern = (flags.uiPattern)!"form-engine" />
 <#assign securityLevel = (flags.securityLevel)!"" />
+<#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
 <#if uiPattern == "web-component">
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 import { ${pathToMethod(endpoint.path)} } from './api/bridgeApi';
 </#list>
 
@@ -47,7 +48,7 @@ onMounted(() => {
       const detail = (customEvent.detail ?? {}) as Record<string, unknown>;
       try {
         switch (activeTab.value) {
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -85,9 +86,9 @@ onMounted(() => {
         <span class="apib-badge">${id?upper_case}</span>
         <h1 class="apib-title">API Bridge</h1>
       </div>
-<#if endpoints?size gt 1>
+<#if formEndpoints?size gt 1>
       <div class="apib-tabs">
-<#list endpoints as ep>
+<#list formEndpoints as ep>
         <button
           class="apib-tab"
           :class="{ 'apib-tab--active': activeTab === ${ep?index} }"
@@ -103,7 +104,7 @@ onMounted(() => {
 <#else>
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 import { ${pathToMethod(endpoint.path)} } from './api/bridgeApi';
 </#list>
 
@@ -123,7 +124,7 @@ const response = ref<unknown>(null);
 interface FieldDef { key: string; label: string; inputType: string; required: boolean }
 
 const FIELD_DEFS: FieldDef[][] = [
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -143,7 +144,7 @@ const FIELD_DEFS: FieldDef[][] = [
 </#list>
 ];
 
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -162,7 +163,7 @@ const formData${endpoint?index} = reactive<Record<string, string | number | bool
 });
 </#list>
 
-const formDatas = [<#list endpoints as endpoint>formData${endpoint?index}<#sep>, </#list>];
+const formDatas = [<#list formEndpoints as endpoint>formData${endpoint?index}<#sep>, </#list>];
 
 async function onSubmit(endpointIndex: number): Promise<void> {
   error.value = '';
@@ -171,7 +172,7 @@ async function onSubmit(endpointIndex: number): Promise<void> {
   try {
     const data = formDatas[endpointIndex] as Record<string, unknown>;
     switch (endpointIndex) {
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -211,9 +212,9 @@ async function onSubmit(endpointIndex: number): Promise<void> {
         <h1 class="apib-title">API Bridge</h1>
       </div>
 
-<#if endpoints?size gt 1>
+<#if formEndpoints?size gt 1>
       <div class="apib-tabs">
-<#list endpoints as ep>
+<#list formEndpoints as ep>
         <button
           class="apib-tab"
           :class="{ 'apib-tab--active': activeTab === ${ep?index} }"
@@ -223,7 +224,7 @@ async function onSubmit(endpointIndex: number): Promise<void> {
       </div>
 </#if>
 
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>

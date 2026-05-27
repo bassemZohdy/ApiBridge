@@ -15,8 +15,9 @@
 </#function>
 <#assign uiPattern = (flags.uiPattern)!"form-engine" />
 <#assign securityLevel = (flags.securityLevel)!"" />
+<#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
 import React, { useState<#if uiPattern == "web-component">, useRef, useEffect</#if> } from 'react';
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 import { ${pathToMethod(endpoint.path)} } from './api/bridgeApi';
 </#list>
 
@@ -33,13 +34,13 @@ declare global {
 }
 </#if>
 
-const ENDPOINT_LABELS = [<#list endpoints as ep>'${ep.path}'<#sep>, </#list>];
+const ENDPOINT_LABELS = [<#list formEndpoints as ep>'${ep.path}'<#sep>, </#list>];
 
 <#if uiPattern == "form-engine">
 type FieldDef = { key: string; label: string; inputType: string; required: boolean };
 
 const FIELD_DEFS: FieldDef[][] = [
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -60,7 +61,7 @@ const FIELD_DEFS: FieldDef[][] = [
 ];
 
 const INITIAL_STATE: Record<string, string | number | boolean>[] = [
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -104,7 +105,7 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
       const detail = customEvent.detail ?? {};
       try {
         switch (activeTab) {
-<#list endpoints as ep>
+<#list formEndpoints as ep>
 <#assign epPathParams = [] />
 <#list ep.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -183,7 +184,7 @@ export const ApiBridgeForm: React.FC<ApiBridgeFormProps> = ({ <#if securityLevel
     try {
       let result: unknown;
       switch (activeTab) {
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>

@@ -7,7 +7,50 @@ flags:
   feFlavor: "react"
   uiPattern: "form-engine"
   deployTarget: "docker-compose"
+  navigationMode: "spa"
+  pagination:
+    pageParam: "page"
+    sizeParam: "size"
+    defaultPageSize: 20
+    sortParam: "sort"
+    directionParam: "dir"
 endpoints:
+  - path: "/submissions"
+    method: "GET"
+    backendUrl: "https://internal-mesh.local/customer/submissions"
+    telemetryName: "apibridge_onboarding_list"
+    uiLayout:
+      component: "List"
+      columns:
+        - field: "id"
+          label: "ID"
+          sortable: true
+        - field: "email"
+          label: "Email"
+          sortable: true
+        - field: "companyName"
+          label: "Company"
+          sortable: true
+        - field: "status"
+          label: "Status"
+          sortable: false
+
+  - path: "/submissions/{id}"
+    method: "GET"
+    backendUrl: "https://internal-mesh.local/customer/submissions/1"
+    telemetryName: "apibridge_onboarding_view"
+    uiLayout:
+      component: "View"
+      fields:
+        - name: "id"
+          label: "ID"
+        - name: "email"
+          label: "Email Address"
+        - name: "companyName"
+          label: "Company Name"
+        - name: "status"
+          label: "Status"
+
   - path: "/initiate"
     method: "POST"
     backendUrl: "https://internal-mesh.local/customer/create"
@@ -17,7 +60,9 @@ endpoints:
       fields:
         - name: "email"
           type: "string"
+          label: "Email Address"
           required: true
         - name: "companyName"
           type: "string"
+          label: "Company Name"
           required: true

@@ -162,7 +162,38 @@ flags:
   uiPattern: "form-engine"       # form-engine | web-component
   securityLevel: "bearer-token"  # bearer-token | apiKey
   enableTelemetry: true
+  navigationMode: "spa"          # spa (default) | mpa
+  pagination:
+    pageParam: "page"            # overrideable via PAGINATION_PAGE_PARAM ENV VAR
+    sizeParam: "size"
+    defaultPageSize: 20
+    sortParam: "sort"
+    directionParam: "dir"
 endpoints:
+  - path: "/submissions"
+    method: "GET"
+    backendUrl: "https://mesh.internal/customer/submissions"
+    uiLayout:
+      component: "List"          # List | View | Form
+      columns:
+        - field: "email"
+          label: "Email"
+          sortable: true
+        - field: "status"
+          label: "Status"
+          sortable: false
+
+  - path: "/submissions/{id}"
+    method: "GET"
+    backendUrl: "https://mesh.internal/customer/submissions/1"
+    uiLayout:
+      component: "View"
+      fields:
+        - name: "email"
+          label: "Email Address"
+        - name: "status"
+          label: "Status"
+
   - path: "/initiate"
     method: "POST"
     backendUrl: "https://mesh.internal/customer/create"
@@ -172,11 +203,37 @@ endpoints:
       fields:
         - name: "email"
           type: "string"
+          label: "Email Address"
           required: true
         - name: "companyName"
           type: "string"
+          label: "Company Name"
           required: true
 ```
+
+### SPA routing
+
+Frontend projects use hash-based SPA routing (no router library). The generated `App` component routes:
+
+| Hash | Page |
+|---|---|
+| `#/` or `#/list` | List page (GET collection endpoint) |
+| `#/view/:id` | View page (GET by-ID endpoint) |
+| `#/form` | New record form |
+| `#/form/:id` | Edit record form |
+
+### White-label CSS
+
+Generated UIs use neutral CSS defaults. Override at runtime without rebuilding:
+
+```bash
+docker run -p 8080:8080 \
+  -v /path/brand.css:/config/brand.css:ro \
+  -e CUSTOM_CSS_PATH=/config/brand.css \
+  my-image:latest
+```
+
+See [`docs/white-label-style-guide.md`](docs/white-label-style-guide.md) for the full CSS custom properties reference and class inventory.
 
 ---
 
@@ -239,11 +296,18 @@ Checkstyle rules: 4-space indent, no star imports, no unused imports, braces req
 |---|---|---|
 | `id` | String | Service identifier |
 | `basePath` | String | REST base path |
-| `flags` | Flags | Schema flags object (may be null) |
+| `flags` | Flags | Schema flags object (may be null if `flags:` key absent) |
 | `endpoints` | List\<Endpoint\> | All endpoint definitions |
 | `backendFlavor` | String | `spring-boot` or `quarkus` (never null) |
 | `feFlavor` | String | `react`, `angular`, `vue`, or `""` if unset |
 | `deployTarget` | String | `docker-compose`, `kubernetes`, `openshift`, or `""` |
+| `flags.navigationMode` | String | `spa` (default) or `mpa` |
+| `flags.pagination` | Pagination | Pagination param names; never null when flags is non-null |
+| `endpoint.uiLayout.component` | String | `Form`, `List`, or `View` |
+| `endpoint.uiLayout.columns` | List\<Column\> | Schema-defined list columns (optional; runtime fallback if absent) |
+| `field.label` | String | Optional display label for form/view fields |
+
+**Filtering form endpoints in templates**: use `endpoints?filter(ep -> ep.method?upper_case != "GET")` to get only mutation endpoints. All Form templates already do this internally via the `formEndpoints` assignment.
 
 Use `(feFlavor!"") != ""` to gate FE-specific content in templates that apply to both FE and BE scenarios (e.g., Dockerfile).
 

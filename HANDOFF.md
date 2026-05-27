@@ -1,79 +1,203 @@
-# Handoff Documentation: SPA/MPA Navigation, Schema-Driven Columns, & Dynamic Pagination
+# ApiBridge — Project Handoff
 
-This document summarizes the requirements, architecture, and current implementation status of the advanced Model-Driven Architecture (MDA) features developed for **ApiBridge**. It is designed to hand off the project to the next platform architect or developer.
-
----
-
-## 📋 Requirements Overview
-
-An agent was tasked with adding a set of dynamic frontend-backend integration features driven purely by the unified PIM schema:
-1. **SPA vs. MPA Navigation**:
-   - Navigation should be a Single Page Application (SPA) by default, unless requested as Multi-Page Application (MPA) pages via a schema flag or build parameter.
-2. **Schema-Defined Column Detection with Dynamic Fallback**:
-   - Data list views (`ApiBridgeList`) should render columns based on explicit column schemas in the PIM YAML.
-   - If columns are not defined, the frontend must dynamically detect column headers by scanning the keys of the first returned JSON row.
-3. **Environment-Variable-Overrideable Pagination and Sorting**:
-   - Paging and sorting parameters (e.g., `page`, `size`, `sort`, `direction`) must be defined globally in the schema.
-   - To support deployment-time custom configurations, these parameters must be overrideable at runtime via **Docker image Environment Variables** in the backend and dynamically consumed by the frontends.
-4. **Decoupled E2E Verification**:
-   - Verify these features across 2 Backend flavor cartridges (Spring Boot, Quarkus) and 3 Frontend cartridges (Angular, React, Vue) with end-to-end integration test combinations.
+Current implementation status for the next developer or session.
 
 ---
 
-## 🏛️ Architecture & Implementation Detail
+## What ApiBridge is
 
-The feature set has been **fully implemented, tested, and verified** inside the codebase:
+A Java 21 MDA code generator. It reads a unified YAML schema (PIM) and applies one or more pluggable **cartridge** directories of FreeMarker templates to emit a complete, runnable project. Each cartridge is independent; the engine merges them into the same output directory in order.
 
-### 1. Unified PIM Schema Extensions
-We added robust Java modeling and validations inside the compiler engine (`BridgeSchemaModel.java` and `YamlParser.java`):
-* **`flags.navigationMode`**: Enums `spa` (default) or `mpa`.
-* **`flags.pagination`**: Models pagination parameter names:
-  - `pageParam` (default `"page"`)
-  - `sizeParam` (default `"size"`)
-  - `defaultPageSize` (default `20`)
-  - `sortParam` (default `"sort"`)
-  - `directionParam` (default `"dir"`)
-* **`endpoints[].uiLayout.component`**: Enums `Form`, `List`, or `View`.
-* **`endpoints[].uiLayout.columns[]`**: Configures custom display listings (`field`, `label`, `sortable`, `width`).
-
-### 2. Overrideable Pagination & Navigation via Backend API (Docker ENV overrides)
-To allow Docker environment variables to override pagination param names dynamically:
-* Both **Spring Boot** (`BridgeConfigController.java.ftl`) and **Quarkus** (`BridgeConfigResource.java.ftl`) cartridges compile a `/api/bridge-config` REST endpoint.
-* In Spring Boot, this reads properties via `@Value("${PAGINATION_PAGE_PARAM:page}")`, which can be overridden in Docker at runtime via `PAGINATION_PAGE_PARAM=p`.
-* In Quarkus, this leverages MicroProfile Config in the same manner.
-* The frontend projects (`bridgeConfig.ts.ftl` in React, Vue, and Angular) asynchronously fetch `/api/bridge-config` at boot. If found, it dynamically uses the overrideable parameters; otherwise, it falls back to the static parameters specified in the schema.
-
-### 3. Dynamic Column Detection in Frontend cartridges
-Inside the generated `ApiBridgeList` components:
-* If `columns` is specified under `uiLayout` in the schema, it compiles them directly into a statically structured column listing.
-* If `columns` is absent, the generated code uses **dynamic column detection** by evaluating keys of the first row at runtime:
-  ```typescript
-  const columns = rows.length > 0 ? Object.keys(rows[0]).map(k => ({ field: k, label: k, sortable: true })) : [];
-  ```
-
-### 4. SPA/MPA Shell Wrapper Integration
-* The main framework shells (`App.tsx.ftl` for React, `App.vue.ftl` for Vue, and `app.component.ts.ftl` for Angular) evaluate `navigationMode`.
-* If `spa`, they use an in-memory client-side router switching between `Form`, `List`, and `View` templates dynamically inside the page without page refreshes.
-* If `mpa`, the system supports building distinct pages/views, allowing multi-page routing layout modes.
+**Single deployable output**: FE compiles into the BE JAR via a multi-stage Dockerfile — no separate deployment needed.
 
 ---
 
-## 🧪 Verification & E2E Validation
+## Cartridge inventory
 
-* **Unit Testing (85 Tests Passing)**: 
-  - `ApiBridgeCartridgeEngineTest.java` and `YamlParserTest.java` test all cartridge templates recursively, asserting correct parsing, validation, and generation of `columns`, `navigationMode`, and overrideable controllers.
-* **E2E Pipelines (`run-all-e2e.sh`)**:
-  - Outfitted with **`e2e-tests/json-server-test/`** and **`e2e-tests/docker-fullstack-test/`**.
-  - `json-server-test` uses mock data in `db.json` to verify that `ApiBridgeList` successfully executes the pagination, sorting, and dynamic column detection queries against standard REST API backends.
-
----
-
-## 🚀 Status: 100% COMPLETED AND STABLE
-
-All code, configurations, and test pipelines have been fully coded, verified, and are ready for compilation. The multi-module parent build successfully executes all unit tests:
-```bash
-# Verify unit tests are 100% green
-mvn clean test
+```
+apibridge-cartridges/
+├── backend/spring-boot        Spring Boot 3.x REST proxy + /api/bridge-config
+├── backend/quarkus            Quarkus 3.x JAX-RS proxy + /api/bridge-config
+├── frontend/react             React 18 + Vite SPA (List / View / Form pages)
+├── frontend/angular           Angular 17 SPA (List / View / Form pages)
+├── frontend/vue               Vue 3 + Vite SPA (List / View / Form pages)
+├── frontend/ui-schema         UiLayoutSchema.json (standalone schema export)
+├── devops/dockerfile          Multi-stage Dockerfile (FE stage conditional)
+├── devops/docker-compose      docker-compose.yml
+├── devops/k8s/kubernetes      k8s Deployment + Service + ConfigMap + Kustomization
+└── devops/k8s/openshift       Extends kubernetes with TLS Route
 ```
 
-The E2E suites are runnable in CI/CD environments via `./e2e-tests/run-all-e2e.sh`.
+---
+
+## Schema features (all implemented, all tested)
+
+### Page types — `endpoints[].uiLayout.component`
+
+| Value | Trigger | Generated component |
+|---|---|---|
+| `"List"` | `GET` without `{` in path | `ApiBridgeList` — paginated table with sort |
+| `"View"` | `GET` with `{id}` in path | `ApiBridgeView` — detail read-only grid |
+| `"Form"` | `POST` / `PUT` | `ApiBridgeForm` — submission form |
+
+All three are wired into an SPA hash router in `App` (`#/list`, `#/view/:id`, `#/form`, `#/form/:id`).
+
+### SPA/MPA flag — `flags.navigationMode`
+
+- `"spa"` (default): client-side hash routing, no page refreshes
+- `"mpa"`: multi-page layout mode
+
+### Pagination — `flags.pagination`
+
+```yaml
+flags:
+  pagination:
+    pageParam: "page"      # default
+    sizeParam: "size"      # default
+    defaultPageSize: 20    # default
+    sortParam: "sort"      # default
+    directionParam: "dir"  # default
+```
+
+Override **at runtime** (no rebuild) via Docker ENV VARs:
+
+| ENV VAR | Overrides |
+|---|---|
+| `PAGINATION_PAGE_PARAM` | `pageParam` |
+| `PAGINATION_SIZE_PARAM` | `sizeParam` |
+| `PAGINATION_DEFAULT_PAGE_SIZE` | `defaultPageSize` |
+| `PAGINATION_SORT_PARAM` | `sortParam` |
+| `PAGINATION_DIRECTION_PARAM` | `directionParam` |
+
+The backend `/api/bridge-config` endpoint serves the live values. The frontend fetches it at boot and falls back to schema-baked defaults if the endpoint is unreachable.
+
+### Column definition — `endpoints[].uiLayout.columns[]`
+
+```yaml
+uiLayout:
+  component: "List"
+  columns:
+    - field: "name"
+      label: "Full Name"
+      sortable: true
+    - field: "status"
+      sortable: false
+      width: "100px"
+```
+
+If `columns` is absent, the frontend detects columns at runtime from the first API response row.
+
+### White-label CSS
+
+Neutral defaults. Override at runtime via mounted CSS file — no rebuild:
+
+```bash
+docker run -p 8080:8080 \
+  -v /path/brand.css:/config/brand.css:ro \
+  -e CUSTOM_CSS_PATH=/config/brand.css \
+  my-image:latest
+```
+
+Full CSS custom properties reference: [`docs/white-label-style-guide.md`](docs/white-label-style-guide.md)
+
+---
+
+## How the SPA router works (all three FE frameworks)
+
+Each frontend generates a hash-based router — no router library required:
+
+```
+#/          → List page (if list endpoint exists)
+#/list      → List page
+#/view/:id  → View page (if GET /{id} endpoint exists)
+#/form      → New record form (if POST/PUT endpoint exists)
+#/form/:id  → Edit record form
+```
+
+The `App` component (React: `App.tsx`, Vue: `App.vue`, Angular: `app.component.ts`) listens to `hashchange` events and routes accordingly.
+
+**Important**: `ApiBridgeForm` only processes `POST`/`PUT` endpoints — GET endpoints are filtered out at template generation time via `formEndpoints = endpoints.filter(ep -> method != "GET")`.
+
+---
+
+## Backend API endpoints generated
+
+Every generated backend exposes:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/bridge-config` | Serves pagination config (respects ENV VAR overrides) |
+| `GET /custom.css` | Serves mounted brand CSS file |
+| `{method} {basePath}{path}` | Proxies each schema endpoint to its `backendUrl` |
+
+---
+
+## Test status
+
+```
+mvn test → 85/85 PASS
+```
+
+| Test class | Count | Covers |
+|---|---|---|
+| `YamlParserTest` | 57 | All schema validation paths, new fields (navigationMode, pagination, columns, field.label) |
+| `ApiBridgeCartridgeEngineTest` | 26 | All cartridge generations incl. List/View/Form model |
+| `ApiBridgeRunnerTest` | 2 | CLI argument handling |
+
+---
+
+## E2E test suite
+
+```bash
+./e2e-tests/run-all-e2e.sh
+```
+
+| Pipeline | What it tests |
+|---|---|
+| `maven-spring-boot-test` | Generated Spring Boot project compiles with Maven |
+| `maven-quarkus-test` | Generated Quarkus project compiles with Maven |
+| `typescript-angular-test` | Generated Angular project passes strict `tsc` |
+| `typescript-react-test` | Generated React project passes strict `tsc` |
+| `typescript-vue-test` | Generated Vue project passes strict `tsc` |
+| `verify-contract-symmetry.sh` | Backend and frontend share identical API paths |
+| `docker-fullstack-test` | Docker build + MOCK_MODE + BLOCK_TRAFFIC runtime |
+| `json-server-test` | Spring+React and Quarkus+Vue live against json-server: pagination, sorting, CRUD, brand CSS, bridge-config ENV overrides |
+
+---
+
+## Sample schema
+
+`sample-schema.yaml` demonstrates all three page types with pagination and column config:
+
+```yaml
+id: "customer-onboarding-bridge"
+basePath: "/api/v1/onboarding"
+flags:
+  navigationMode: "spa"
+  pagination:
+    pageParam: "page"
+    sizeParam: "size"
+    defaultPageSize: 20
+    sortParam: "sort"
+    directionParam: "dir"
+endpoints:
+  - path: "/submissions"          # → ApiBridgeList
+    method: "GET"
+    ...
+  - path: "/submissions/{id}"     # → ApiBridgeView
+    method: "GET"
+    ...
+  - path: "/initiate"             # → ApiBridgeForm
+    method: "POST"
+    ...
+```
+
+---
+
+## Key design invariants
+
+1. **No cross-cartridge dependencies** — each cartridge is self-contained.
+2. **FreeMarker `${...}` in JSX/TS template literals** must be escaped as `${r"${...}"}` to avoid FreeMarker interpolation.
+3. **Form templates filter GET endpoints** — `formEndpoints` assigned at template top; do not regress this.
+4. **Custom CSS loads after the Vite bundle** — injected dynamically in `main.ts`/`main.tsx` so brand overrides win the cascade.
+5. **`Pagination` is auto-initialized** in `BridgeSchemaModel.Flags` — `getPagination()` is never null when flags are present.

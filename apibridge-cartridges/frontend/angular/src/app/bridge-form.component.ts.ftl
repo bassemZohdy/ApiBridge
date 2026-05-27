@@ -1,3 +1,4 @@
+<#assign formEndpoints = endpoints?filter(ep -> ep.method?upper_case != "GET") />
 import { Component<#if (flags.uiPattern!"form-engine") == "web-component">, ViewChild, ElementRef, AfterViewInit</#if> } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { BridgeApiService } from './bridge-api.service';
@@ -23,7 +24,7 @@ export class BridgeFormComponent implements AfterViewInit {
   response: unknown = null;
   error: string | null = null;
 
-  readonly endpointLabels: string[] = [<#list endpoints as ep>'${ep.path}'<#sep>, </#list>];
+  readonly endpointLabels: string[] = [<#list formEndpoints as ep>'${ep.path}'<#sep>, </#list>];
 
   constructor(private bridgeApiService: BridgeApiService) {}
 
@@ -39,7 +40,7 @@ export class BridgeFormComponent implements AfterViewInit {
     this.error = null;
     this.response = null;
     switch (index) {
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
 <#assign methodName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first />
 <#assign epPathParams = [] />
@@ -73,10 +74,10 @@ export class BridgeFormComponent {
   response: unknown = null;
   error: string | null = null;
 
-  readonly endpointLabels: string[] = [<#list endpoints as ep>'${ep.path}'<#sep>, </#list>];
+  readonly endpointLabels: string[] = [<#list formEndpoints as ep>'${ep.path}'<#sep>, </#list>];
 
   readonly fieldSets: FieldDef[][] = [
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign epPathParams = [] />
 <#list endpoint.path?split("{") as seg>
   <#if seg?contains("}")>
@@ -123,7 +124,7 @@ export class BridgeFormComponent {
 
   private callEndpoint(index: number, payload: Record<string, unknown>): void {
     switch (index) {
-<#list endpoints as endpoint>
+<#list formEndpoints as endpoint>
 <#assign cleanPath = endpoint.path?replace("[{][^}]*[}]", "", "r") />
 <#assign methodName = cleanPath?replace("/", " ")?replace("-", " ")?trim?capitalize?replace(" ", "")?uncap_first />
 <#assign epPathParams = [] />

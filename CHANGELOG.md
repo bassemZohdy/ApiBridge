@@ -7,6 +7,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Fixed — Form templates filter GET endpoints
+
+- **`ApiBridgeForm.tsx.ftl` (React), `bridge-form.component.ts.ftl` (Angular), `ApiBridgeForm.vue.ftl` (Vue)**: added `formEndpoints` filter at template top (`endpoints.filter(ep -> method != "GET")`). Form components now correctly ignore List/View GET endpoints when building `FIELD_DEFS`, `INITIAL_STATE`, tab labels, and submit handlers. Previously crashed with a null `field.type` when a schema contained View endpoints with typeless fields.
+
+### Fixed — json-server E2E cartridge selection
+
+- **`e2e-tests/json-server-test/run-e2e.sh`**: `run_combination` now accepts explicit `be_cartridge` and `fe_cartridge` parameters instead of hard-coding Spring Boot + React for both combinations. The Quarkus + Vue combination now correctly uses the Quarkus and Vue cartridges.
+
+### Added — Comprehensive sample schema
+
+- **`sample-schema.yaml`** extended to include all three page types (List, View, Form) with schema-defined columns, labels, and pagination configuration. All E2E compile tests (Angular, React, Vue) now exercise the List and View templates in addition to Form.
+
+### Added — Test coverage for new model fields
+
+- **`YamlParserTest`**: 10 new tests covering `navigationMode` default/validation, `Pagination` defaults/custom/negative-size validation, `Column` parsing/field-required validation, View component fields without `type`, and optional `Field.label`.
+- **`ApiBridgeCartridgeEngineTest`**: 3 new integration tests (`testReactCartridgeWithListViewForm`, `testAngularCartridgeWithListViewForm`, `testVueCartridgeWithListViewForm`) verifying that List, View, and Form pages all generate correctly from a multi-endpoint model.
+- Total unit tests: **85** (up from 72).
+
+### Fixed — `BridgeSchemaModel.Flags` Pagination initialization
+
+- `Pagination pagination` field now initialized to `new Pagination()` by default. `getPagination()` is never null when `flags` is non-null, consistent with how other flag fields behave.
+
 ### Changed — Cartridge layout finalised
 
 - **`frontend-ui-schema/` renamed to `frontend/ui-schema/`**: now grouped under `frontend/` alongside Angular/React/Vue. Output auto-prefixed to `frontend/UiLayoutSchema.json` by the engine prefix convention.

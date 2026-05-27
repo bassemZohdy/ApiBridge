@@ -170,13 +170,17 @@ run_combination \
   "Spring Boot + React" \
   "schema-spring-react.yaml" \
   "/tmp/apib-jse2e-spring-react" \
-  "apib-jse2e-spring-react"
+  "apib-jse2e-spring-react" \
+  "backend/spring-boot" \
+  "frontend/react"
 
 run_combination \
   "Quarkus + Vue" \
   "schema-quarkus-vue.yaml" \
   "/tmp/apib-jse2e-quarkus-vue" \
-  "apib-jse2e-quarkus-vue"
+  "apib-jse2e-quarkus-vue" \
+  "backend/quarkus" \
+  "frontend/vue"
 
 # ─── Report ───────────────────────────────────────────────────────────────────
 log ""
