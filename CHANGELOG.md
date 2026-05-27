@@ -7,7 +7,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
-### Added
+### Changed — Composable cartridge architecture
+
+- **Cartridge directory restructured**: `spring-boot/` → `backend/spring-boot/`, `quarkus/` → `backend/quarkus/`, `angular/` → `frontend/angular/`, `react/` → `frontend/react/`, `vue/` → `frontend/vue/`; `dockerfile/`, `docker-compose/`, `kubernetes/`, `openshift/` moved under `devops/`.
+- **Standalone component-only cartridges removed** (`frontend-angular/`, `frontend-react/`, `frontend-vue/`): the full-project cartridges (`frontend/angular`, `frontend/react`, `frontend/vue`) supersede them.
+- **Monolithic `fullstack/` cartridge removed**: replaced by independent composable cartridges applied via repeatable `--cartridge=` flag.
+- **`backend-spring-boot/` and `backend-quarkus/` removed**: superseded by `backend/spring-boot` and `backend/quarkus`.
+- **Engine rewritten**: `ApiBridgeCartridgeEngine` now mirrors each cartridge's directory tree 1:1 to the output with no flavor-based subdirectory routing. Multiple cartridges compose by applying to the same output directory.
+- **`--cartridge=` is repeatable**: `ApiBridgeRunner` accepts multiple `--cartridge=` arguments, applying each in order.
+- **`feFlavor` default changed to null**: absence of FE flavor is now detectable in templates via `(feFlavor!"") != ""`; the Dockerfile FE build stage and static-resource properties are gated on this.
+- **E2E tests updated**: Maven backend tests compile the generated `backend/pom.xml` directly; TypeScript tests run on full generated `frontend/` projects; contract symmetry check uses schema-derived paths.
+
+### Added — Previous unreleased
 - **Fullstack Docker cartridge** (`apibridge-cartridges/fullstack`): generates a complete, self-contained app with a three-stage multi-stage `Dockerfile` (node:20-alpine FE build → maven:3.9-amazoncorretto-21-alpine BE build → amazoncorretto:21-alpine runtime). The generated backend proxies all schema endpoints, with `MOCK_MODE` and `BLOCK_TRAFFIC` ENV flags for runtime control.
 - **Frontend flavor selection** (`flags.feFlavor`): new validated schema field (`angular` | `react` | `vue`). Defaults to `react`. Validated by `YamlParser` at parse time (case-insensitive).
 - **Subdirectory-routed cartridge engine**: `ApiBridgeCartridgeEngine` now performs a recursive scan with flavor-directory routing — `backend-{flavor}/` and `frontend-{flavor}/` directories are only entered when the schema's `backendFlavor`/`feFlavor` matches; their output maps to `backend/` and `frontend/`. All other directories recurse normally. Empty rendered output is silently skipped.

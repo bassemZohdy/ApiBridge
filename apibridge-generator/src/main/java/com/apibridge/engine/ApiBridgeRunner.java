@@ -5,9 +5,6 @@ import com.apibridge.engine.model.BridgeSchemaModel;
 import java.io.File;
 import java.util.List;
 
-/**
- * Command-Line Interface (CLI) Entry Point for ApiBridge Generator.
- */
 public class ApiBridgeRunner {
 
     public static void main(String[] args) {

@@ -1,19 +1,19 @@
 {
   "id": "${id}",
   "basePath": "${basePath}",
-  "securityLevel": "${flags.securityLevel}",
-  "enableTelemetry": ${flags.enableTelemetry?c},
+  "securityLevel": "${(flags.securityLevel)!""}",
+  "enableTelemetry": ${(flags.enableTelemetry!false)?c},
   "layouts": [
     <#list endpoints as endpoint>
     {
       "endpointPath": "${endpoint.path}",
       "method": "${endpoint.method?upper_case}",
-      "telemetryName": "${endpoint.telemetryName}",
+      "telemetryName": "${(endpoint.telemetryName)!""}",
       <#if endpoint.uiLayout??>
       "uiLayout": {
         "component": "${endpoint.uiLayout.component}",
         "fields": [
-          <#list endpoint.uiLayout.fields as field>
+          <#list (endpoint.uiLayout.fields![]) as field>
           {
             "name": "${field.name}",
             "type": "${field.type}",

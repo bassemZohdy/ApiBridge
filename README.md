@@ -1,34 +1,32 @@
 # ApiBridge — Pluggable MDA Code Generation Engine
 
-ApiBridge is a Model-Driven Architecture (MDA) code generation engine written in Java 21. It reads a unified YAML schema (the **Platform-Independent Model**, or PIM) and processes it through a pluggable **cartridge** to emit platform-specific code in a single pass.
+ApiBridge is a Model-Driven Architecture (MDA) code generator written in Java 21. It reads a unified YAML schema (the **Platform-Independent Model**, or PIM) and processes it through one or more pluggable **cartridges** to emit platform-specific code.
 
-The engine is framework-agnostic: it knows nothing about Spring Boot, Quarkus, Angular, React, or Vue. All platform knowledge lives in the cartridge templates.
+Each cartridge is an independent directory of FreeMarker templates. The engine applies them in sequence to the same output directory — there are no cross-cartridge dependencies. Select exactly the cartridges you need; unused ones are simply not applied.
 
 ---
 
 ## Project Layout
 
 ```
-apibridge-generator/           # Java engine — the only Maven module
-apibridge-cartridges/          # Pluggable cartridge directories (not Maven modules)
-├── backend-spring-boot/       # Standalone Spring Boot REST controller
-├── backend-quarkus/           # Standalone Quarkus JAX-RS resource
-├── frontend-ui-schema/        # UI layout JSON schema cartridge
-├── frontend-angular/          # Angular bridge form component
-├── frontend-react/            # React bridge form component
-├── frontend-vue/              # Vue bridge form component
-└── fullstack/                 # Complete containerized app (BE + FE in one Docker image)
-    ├── Dockerfile.ftl             # Three-stage multi-stage build
-    ├── docker-compose.yml.ftl
-    ├── .dockerignore.ftl
-    ├── backend-spring-boot/       # Spring Boot backend subtree (selected by backendFlavor)
-    ├── backend-quarkus/           # Quarkus backend subtree (selected by backendFlavor)
-    ├── frontend-angular/          # Angular frontend subtree (selected by feFlavor)
-    ├── frontend-react/            # React frontend subtree (selected by feFlavor)
-    └── frontend-vue/              # Vue frontend subtree (selected by feFlavor)
-e2e-tests/                     # Integration tests — run on CI, not before every commit
-docs/                          # Reference documentation
-sample-schema.yaml             # Working example PIM schema
+apibridge-generator/              # Java engine — the only Maven module
+apibridge-cartridges/             # Pluggable cartridge directories (not Maven modules)
+├── backend/
+│   ├── spring-boot/              # Spring Boot REST proxy (output: backend/)
+│   └── quarkus/                  # Quarkus JAX-RS proxy (output: backend/)
+├── frontend/
+│   ├── angular/                  # Angular 17 full project (output: frontend/)
+│   ├── react/                    # React 18 + Vite full project (output: frontend/)
+│   └── vue/                      # Vue 3 + Vite full project (output: frontend/)
+├── devops/
+│   ├── dockerfile/               # Multi-stage Dockerfile (FE stage conditional)
+│   ├── docker-compose/           # docker-compose.yml
+│   ├── kubernetes/               # K8s Deployment + Service + ConfigMap + Kustomization
+│   └── openshift/                # Extends kubernetes with TLS Route
+└── frontend-ui-schema/           # UiLayoutSchema.json for UI-driven forms
+docs/                             # Reference documentation
+sample-schema.yaml                # Working example PIM schema
+e2e-tests/                        # Integration tests — run on CI, not before every commit
 ```
 
 ---
@@ -39,22 +37,28 @@ sample-schema.yaml             # Working example PIM schema
 # 1. Build the fat JAR
 mvn clean package
 
-# 2. Generate a fullstack containerized app (Spring Boot + React by default)
+# 2. Spring Boot + React, Docker Compose deployment
 java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --schema=sample-schema.yaml \
-  --cartridge=apibridge-cartridges/fullstack \
+  --cartridge=apibridge-cartridges/backend/spring-boot \
+  --cartridge=apibridge-cartridges/frontend/react \
+  --cartridge=apibridge-cartridges/devops/dockerfile \
+  --cartridge=apibridge-cartridges/devops/docker-compose \
   --output=output/my-app
 
-# 3. Build and run the generated Docker image
+# 3. Build and run
 cd output/my-app
-docker build -t my-app .
-docker run -p 8080:8080 my-app
+docker compose up --build
 
-# 4. Run in mock mode (returns canned JSON, no upstream calls)
-docker run -p 8080:8080 -e MOCK_MODE=true my-app
+# 4. Mock mode — returns canned JSON, no upstream calls
+docker compose run --rm -e MOCK_MODE=true my-app
 
-# 5. Block all traffic (returns 503 for all endpoints)
-docker run -p 8080:8080 -e BLOCK_TRAFFIC=true my-app
+# 5. Backend-only (no FE cartridge)
+java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
+  --schema=sample-schema.yaml \
+  --cartridge=apibridge-cartridges/backend/quarkus \
+  --cartridge=apibridge-cartridges/devops/dockerfile \
+  --output=output/quarkus-only
 ```
 
 ---
@@ -62,172 +66,71 @@ docker run -p 8080:8080 -e BLOCK_TRAFFIC=true my-app
 ## CLI Reference
 
 ```
-java -jar apibridge-generator.jar --schema=<path> --cartridge=<path> --output=<path> [options]
-
-Required:
-  --schema=<path>      Path to the YAML PIM schema file
-  --cartridge=<path>   Path to the cartridge directory (contains *.ftl templates)
-  --output=<path>      Destination directory for generated files
-
-Optional overrides (take precedence over schema flags):
-  --be-flavor=<val>       Backend framework: spring-boot | quarkus
-  --fe-flavor=<val>       Frontend framework: angular | react | vue
-  --deploy-target=<val>   Deployment config: docker-compose | kubernetes | openshift
-  -h, --help              Show help
+java -jar apibridge-generator.jar \
+  --schema=<path>           Path to the YAML PIM schema
+  --cartridge=<path>        Cartridge to apply (repeatable; applied in order)
+  --output=<path>           Destination directory for generated files
+  [--be-flavor=<val>]       Override backend: spring-boot | quarkus
+  [--fe-flavor=<val>]       Override frontend: angular | react | vue
+  [--deploy-target=<val>]   Override deployment: docker-compose | kubernetes | openshift
+  [--version | -v]          Print version and exit
+  [-h | --help]             Show help
 ```
+
+`--cartridge` is repeatable. Each cartridge's output merges into the same `--output` directory in the order specified.
 
 ---
 
 ## Cartridges
 
-### Standalone cartridges
-
-These generate a single artifact and are used directly:
+### Backend cartridges
 
 | Cartridge | Output |
 |---|---|
-| `backend-spring-boot` | Spring Boot `@RestController` + `pom.xml` |
-| `backend-quarkus` | Quarkus JAX-RS `@Path` resource + `pom.xml` |
-| `frontend-ui-schema` | UI layout JSON schema |
-| `frontend-angular` | Angular form component (`.ts` + `.html`) |
-| `frontend-react` | React form component (`.tsx`) |
-| `frontend-vue` | Vue 3 SFC (`.vue`) |
+| `backend/spring-boot` | `backend/` — Spring Boot 3.x proxy with RestTemplate, Actuator, OTel |
+| `backend/quarkus` | `backend/` — Quarkus 3.x JAX-RS proxy with JAX-RS Client, Health, OTel |
 
-```bash
-# Spring Boot controller
-java -jar apibridge-generator.jar \
-  --schema=sample-schema.yaml \
-  --cartridge=apibridge-cartridges/backend-spring-boot \
-  --output=output/spring-boot
+Both backends:
+- Proxy every schema endpoint to its `backendUrl`
+- `MOCK_MODE=true` returns a canned JSON response instead of proxying
+- `BLOCK_TRAFFIC=true` returns 503 for every request
+- Every config value is overridable at runtime via ENV VAR (see `application.properties`)
+- When a `frontend/` cartridge is also applied, the backend serves the compiled FE assets from its static resources directory (`classpath:/static/` for Spring Boot, `META-INF/resources/` for Quarkus)
 
-# React component
-java -jar apibridge-generator.jar \
-  --schema=sample-schema.yaml \
-  --cartridge=apibridge-cartridges/frontend-react \
-  --output=output/react
-```
+### Frontend cartridges
 
-### Fullstack cartridge
-
-`apibridge-cartridges/fullstack` generates a complete project with a three-stage multi-stage `Dockerfile`:
-
-```
-Stage 1  node:20-alpine          — builds the frontend (Vite or Angular CLI)
-Stage 2  maven:3.9-amazoncorretto-21-alpine — builds the backend, embeds FE static files
-Stage 3  amazoncorretto:21-alpine           — minimal JRE runtime, exposes port 8080
-```
-
-The backend proxies every endpoint defined in the schema to its `backendUrl`. Two environment variables control runtime behaviour:
-
-| Variable | Default | Effect |
-|---|---|---|
-| `MOCK_MODE` | `false` | Returns a canned JSON response instead of proxying |
-| `BLOCK_TRAFFIC` | `false` | Returns 503 for every request |
-
-**Frontend framework** is selected with `flags.feFlavor` (or `--fe-flavor` override):
-
-| `feFlavor` | Framework | Build tool |
-|---|---|---|
-| `react` (default) | React 18 + TypeScript | Vite |
-| `angular` | Angular 17 + TypeScript | Angular CLI |
-| `vue` | Vue 3 + TypeScript | Vite |
-
-**Backend framework** is selected with `flags.backendFlavor` (or `--be-flavor` override):
-
-| `backendFlavor` | Framework |
+| Cartridge | Output |
 |---|---|
-| `spring-boot` (default) | Spring Boot 3.x |
-| `quarkus` | Quarkus 3.x (JAX-RS) |
+| `frontend/angular` | `frontend/` — Angular 17 + TypeScript, form-engine (ngx-formly) or web-component |
+| `frontend/react` | `frontend/` — React 18 + Vite + TypeScript, form-engine (RJSF) or web-component |
+| `frontend/vue` | `frontend/` — Vue 3 + Vite + TypeScript, form-engine or web-component |
 
-```bash
-# Quarkus + Angular fullstack
-java -jar apibridge-generator.jar \
-  --schema=sample-schema.yaml \
-  --cartridge=apibridge-cartridges/fullstack \
-  --output=output/quarkus-angular \
-  --be-flavor=quarkus \
-  --fe-flavor=angular
-```
+Frontend rendering mode is controlled by `flags.uiPattern`:
+- **`form-engine`** (default) — dynamic form driven by `uiLayout.fields` in the schema
+- **`web-component`** — thin wrapper driving a `<api-bridge-form>` custom element
 
-#### Generated output layout
+### DevOps cartridges
 
-The core output (always generated):
-
-```
-output/
-├── Dockerfile               # Three-stage multi-stage build
-├── .dockerignore
-├── backend/                 # Complete Maven project (Spring Boot or Quarkus)
-│   ├── pom.xml
-│   └── src/main/
-│       ├── java/com/apibridge/generated/
-│       │   ├── Application.java       (Spring Boot only)
-│       │   ├── BridgeController.java  (Spring Boot) / BridgeResource.java (Quarkus)
-│       │   └── ProxyService.java
-│       └── resources/
-│           └── application.properties
-└── frontend/                # Complete Vite/Angular project
-    ├── package.json
-    ├── vite.config.ts / angular.json
-    └── src/
-```
-
-Additional deployment configs (only when `flags.deployTarget` is set):
-
-| `deployTarget` | Extra files generated |
+| Cartridge | Output |
 |---|---|
-| `docker-compose` | `docker-compose.yml` — local dev with healthcheck + resource limits |
-| `kubernetes` | `k8s/configmap.yaml`, `k8s/deployment.yaml`, `k8s/service.yaml`, `k8s/kustomization.yaml` |
-| `openshift` | Same as `kubernetes` + `k8s/route.yaml` (TLS edge-terminated Route) |
+| `devops/dockerfile` | `Dockerfile` — three-stage: FE build (node), BE build + embed (maven), runtime (JRE) |
+| `devops/docker-compose` | `docker-compose.yml` — local dev with healthcheck and resource limits |
+| `devops/kubernetes` | `k8s/` — Deployment + Service + ConfigMap + Kustomization |
+| `devops/openshift` | `k8s/route.yaml` + updated `k8s/kustomization.yaml` — apply on top of kubernetes |
 
-#### Production best practices applied
+The `devops/dockerfile` FE build stage is automatically omitted when no `feFlavor` is set (BE-only output).
 
-**Container / runtime:**
-- Non-root user (UID 1001, `chmod g=u` for OpenShift arbitrary-UID policy)
-- `HEALTHCHECK` instruction in Dockerfile (Docker/Compose)
-- JVM flags: `-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0` (respects cgroup memory limits)
-- `JAVA_OPTS` env var passed through for runtime JVM tuning without image rebuild
-- OCI labels on the image (`org.opencontainers.image.*`)
+For OpenShift: apply both `devops/kubernetes` and `devops/openshift` to get the full manifest set including a TLS edge-terminated Route.
 
-**Backend:**
-- RestTemplate (Spring Boot) configured with 10 s connect / 30 s read timeouts
-- JAX-RS Client (Quarkus) configured with 10 s connect / 30 s read timeouts + `@PreDestroy` close
-- Graceful shutdown (`server.shutdown=graceful` / `quarkus.shutdown.timeout=30S`)
-- HTTP compression enabled
-- Upstream `Content-Type` propagated back to the caller
-- Structured JSON logging for container log aggregators (EFK, Loki, CloudWatch)
+### Single-JAR deployment
 
-**Kubernetes / OpenShift:**
-- Startup, liveness, and readiness probes (flavor-conditional paths)
-- `readOnlyRootFilesystem: true` + `emptyDir` mount for `/tmp`
-- `allowPrivilegeEscalation: false` + `capabilities.drop: [ALL]`
-- CPU/memory `requests` and `limits` defined
-- `terminationGracePeriodSeconds: 45` (> graceful shutdown timeout)
-- Kustomization file for image tag override without editing manifests
+When both a backend and frontend cartridge are applied, the multi-stage Dockerfile builds the FE and copies the compiled dist into the BE's static resources directory before the Maven build, producing a **single runnable JAR** that serves both the API and the frontend:
 
-**Deployment:**
-```bash
-# Build the image (Dockerfile always generated)
-docker build -t my-registry/my-service:1.0.0 output/my-app
-docker push my-registry/my-service:1.0.0
-
-# Local dev (requires flags.deployTarget: docker-compose)
-docker compose -f output/my-app/docker-compose.yml up
-
-# Kubernetes (requires flags.deployTarget: kubernetes or openshift)
-# Update newTag in k8s/kustomization.yaml, then:
-kubectl apply -k output/my-app/k8s/
-
-# OpenShift (requires flags.deployTarget: openshift)
-oc apply -k output/my-app/k8s/
 ```
-
-#### UI rendering modes
-
-Frontend templates support two modes controlled by `flags.uiPattern`:
-
-- **`form-engine`** (default) — renders a dynamic form backed by RJSF (React), ngx-formly (Angular), or Composition API reactive state (Vue), driven by the `uiLayout.fields` definition in the schema.
-- **`web-component`** — renders a thin wrapper that registers and drives a pre-built `<api-bridge-form>` custom element.
+Stage 1  node:20-alpine             — npm build → dist/
+Stage 2  maven:3.9-amazoncorretto   — COPY dist → src/main/resources/static/ → mvn package
+Stage 3  amazoncorretto:21-alpine   — java -jar app.jar (port 8080)
+```
 
 ---
 
@@ -246,14 +149,14 @@ endpoints:
     backendUrl: "https://upstream.internal/run"
 ```
 
-With all flags:
+Full example with all flags:
 
 ```yaml
 id: "customer-onboarding-bridge"
 basePath: "/api/v1/onboarding"
 flags:
   backendFlavor: "spring-boot"   # spring-boot | quarkus
-  feFlavor: "react"              # angular | react | vue
+  feFlavor: "react"              # angular | react | vue  (omit for BE-only)
   uiPattern: "form-engine"       # form-engine | web-component
   securityLevel: "bearer-token"  # bearer-token | apiKey
   enableTelemetry: true
@@ -275,6 +178,40 @@ endpoints:
 
 ---
 
+## Common combinations
+
+```bash
+JAR="apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar"
+
+# Quarkus + Angular, Kubernetes deployment
+java -jar "$JAR" \
+  --schema=sample-schema.yaml \
+  --cartridge=apibridge-cartridges/backend/quarkus \
+  --cartridge=apibridge-cartridges/frontend/angular \
+  --cartridge=apibridge-cartridges/devops/dockerfile \
+  --cartridge=apibridge-cartridges/devops/kubernetes \
+  --output=output/quarkus-angular-k8s \
+  --be-flavor=quarkus \
+  --fe-flavor=angular
+
+# Spring Boot only, OpenShift deployment
+java -jar "$JAR" \
+  --schema=sample-schema.yaml \
+  --cartridge=apibridge-cartridges/backend/spring-boot \
+  --cartridge=apibridge-cartridges/devops/dockerfile \
+  --cartridge=apibridge-cartridges/devops/kubernetes \
+  --cartridge=apibridge-cartridges/devops/openshift \
+  --output=output/spring-openshift
+
+# UI schema only
+java -jar "$JAR" \
+  --schema=sample-schema.yaml \
+  --cartridge=apibridge-cartridges/frontend-ui-schema \
+  --output=output/ui-schema
+```
+
+---
+
 ## Development
 
 ```bash
@@ -288,30 +225,48 @@ mvn verify
 ./e2e-tests/run-all-e2e.sh
 ```
 
-Checkstyle rules: 4-space indent, no star imports, no unused imports, braces required on all blocks.
+Checkstyle rules: 4-space indent, no star imports, no unused imports, braces required.
 
 ### Adding a cartridge
 
-1. Create a directory under `apibridge-cartridges/`.
-2. Add `.ftl` FreeMarker templates. The output filename is the template name with `.ftl` stripped.
-3. Use these variables in templates:
+1. Create a directory anywhere under `apibridge-cartridges/` (the path becomes the `--cartridge=` argument).
+2. Add `.ftl` FreeMarker templates. The output filename is the template name with `.ftl` stripped; directory tree is mirrored 1:1 to output.
+3. Available template variables:
 
-| Variable | Type | Description |
+| Variable | Type | Notes |
 |---|---|---|
-| `id` | String | Service identifier from schema |
+| `id` | String | Service identifier |
 | `basePath` | String | REST base path |
-| `flags` | Flags object | All schema flags |
+| `flags` | Flags | Schema flags object (may be null) |
 | `endpoints` | List\<Endpoint\> | All endpoint definitions |
-| `backendFlavor` | String | Resolved BE flavor (`spring-boot` or `quarkus`) |
-| `feFlavor` | String | Resolved FE flavor (`react`, `angular`, or `vue`) |
+| `backendFlavor` | String | `spring-boot` or `quarkus` (never null) |
+| `feFlavor` | String | `react`, `angular`, `vue`, or `""` if unset |
+| `deployTarget` | String | `docker-compose`, `kubernetes`, `openshift`, or `""` |
 
-For subdirectory-routed cartridges (like `fullstack`), name subdirectories `backend-{flavor}/` or `frontend-{flavor}/` — the engine selects the matching one and maps its output to `backend/` or `frontend/` in the output directory.
+Use `(feFlavor!"") != ""` to gate FE-specific content in templates that apply to both FE and BE scenarios (e.g., Dockerfile).
+
+---
+
+## Production best practices applied
+
+**Container / runtime:**
+- Non-root user (UID 1001, `chmod g=u` for OpenShift arbitrary-UID policy)
+- JVM: `-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0`
+- `JAVA_OPTS` passed through for runtime tuning without image rebuild
+- Graceful shutdown configured (30 s drain)
+- HTTP compression enabled
+- Structured JSON logging for EFK / Loki / CloudWatch
+
+**Kubernetes manifests:**
+- Startup, liveness, and readiness probes (flavor-conditional paths)
+- `readOnlyRootFilesystem: true` + `emptyDir` for `/tmp`
+- `allowPrivilegeEscalation: false` + `capabilities.drop: [ALL]`
+- CPU/memory requests and limits
+- `terminationGracePeriodSeconds: 45`
+- Kustomization image tag override
 
 ---
 
 ## CI
 
-GitHub Actions workflow (`.github/workflows/ci.yml`):
-
-- **build** job: `mvn verify` on JDK 21 — runs on every push and PR
-- **e2e** job: full E2E suite including Docker build — runs after `build`
+GitHub Actions (`.github/workflows/ci.yml`): `build` job (`mvn verify` on JDK 21) → `e2e` job (full suite including Docker build). Triggers on push to `main`/`feature**`/`bugfix**` and PRs to `main`.

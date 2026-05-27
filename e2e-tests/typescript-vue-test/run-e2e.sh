@@ -1,35 +1,34 @@
 #!/bin/bash
 set -e
 
-# Change directory to the script's physical location
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "=================================================="
-echo "🚀 Running E2E: Vue TS Cartridge Pipeline"
+echo "Running E2E: Vue Frontend (tsc)"
 echo "=================================================="
 
-# 1. Clean previous generated assets
-echo "🧹 Cleaning previous artifacts..."
-rm -rf generated src && mkdir -p src
+# 1. Clean
+rm -rf generated
 
-# 2. Execute the generator for Vue cartridge
-echo "⚡ Generating Vue cartridge assets..."
+# 2. Generate full Vue project
+echo "Generating Vue frontend project..."
 java -jar ../../apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --schema=../../sample-schema.yaml \
-  --cartridge=../../apibridge-cartridges/frontend-vue \
+  --cartridge=../../apibridge-cartridges/frontend/vue \
   --output=generated
 
-# 3. Integrate generated files into TypeScript source directory by extracting the script setup block
-echo "✂️ Extracting TypeScript setup block from Vue Single File Component..."
-sed -n '/<script lang="ts">/,/<\/script>/p' generated/ApiBridgeForm.vue | sed '1d;$d' > src/VueApiBridgeForm.ts
+# 3. Verify key files exist
+[ -f "generated/frontend/package.json" ]              || { echo "MISSING: package.json"; exit 1; }
+[ -f "generated/frontend/src/ApiBridgeForm.vue" ]     || { echo "MISSING: ApiBridgeForm.vue"; exit 1; }
+[ -f "generated/frontend/src/api/bridgeApi.ts" ]      || { echo "MISSING: bridgeApi.ts"; exit 1; }
 
-# 4. Resolve dependencies and trigger compiler checks
-echo "📦 Installing Vue type definition dependencies..."
-npm install --legacy-peer-deps
+# 4. Install deps and type-check
+echo "Installing dependencies..."
+(cd generated/frontend && npm install --legacy-peer-deps --silent)
 
-echo "🛠️ Executing strict Vue TypeScript compiler check (tsc --noEmit)..."
-npx tsc --noEmit
+echo "Running strict TypeScript check..."
+(cd generated/frontend && npx tsc --noEmit)
 
 echo "=================================================="
-echo "✓ E2E: Vue TS Cartridge Pipeline SUCCESSFUL!"
+echo "E2E Vue PASSED"
 echo "=================================================="

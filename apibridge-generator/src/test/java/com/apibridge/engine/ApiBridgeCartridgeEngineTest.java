@@ -54,7 +54,7 @@ public class ApiBridgeCartridgeEngineTest {
     @Test
     public void testSpringBootCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
-        File cartridgeDir = findCartridgeDir("spring-boot");
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
         File outputDir = tempDir.resolve("output-spring").toFile();
 
         engine.generate(model, cartridgeDir, outputDir);
@@ -79,7 +79,7 @@ public class ApiBridgeCartridgeEngineTest {
     @Test
     public void testQuarkusCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
-        File cartridgeDir = findCartridgeDir("quarkus");
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
         File outputDir = tempDir.resolve("output-quarkus").toFile();
 
         engine.generate(model, cartridgeDir, outputDir);
@@ -120,15 +120,19 @@ public class ApiBridgeCartridgeEngineTest {
     public void testAngularCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
         model.getFlags().setUiPattern("form-engine");
-        File cartridgeDir = findCartridgeDir("frontend-angular");
+        File cartridgeDir = findCartridgeDir("frontend/angular");
         File outputDir = tempDir.resolve("output-angular").toFile();
 
         engine.generate(model, cartridgeDir, outputDir);
 
-        Path tsPath = outputDir.toPath().resolve("bridge-form.component.ts");
-        Path htmlPath = outputDir.toPath().resolve("bridge-form.component.html");
+        Path tsPath = outputDir.toPath()
+                .resolve("frontend/src/app/bridge-form.component.ts");
+        Path htmlPath = outputDir.toPath()
+                .resolve("frontend/src/app/bridge-form.component.html");
+        Path pkgPath = outputDir.toPath().resolve("frontend/package.json");
         assertTrue(Files.exists(tsPath));
         assertTrue(Files.exists(htmlPath));
+        assertTrue(Files.exists(pkgPath));
         String tsContent = Files.readString(tsPath);
         assertTrue(tsContent.contains("export class BridgeFormComponent"));
     }
@@ -137,13 +141,15 @@ public class ApiBridgeCartridgeEngineTest {
     public void testReactCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
         model.getFlags().setUiPattern("web-component");
-        File cartridgeDir = findCartridgeDir("frontend-react");
+        File cartridgeDir = findCartridgeDir("frontend/react");
         File outputDir = tempDir.resolve("output-react").toFile();
 
         engine.generate(model, cartridgeDir, outputDir);
 
-        Path tsxPath = outputDir.toPath().resolve("ApiBridgeForm.tsx");
+        Path tsxPath = outputDir.toPath().resolve("frontend/src/ApiBridgeForm.tsx");
+        Path pkgPath = outputDir.toPath().resolve("frontend/package.json");
         assertTrue(Files.exists(tsxPath));
+        assertTrue(Files.exists(pkgPath));
         String tsxContent = Files.readString(tsxPath);
         assertTrue(tsxContent.contains("export const ApiBridgeForm"));
     }
@@ -152,16 +158,17 @@ public class ApiBridgeCartridgeEngineTest {
     public void testVueCartridge(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
         model.getFlags().setUiPattern("form-engine");
-        File cartridgeDir = findCartridgeDir("frontend-vue");
+        File cartridgeDir = findCartridgeDir("frontend/vue");
         File outputDir = tempDir.resolve("output-vue").toFile();
 
         engine.generate(model, cartridgeDir, outputDir);
 
-        Path vuePath = outputDir.toPath().resolve("ApiBridgeForm.vue");
+        Path vuePath = outputDir.toPath().resolve("frontend/src/ApiBridgeForm.vue");
+        Path pkgPath = outputDir.toPath().resolve("frontend/package.json");
         assertTrue(Files.exists(vuePath));
+        assertTrue(Files.exists(pkgPath));
         String vueContent = Files.readString(vuePath);
         assertTrue(vueContent.contains("<template>"));
-        assertTrue(vueContent.contains("export default defineComponent"));
     }
 
     // --- Composable cartridge tests ---
@@ -400,13 +407,13 @@ public class ApiBridgeCartridgeEngineTest {
         }
     }
 
-    private File findCartridgeDir(String cartridgeName) {
-        File dir = new File("../apibridge-cartridges/" + cartridgeName);
+    private File findCartridgeDir(String cartridgePath) {
+        File dir = new File("../apibridge-cartridges/" + cartridgePath);
         if (!dir.exists()) {
-            dir = new File("apibridge-cartridges/" + cartridgeName);
+            dir = new File("apibridge-cartridges/" + cartridgePath);
         }
         if (!dir.exists()) {
-            throw new IllegalStateException("Cartridge folder not found: " + cartridgeName);
+            throw new IllegalStateException("Cartridge folder not found: " + cartridgePath);
         }
         return dir;
     }

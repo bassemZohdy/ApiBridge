@@ -11,10 +11,10 @@ mvn clean package
 # Run generator — apply one or more cartridges to same output dir
 java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --schema=<path-to-schema.yaml> \
-  --cartridge=apibridge-cartridges/spring-boot \
-  --cartridge=apibridge-cartridges/react \
-  --cartridge=apibridge-cartridges/dockerfile \
-  --cartridge=apibridge-cartridges/docker-compose \
+  --cartridge=apibridge-cartridges/backend/spring-boot \
+  --cartridge=apibridge-cartridges/frontend/react \
+  --cartridge=apibridge-cartridges/devops/dockerfile \
+  --cartridge=apibridge-cartridges/devops/docker-compose \
   --output=<output-dir>
 
 # Optional overrides (take precedence over schema flags)
@@ -38,13 +38,12 @@ Cartridges are **independent, composable directories of `.ftl` FreeMarker templa
 - All templates in a cartridge are processed in a single pass; FreeMarker context is bound once from the parsed `BridgeSchemaModel`
 - **`--cartridge=` is repeatable**: each cartridge is applied to the same output dir in order, enabling composition (e.g. `spring-boot` + `react` + `dockerfile` + `kubernetes`)
 - **Available cartridges** under `apibridge-cartridges/`:
-  - `spring-boot` / `quarkus` — backend source under `backend/`; Spring Boot serves FE static assets from `classpath:/static/`, Quarkus from `META-INF/resources/`
-  - `angular` / `react` / `vue` — full FE project under `frontend/` (for embedding in the JAR via multi-stage Dockerfile)
-  - `dockerfile` — multi-stage `Dockerfile`; FE build stage is conditional on `feFlavor` being set
-  - `docker-compose` — `docker-compose.yml`
-  - `kubernetes` — kustomization + deployment + service + configmap under `k8s/`
-  - `openshift` — adds `route.yaml` and overrides `kustomization.yaml` (apply on top of `kubernetes`)
-  - `frontend-angular` / `frontend-react` / `frontend-vue` — standalone component-only output (no full project scaffold)
+  - `backend/spring-boot` / `backend/quarkus` — backend source under `backend/`; Spring Boot serves FE static assets from `classpath:/static/`, Quarkus from `META-INF/resources/`
+  - `frontend/angular` / `frontend/react` / `frontend/vue` — full FE project under `frontend/` (for embedding in the JAR via multi-stage Dockerfile)
+  - `devops/dockerfile` — multi-stage `Dockerfile`; FE build stage is conditional on `feFlavor` being set
+  - `devops/docker-compose` — `docker-compose.yml`
+  - `devops/kubernetes` — kustomization + deployment + service + configmap under `k8s/`
+  - `devops/openshift` — adds `route.yaml` and overrides `kustomization.yaml` (apply on top of `kubernetes`)
   - `frontend-ui-schema` — generates `UiLayoutSchema.json` for UI-driven forms
 - **Single deployable JAR**: the generated project is one unit. FE source lives in `frontend/`, BE in `backend/`, but the multi-stage Dockerfile compiles FE and copies the dist into the BE `static/` resources directory before the Maven build, producing a single runnable JAR.
 

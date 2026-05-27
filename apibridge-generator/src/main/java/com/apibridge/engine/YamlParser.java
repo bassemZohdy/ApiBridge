@@ -8,9 +8,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-/**
- * Deserializer and validator utility to parse Unified YAML Configurations into BridgeSchemaModel.
- */
 public class YamlParser {
 
     private final ObjectMapper mapper;
@@ -70,16 +67,17 @@ public class YamlParser {
         }
 
         if (model.getFlags() != null) {
-            String flavor = model.getFlags().getBackendFlavor().toLowerCase();
-            if (!flavor.equals("spring-boot") && !flavor.equals("quarkus")) {
-                throw new IllegalArgumentException("Schema validation error: Invalid flags.backendFlavor value '" + flavor + "'. Must be 'spring-boot' or 'quarkus'.");
+            if (model.getFlags().getBackendFlavor() != null) {
+                String flavor = model.getFlags().getBackendFlavor().toLowerCase();
+                if (!flavor.equals("spring-boot") && !flavor.equals("quarkus")) {
+                    throw new IllegalArgumentException("Schema validation error: Invalid flags.backendFlavor value '" + flavor + "'. Must be 'spring-boot' or 'quarkus'.");
+                }
             }
-        }
-
-        if (model.getFlags() != null) {
-            String pattern = model.getFlags().getUiPattern().toLowerCase();
-            if (!pattern.equals("web-component") && !pattern.equals("form-engine")) {
-                throw new IllegalArgumentException("Schema validation error: Invalid flags.uiPattern value '" + pattern + "'. Must be 'web-component' or 'form-engine'.");
+            if (model.getFlags().getUiPattern() != null) {
+                String pattern = model.getFlags().getUiPattern().toLowerCase();
+                if (!pattern.equals("web-component") && !pattern.equals("form-engine")) {
+                    throw new IllegalArgumentException("Schema validation error: Invalid flags.uiPattern value '" + pattern + "'. Must be 'web-component' or 'form-engine'.");
+                }
             }
         }
 

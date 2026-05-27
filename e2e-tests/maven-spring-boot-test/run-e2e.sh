@@ -1,41 +1,41 @@
 #!/bin/bash
 set -e
 
-# Change directory to the script's physical location
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "=================================================="
-echo "🚀 Running E2E Integration Test: Maven Pipeline"
+echo "Running E2E: Spring Boot Maven Compile"
 echo "=================================================="
 
-# 1. Clean previous generated artifacts
-echo "🧹 Cleaning previous artifacts..."
-rm -rf generated src/main/java/CustomerOnboardingBridgeController.java
+# 1. Clean
+rm -rf generated
 
-# 2. Build the generator engine fat jar (skip when already built by CI)
+# 2. Build generator (skip when CI already built it)
 if [ "${SKIP_GENERATOR_BUILD:-false}" = "true" ]; then
-  echo "⏩ Skipping generator build (SKIP_GENERATOR_BUILD=true)"
+  echo "[skip] generator build"
 else
-  echo "📦 Building ApiBridge Generator Engine..."
+  echo "Building ApiBridge Generator..."
   (cd ../.. && mvn package -q -DskipTests)
 fi
 
-# 3. Execute the generator using Spring Boot cartridge
-echo "⚡ Executing ApiBridge Generator CLI with Spring Boot cartridge..."
+# 3. Generate with spring-boot cartridge
+echo "Generating Spring Boot project..."
 java -jar ../../apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --schema=../../sample-schema.yaml \
-  --cartridge=../../apibridge-cartridges/backend-spring-boot \
+  --cartridge=../../apibridge-cartridges/backend/spring-boot \
   --output=generated
 
-# 4. Integrate generated Controller, renaming it to match the class name
-echo "📥 Merging generated Controller into Maven src root..."
-mkdir -p src/main/java
-cp generated/Controller.java src/main/java/CustomerOnboardingBridgeController.java
+# 4. Verify expected files exist
+CONTROLLER="generated/backend/src/main/java/com/apibridge/generated/BridgeController.java"
+POM="generated/backend/pom.xml"
+[ -f "$CONTROLLER" ] || { echo "MISSING: $CONTROLLER"; exit 1; }
+[ -f "$POM" ]        || { echo "MISSING: $POM"; exit 1; }
+grep -q "@RestController" "$CONTROLLER" || { echo "MISSING @RestController in $CONTROLLER"; exit 1; }
 
-# 5. Compile Maven test project to verify compiler/native readiness
-echo "🛠️ Compiling Maven integration project..."
-mvn clean compile
+# 5. Compile the generated backend with its own pom.xml
+echo "Compiling generated Spring Boot project..."
+(cd generated/backend && mvn compile -q)
 
 echo "=================================================="
-echo "✓ E2E Integration Test: Maven Pipeline SUCCESSFUL!"
+echo "E2E Spring Boot PASSED"
 echo "=================================================="

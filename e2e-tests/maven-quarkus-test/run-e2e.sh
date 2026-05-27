@@ -1,41 +1,41 @@
 #!/bin/bash
 set -e
 
-# Change directory to the script's physical location
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "=================================================="
-echo "🚀 Running E2E Integration Test: Quarkus Pipeline"
+echo "Running E2E: Quarkus Maven Compile"
 echo "=================================================="
 
-# 1. Clean previous generated artifacts
-echo "🧹 Cleaning previous artifacts..."
-rm -rf generated src/main/java/com/apibridge/generated src/main/java/CustomerOnboardingBridgeResource.java
+# 1. Clean
+rm -rf generated
 
-# 2. Build the generator engine fat jar (skip when already built by CI)
+# 2. Build generator (skip when CI already built it)
 if [ "${SKIP_GENERATOR_BUILD:-false}" = "true" ]; then
-  echo "⏩ Skipping generator build (SKIP_GENERATOR_BUILD=true)"
+  echo "[skip] generator build"
 else
-  echo "📦 Building ApiBridge Generator Engine..."
+  echo "Building ApiBridge Generator..."
   (cd ../.. && mvn package -q -DskipTests)
 fi
 
-# 3. Execute the generator using backend-quarkus cartridge
-echo "⚡ Executing ApiBridge Generator CLI with Quarkus cartridge..."
+# 3. Generate with quarkus cartridge
+echo "Generating Quarkus project..."
 java -jar ../../apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --schema=../../sample-schema.yaml \
-  --cartridge=../../apibridge-cartridges/backend-quarkus \
+  --cartridge=../../apibridge-cartridges/backend/quarkus \
   --output=generated
 
-# 4. Integrate generated JAX-RS Resource, renaming it to match the class name
-echo "📥 Merging generated JAX-RS Resource into Maven src root..."
-mkdir -p src/main/java
-cp generated/Resource.java src/main/java/CustomerOnboardingBridgeResource.java
+# 4. Verify expected files exist
+RESOURCE="generated/backend/src/main/java/com/apibridge/generated/BridgeResource.java"
+POM="generated/backend/pom.xml"
+[ -f "$RESOURCE" ] || { echo "MISSING: $RESOURCE"; exit 1; }
+[ -f "$POM" ]      || { echo "MISSING: $POM"; exit 1; }
+grep -q "@Path" "$RESOURCE" || { echo "MISSING @Path in $RESOURCE"; exit 1; }
 
-# 5. Compile Maven test project to verify JAX-RS correctness
-echo "🛠️ Compiling Quarkus integration project..."
-mvn clean compile
+# 5. Compile the generated backend with its own pom.xml
+echo "Compiling generated Quarkus project..."
+(cd generated/backend && mvn compile -q)
 
 echo "=================================================="
-echo "✓ E2E Integration Test: Quarkus Pipeline SUCCESSFUL!"
+echo "E2E Quarkus PASSED"
 echo "=================================================="
