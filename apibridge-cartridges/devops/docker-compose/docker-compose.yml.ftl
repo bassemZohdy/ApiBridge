@@ -70,6 +70,19 @@ services:
 <#list endpoints as endpoint>
       BACKEND_URL_${pathToEnvKey(endpoint.path)}: "${endpoint.backendUrl}"
 </#list>
+<#if (flags.enableCircuitBreaker)!false>
+      # ── Circuit breaker + retry ────────────────────────────────────────────────
+      CB_FAILURE_RATE_THRESHOLD: "50"
+      CB_WAIT_DURATION_SECONDS: "30"
+      CB_SLIDING_WINDOW_SIZE: "10"
+      CB_RETRY_MAX_ATTEMPTS: "3"
+      CB_RETRY_WAIT_MS: "500"
+</#if>
+<#if (flags.enableResponseCache)!false>
+      # ── Response cache ─────────────────────────────────────────────────────────
+      CACHE_TTL_SECONDS: "60"
+      CACHE_MAX_SIZE: "1000"
+</#if>
 <#if (flags.enableAuditLog)!false>
       # ── Audit log ──────────────────────────────────────────────────────────
 <#if backendFlavor == "spring-boot">

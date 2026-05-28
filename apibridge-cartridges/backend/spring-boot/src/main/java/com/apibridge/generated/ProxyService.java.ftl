@@ -16,6 +16,22 @@ import com.apibridge.generated.audit.ProxySuccessEvent;
 import com.apibridge.generated.audit.ProxyFailEvent;
 import java.util.UUID;
 </#if>
+<#if (flags.enableCircuitBreaker)!false>
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.RetryRegistry;
+import java.time.Duration;
+import java.util.function.Supplier;
+</#if>
+<#if (flags.enableResponseCache)!false>
+import com.github.ben-manes.caffeine.cache.Cache;
+import com.github.ben-manes.caffeine.cache.Caffeine;
+import java.util.concurrent.TimeUnit;
+</#if>
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
@@ -38,14 +54,65 @@ public class ProxyService {
     private final RestTemplate restTemplate;
 <#if (flags.enableAuditLog)!false>
     private final ApplicationEventPublisher events;
+</#if>
+<#if (flags.enableCircuitBreaker)!false>
+    private final CircuitBreaker circuitBreaker;
+    private final Retry retry;
+</#if>
+<#if (flags.enableResponseCache)!false>
+    private final Cache<String, String> responseCache;
+</#if>
 
+<#if (flags.enableAuditLog)!false>
     public ProxyService(ApplicationEventPublisher events) {
         this.restTemplate = new RestTemplate();
         this.events = events;
+<#if (flags.enableCircuitBreaker)!false>
+        this.circuitBreaker = buildCircuitBreaker();
+        this.retry = buildRetry();
+</#if>
+<#if (flags.enableResponseCache)!false>
+        this.responseCache = buildResponseCache();
+</#if>
     }
 <#else>
     public ProxyService() {
         this.restTemplate = new RestTemplate();
+<#if (flags.enableCircuitBreaker)!false>
+        this.circuitBreaker = buildCircuitBreaker();
+        this.retry = buildRetry();
+</#if>
+<#if (flags.enableResponseCache)!false>
+        this.responseCache = buildResponseCache();
+</#if>
+    }
+</#if>
+<#if (flags.enableCircuitBreaker)!false>
+
+    private static CircuitBreaker buildCircuitBreaker() {
+        CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+                .failureRateThreshold(Float.parseFloat(System.getenv().getOrDefault("CB_FAILURE_RATE_THRESHOLD", "50")))
+                .waitDurationInOpenState(Duration.ofSeconds(Long.parseLong(System.getenv().getOrDefault("CB_WAIT_DURATION_SECONDS", "30"))))
+                .slidingWindowSize(Integer.parseInt(System.getenv().getOrDefault("CB_SLIDING_WINDOW_SIZE", "10")))
+                .build();
+        return CircuitBreakerRegistry.of(config).circuitBreaker("proxy");
+    }
+
+    private static Retry buildRetry() {
+        RetryConfig config = RetryConfig.custom()
+                .maxAttempts(Integer.parseInt(System.getenv().getOrDefault("CB_RETRY_MAX_ATTEMPTS", "3")))
+                .waitDuration(Duration.ofMillis(Long.parseLong(System.getenv().getOrDefault("CB_RETRY_WAIT_MS", "500"))))
+                .build();
+        return RetryRegistry.of(config).retry("proxy");
+    }
+</#if>
+<#if (flags.enableResponseCache)!false>
+
+    private static Cache<String, String> buildResponseCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(Long.parseLong(System.getenv().getOrDefault("CACHE_MAX_SIZE", "1000")))
+                .expireAfterWrite(Long.parseLong(System.getenv().getOrDefault("CACHE_TTL_SECONDS", "60")), TimeUnit.SECONDS)
+                .build();
     }
 </#if>
 
@@ -79,6 +146,17 @@ public class ProxyService {
 
         HttpEntity<String> entity = new HttpEntity<>(requestBody, outboundHeaders);
         HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase());
+<#if (flags.enableResponseCache)!false>
+
+        if ("GET".equalsIgnoreCase(method)) {
+            String cached = responseCache.getIfPresent(urlWithQuery);
+            if (cached != null) {
+                return ResponseEntity.ok().body(cached);
+            }
+        } else {
+            responseCache.invalidateAll();
+        }
+</#if>
 <#if (flags.enableAuditLog)!false>
 
         String correlationId = UUID.randomUUID().toString();
@@ -87,8 +165,15 @@ public class ProxyService {
 </#if>
 
         try {
+<#if (flags.enableCircuitBreaker)!false>
+            Supplier<ResponseEntity<String>> call = CircuitBreaker.decorateSupplier(circuitBreaker,
+                    Retry.decorateSupplier(retry,
+                            () -> restTemplate.exchange(urlWithQuery, httpMethod, entity, String.class)));
+            ResponseEntity<String> upstream = call.get();
+<#else>
             ResponseEntity<String> upstream = restTemplate.exchange(
                     urlWithQuery, httpMethod, entity, String.class);
+</#if>
 
             HttpHeaders responseHeaders = new HttpHeaders();
             upstream.getHeaders().forEach((name, values) -> {
@@ -96,6 +181,11 @@ public class ProxyService {
                     values.forEach(v -> responseHeaders.add(name, v));
                 }
             });
+<#if (flags.enableResponseCache)!false>
+            if ("GET".equalsIgnoreCase(method) && upstream.getBody() != null) {
+                responseCache.put(urlWithQuery, upstream.getBody());
+            }
+</#if>
 <#if (flags.enableAuditLog)!false>
 
             events.publishEvent(new ProxySuccessEvent(
@@ -109,6 +199,12 @@ public class ProxyService {
                     .headers(responseHeaders)
                     .body(upstream.getBody());
 
+<#if (flags.enableCircuitBreaker)!false>
+        } catch (CallNotPermittedException e) {
+            return ResponseEntity
+                    .status(503)
+                    .body("{\"error\":\"Service Unavailable\",\"circuit\":\"open\"}");
+</#if>
         } catch (RestClientResponseException ex) {
 <#if (flags.enableAuditLog)!false>
             events.publishEvent(new ProxyFailEvent(

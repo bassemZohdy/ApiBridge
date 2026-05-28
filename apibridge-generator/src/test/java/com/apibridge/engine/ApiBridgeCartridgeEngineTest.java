@@ -1038,6 +1038,179 @@ public class ApiBridgeCartridgeEngineTest {
         }
     }
 
+    // --- Circuit breaker cartridge tests ---
+
+    @Test
+    public void testSpringBootPomContainsCircuitBreakerDep(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableCircuitBreaker(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("resilience4j-circuitbreaker"), "Spring Boot pom must include resilience4j-circuitbreaker");
+        assertTrue(pom.contains("resilience4j-retry"), "Spring Boot pom must include resilience4j-retry");
+    }
+
+    @Test
+    public void testSpringBootPomNoCircuitBreakerDepWhenDisabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableCircuitBreaker(false);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertFalse(pom.contains("resilience4j-circuitbreaker"), "No CB dep when flag off");
+    }
+
+    @Test
+    public void testSpringBootProxyServiceContainsCircuitBreakerCode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableCircuitBreaker(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("CircuitBreaker"), "ProxyService must reference CircuitBreaker");
+        assertTrue(content.contains("Retry"), "ProxyService must reference Retry");
+        assertTrue(content.contains("CallNotPermittedException"), "ProxyService must catch CallNotPermittedException");
+        assertTrue(content.contains("Service Unavailable"), "ProxyService must return 503 fallback");
+    }
+
+    @Test
+    public void testQuarkusPomContainsCircuitBreakerDep(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableCircuitBreaker(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("resilience4j-circuitbreaker"), "Quarkus pom must include resilience4j-circuitbreaker");
+        assertTrue(pom.contains("resilience4j-retry"), "Quarkus pom must include resilience4j-retry");
+    }
+
+    @Test
+    public void testQuarkusProxyServiceContainsCircuitBreakerCode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableCircuitBreaker(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("CircuitBreaker"), "Quarkus ProxyService must reference CircuitBreaker");
+        assertTrue(content.contains("CallNotPermittedException"), "Quarkus ProxyService must catch CallNotPermittedException");
+    }
+
+    @Test
+    public void testK8sConfigmapCircuitBreakerEnvVars(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableCircuitBreaker(true);
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("CB_FAILURE_RATE_THRESHOLD"), "ConfigMap must have CB threshold env var");
+        assertTrue(content.contains("CB_RETRY_MAX_ATTEMPTS"), "ConfigMap must have CB retry env var");
+    }
+
+    // --- Response cache cartridge tests ---
+
+    @Test
+    public void testSpringBootPomContainsCacheDep(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("caffeine"), "Spring Boot pom must include caffeine when cache enabled");
+    }
+
+    @Test
+    public void testSpringBootPomNoCacheDepWhenDisabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(false);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertFalse(pom.contains("caffeine"), "No caffeine dep when cache disabled");
+    }
+
+    @Test
+    public void testSpringBootProxyServiceContainsCacheCode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("responseCache"), "ProxyService must have responseCache field");
+        assertTrue(content.contains("getIfPresent"), "ProxyService must check cache on GET");
+        assertTrue(content.contains("invalidateAll"), "ProxyService must evict cache on non-GET");
+    }
+
+    @Test
+    public void testQuarkusPomContainsCacheDep(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("caffeine"), "Quarkus pom must include caffeine when cache enabled");
+    }
+
+    @Test
+    public void testQuarkusProxyServiceContainsCacheCode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("responseCache"), "Quarkus ProxyService must have responseCache field");
+        assertTrue(content.contains("getIfPresent"), "Quarkus ProxyService must check cache on GET");
+    }
+
+    @Test
+    public void testDockerComposeResponseCacheEnvVars(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(content.contains("CACHE_TTL_SECONDS"), "docker-compose must have CACHE_TTL_SECONDS");
+        assertTrue(content.contains("CACHE_MAX_SIZE"), "docker-compose must have CACHE_MAX_SIZE");
+    }
+
     private File findCartridgeDir(String cartridgePath) {
         File dir = new File("../apibridge-cartridges/" + cartridgePath);
         if (!dir.exists()) {

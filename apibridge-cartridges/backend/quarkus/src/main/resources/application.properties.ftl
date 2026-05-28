@@ -65,6 +65,17 @@ quarkus.otel.service.name=${id}
 #   QUARKUS_MONGODB_DATABASE=${id}-audit         MongoDB database name
 #   AUDIT_LOG_TTL_DAYS=30            Days to retain audit records (MongoDB TTL index)
 </#if>
+<#if (flags.enableCircuitBreaker)!false>
+#   CB_FAILURE_RATE_THRESHOLD=50     % failures (of CB_SLIDING_WINDOW_SIZE calls) to open circuit
+#   CB_WAIT_DURATION_SECONDS=30      Seconds circuit stays OPEN before moving to HALF-OPEN
+#   CB_SLIDING_WINDOW_SIZE=10        Number of calls sampled for failure rate calculation
+#   CB_RETRY_MAX_ATTEMPTS=3          Total attempts per call (original + retries)
+#   CB_RETRY_WAIT_MS=500             Wait between retry attempts in milliseconds
+</#if>
+<#if (flags.enableResponseCache)!false>
+#   CACHE_TTL_SECONDS=60             TTL for cached GET responses
+#   CACHE_MAX_SIZE=1000              Maximum cached entries (LRU eviction)
+</#if>
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                          Expected X-API-Key header; empty = validation disabled
 </#if>

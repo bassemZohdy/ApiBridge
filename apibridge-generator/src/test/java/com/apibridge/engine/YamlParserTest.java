@@ -1125,6 +1125,104 @@ public class YamlParserTest {
         assertTrue(fields.isEmpty());
     }
 
+    // --- enableCircuitBreaker flag ---
+
+    @Test
+    public void testEnableCircuitBreakerDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableCircuitBreaker(), "enableCircuitBreaker must default to false");
+    }
+
+    @Test
+    public void testEnableCircuitBreakerExplicitTrue(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableCircuitBreaker: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableCircuitBreaker());
+    }
+
+    @Test
+    public void testEnableCircuitBreakerExplicitFalse(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableCircuitBreaker: false
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableCircuitBreaker());
+    }
+
+    // --- enableResponseCache flag ---
+
+    @Test
+    public void testEnableResponseCacheDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableResponseCache(), "enableResponseCache must default to false");
+    }
+
+    @Test
+    public void testEnableResponseCacheExplicitTrue(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableResponseCache: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableResponseCache());
+    }
+
+    @Test
+    public void testEnableResponseCacheExplicitFalse(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableResponseCache: false
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableResponseCache());
+    }
+
     // --- Helper ---
 
     private File writeYaml(Path dir, String name, String content) throws IOException {

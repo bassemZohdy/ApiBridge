@@ -61,6 +61,17 @@ public class BridgeSchemaModel {
         public boolean isEnableAuditLog() { return enableAuditLog; }
         public void setEnableAuditLog(boolean enableAuditLog) { this.enableAuditLog = enableAuditLog; }
 
+        /** Whether to generate Resilience4j circuit breaker + retry wrapping all proxy calls. */
+        private boolean enableCircuitBreaker;
+        /** Whether to generate an in-process Caffeine GET response cache in the proxy. */
+        private boolean enableResponseCache;
+
+        public boolean isEnableCircuitBreaker() { return enableCircuitBreaker; }
+        public void setEnableCircuitBreaker(boolean enableCircuitBreaker) { this.enableCircuitBreaker = enableCircuitBreaker; }
+
+        public boolean isEnableResponseCache() { return enableResponseCache; }
+        public void setEnableResponseCache(boolean enableResponseCache) { this.enableResponseCache = enableResponseCache; }
+
         public String getSecurityLevel() { return securityLevel; }
         public void setSecurityLevel(String securityLevel) { this.securityLevel = securityLevel; }
 
@@ -79,6 +90,7 @@ public class BridgeSchemaModel {
         @Override
         public String toString() {
             return "Flags{enableTelemetry=" + enableTelemetry + ", enableAuditLog=" + enableAuditLog
+                    + ", enableCircuitBreaker=" + enableCircuitBreaker + ", enableResponseCache=" + enableResponseCache
                     + ", securityLevel='" + securityLevel + "', backendFlavor='" + backendFlavor
                     + "', feFlavor='" + feFlavor + "', deployTarget='" + deployTarget
                     + "', pagination=" + pagination + '}';

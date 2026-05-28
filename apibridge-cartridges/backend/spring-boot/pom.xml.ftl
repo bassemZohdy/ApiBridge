@@ -51,6 +51,24 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 </#if>
+<#if (flags.enableCircuitBreaker)!false>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-retry</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+</#if>
+<#if (flags.enableResponseCache)!false>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+</#if>
     </dependencies>
 
     <build>
