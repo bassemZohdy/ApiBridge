@@ -640,6 +640,193 @@ public class ApiBridgeCartridgeEngineTest {
         assertFalse(content.contains("AUTH_SERVER_URL"), "No bearer-token env in apiKey build");
     }
 
+    // --- k8s ConfigMap tests ---
+
+    @Test
+    public void testK8sConfigmapSpringBoot(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("SERVER_PORT: \"8080\""), "Spring Boot port var");
+        assertFalse(content.contains("QUARKUS_HTTP_PORT"), "No Quarkus var in Spring Boot build");
+    }
+
+    @Test
+    public void testK8sConfigmapQuarkus(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setBackendFlavor("quarkus");
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("QUARKUS_HTTP_PORT: \"8080\""), "Quarkus port var");
+        assertFalse(content.contains("SERVER_PORT"), "No Spring Boot var in Quarkus build");
+    }
+
+    @Test
+    public void testK8sConfigmapTelemetrySpringBoot(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("MANAGEMENT_TRACING_ENABLED"), "Spring Boot tracing var");
+        assertFalse(content.contains("QUARKUS_OTEL_ENABLED"), "No Quarkus OTel in Spring Boot build");
+    }
+
+    @Test
+    public void testK8sConfigmapTelemetryQuarkus(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setBackendFlavor("quarkus");
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("QUARKUS_OTEL_ENABLED"), "Quarkus OTel var");
+        assertFalse(content.contains("MANAGEMENT_TRACING_ENABLED"), "No Spring Boot tracing in Quarkus build");
+    }
+
+    @Test
+    public void testK8sConfigmapAuditLogSpringBoot(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableAuditLog(true);
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("SPRING_DATA_REDIS_URL"), "Spring Redis URI");
+        assertTrue(content.contains("SPRING_DATA_MONGODB_URI"), "Spring MongoDB URI");
+        assertTrue(content.contains("AUDIT_LOG_TTL_DAYS"), "TTL env var");
+        assertFalse(content.contains("QUARKUS_REDIS_HOSTS"), "No Quarkus Redis in Spring Boot build");
+    }
+
+    @Test
+    public void testK8sConfigmapAuditLogQuarkus(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setBackendFlavor("quarkus");
+        model.getFlags().setEnableAuditLog(true);
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("QUARKUS_REDIS_HOSTS"), "Quarkus Redis URI");
+        assertTrue(content.contains("QUARKUS_MONGODB_CONNECTION_STRING"), "Quarkus MongoDB URI");
+        assertFalse(content.contains("SPRING_DATA_REDIS_URL"), "No Spring Redis in Quarkus build");
+    }
+
+    // --- docker-compose additional coverage ---
+
+    @Test
+    public void testDockerComposeWithoutAuditLogHasNoInfraServices(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertFalse(content.contains("image: redis:"), "No Redis service when audit log off");
+        assertFalse(content.contains("image: mongo:"), "No MongoDB service when audit log off");
+        assertFalse(content.contains("depends_on"), "No depends_on when audit log off");
+    }
+
+    @Test
+    public void testDockerComposeAuditLogQuarkusUris(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setBackendFlavor("quarkus");
+        model.getFlags().setEnableAuditLog(true);
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(content.contains("QUARKUS_REDIS_HOSTS"), "Quarkus Redis URI in docker-compose");
+        assertTrue(content.contains("QUARKUS_MONGODB_CONNECTION_STRING"), "Quarkus MongoDB URI in docker-compose");
+        assertFalse(content.contains("SPRING_DATA_REDIS_URL"), "No Spring Redis in Quarkus build");
+    }
+
+    // --- Dockerfile additional coverage ---
+
+    @Test
+    public void testDockerfileQuarkusWithFrontendCopiesMetaInfResources(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setBackendFlavor("quarkus");
+        model.getFlags().setFeFlavor("react");
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("devops/dockerfile");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("Dockerfile"));
+        assertTrue(content.contains("META-INF/resources"), "Quarkus static resource path");
+        assertFalse(content.contains("resources/static"), "No Spring Boot static path in Quarkus build");
+    }
+
+    @Test
+    public void testDockerfileSpringBootWithFrontendCopiesStaticResources(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setFeFlavor("react");
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("devops/dockerfile");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("Dockerfile"));
+        assertTrue(content.contains("resources/static"), "Spring Boot static resource path");
+        assertFalse(content.contains("META-INF/resources"), "No Quarkus path in Spring Boot build");
+    }
+
+    // --- BridgeController security branches ---
+
+    @Test
+    public void testSpringBootBridgeControllerBearerToken(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java"));
+        assertTrue(content.contains("AUTH_SERVER_URL"), "Bearer-token auth server URL");
+        assertFalse(content.contains("X-API-Key"), "No apiKey header in bearer-token build");
+    }
+
+    @Test
+    public void testSpringBootBridgeControllerApiKey(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setSecurityLevel("apiKey");
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java"));
+        assertTrue(content.contains("X-API-Key"), "apiKey header validation");
+        assertFalse(content.contains("AUTH_SERVER_URL"), "No bearer-token URL in apiKey build");
+    }
+
+    @Test
+    public void testSpringBootBridgeControllerNoSecurity(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setSecurityLevel(null);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java"));
+        assertFalse(content.contains("AUTH_SERVER_URL"), "No bearer-token code without security");
+        assertFalse(content.contains("X-API-Key"), "No apiKey code without security");
+    }
+
     // --- Helpers ---
 
     private BridgeSchemaModel createTestModel() {

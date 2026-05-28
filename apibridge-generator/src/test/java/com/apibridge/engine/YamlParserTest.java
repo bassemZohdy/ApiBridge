@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -967,6 +968,161 @@ public class YamlParserTest {
                 """);
         BridgeSchemaModel model = parser.parse(file);
         assertFalse(model.getFlags().isEnableAuditLog());
+    }
+
+    // --- HTTP method coverage ---
+
+    @Test
+    public void testPatchMethodIsValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items/{id}"
+                    method: "PATCH"
+                    backendUrl: "https://example.com/items/1"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("PATCH", model.getEndpoints().get(0).getMethod());
+    }
+
+    @Test
+    public void testInvalidMethodErrorMessageContainsMethodName(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "TRACE"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("TRACE"));
+    }
+
+    // --- Duplicate endpoint detection ---
+
+    @Test
+    public void testDuplicateEndpointLowercaseMethodDetected(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                  - path: "/items"
+                    method: "get"
+                    backendUrl: "https://example.com/items"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("Duplicate"));
+    }
+
+    // --- Column validation ---
+
+    @Test
+    public void testBlankColumnFieldThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      columns:
+                        - field: "   "
+                          label: "Name"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("field"));
+    }
+
+    // --- Pagination boundary conditions ---
+
+    @Test
+    public void testPaginationDefaultPageSizeZeroThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  pagination:
+                    defaultPageSize: 0
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("defaultPageSize"));
+    }
+
+    @Test
+    public void testPaginationDefaultPageSizeOneIsValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  pagination:
+                    defaultPageSize: 1
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals(1, model.getFlags().getPagination().getDefaultPageSize());
+    }
+
+    // --- Telemetry loop coverage ---
+
+    @Test
+    public void testTelemetryEnabledSecondEndpointMissingNameThrows(@TempDir Path tempDir) throws IOException {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  enableTelemetry: true
+                endpoints:
+                  - path: "/a"
+                    method: "GET"
+                    backendUrl: "https://example.com/a"
+                    telemetryName: "span_a"
+                  - path: "/b"
+                    method: "POST"
+                    backendUrl: "https://example.com/b"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("telemetryName"));
+        assertTrue(ex.getMessage().contains("endpoints[1]"));
+    }
+
+    // --- Empty fields array ---
+
+    @Test
+    public void testFormWithEmptyFieldsArrayIsValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/submit"
+                    method: "POST"
+                    backendUrl: "https://example.com/submit"
+                    uiLayout:
+                      component: "Form"
+                      fields: []
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        List<BridgeSchemaModel.Field> fields = model.getEndpoints().get(0).getUiLayout().getFields();
+        assertNotNull(fields);
+        assertTrue(fields.isEmpty());
     }
 
     // --- Helper ---

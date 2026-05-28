@@ -21,13 +21,13 @@ All error responses use `Content-Type: application/json`.
 ## Test status
 
 ```
-mvn test → 98/98 PASS
+mvn test → 119/119 PASS
 ```
 
 | Test class | Count | Covers |
 |---|---|---|
-| `YamlParserTest` | 55 | Schema validation, HTTP method whitelist, duplicate endpoints, case-insensitive component, pagination, columns, field.label, enableAuditLog |
-| `ApiBridgeCartridgeEngineTest` | 41 | All cartridge generations, List/View/Form model, API method names, DevOps, audit log on/off for Spring Boot + Quarkus + docker-compose |
+| `YamlParserTest` | 63 | All schema validation paths; PATCH method; case-normalized duplicate detection; blank column field; pagination boundaries (0 throws, 1 valid); telemetry loop past index 0; empty fields array; enableAuditLog |
+| `ApiBridgeCartridgeEngineTest` | 54 | All cartridge generations; List/View/Form; API method names; DevOps (Dockerfile Spring/Quarkus+FE static paths); k8s ConfigMap Spring vs Quarkus env vars, telemetry, and audit log connection strings; docker-compose audit on/off + Quarkus URIs; BridgeController bearer-token, apiKey, no-security branches |
 | `ApiBridgeRunnerTest` | 2 | CLI argument handling |
 
 E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
