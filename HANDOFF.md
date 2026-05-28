@@ -18,29 +18,16 @@ All error responses use `Content-Type: application/json`.
 
 ---
 
-## Planned features (Phase 5)
-
-Two new flags designed but not yet implemented — see `TODO.md` for full task breakdown.
-
-| Flag | Mechanism | Infrastructure |
-|---|---|---|
-| `flags.enableCircuitBreaker: true` | Resilience4j (Spring Boot) / SmallRye Fault Tolerance (Quarkus) — circuit breaker + retry on all proxy calls; 503 fallback when open | None |
-| `flags.enableResponseCache: true` | Caffeine (Spring Boot) / Quarkus Cache — in-process GET response cache; non-GET mutations evict | None |
-
-Both flags use ENV VAR overrides only (no schema-level config). See `TODO.md` for ENV VAR tables and exact cartridge changes required.
-
----
-
 ## Test status
 
 ```
-mvn test → 119/119 PASS
+mvn test → 137/137 PASS
 ```
 
 | Test class | Count | Covers |
 |---|---|---|
-| `YamlParserTest` | 63 | All schema validation paths; PATCH method; case-normalized duplicate detection; blank column field; pagination boundaries (0 throws, 1 valid); telemetry loop past index 0; empty fields array; enableAuditLog |
-| `ApiBridgeCartridgeEngineTest` | 54 | All cartridge generations; List/View/Form; API method names; DevOps (Dockerfile Spring/Quarkus+FE static paths); k8s ConfigMap Spring vs Quarkus env vars, telemetry, and audit log connection strings; docker-compose audit on/off + Quarkus URIs; BridgeController bearer-token, apiKey, no-security branches |
+| `YamlParserTest` | 69 | All schema validation paths; PATCH method; case-normalized duplicate detection; blank column field; pagination boundaries (0 throws, 1 valid); telemetry loop past index 0; empty fields array; enableAuditLog; enableCircuitBreaker; enableResponseCache |
+| `ApiBridgeCartridgeEngineTest` | 66 | All cartridge generations; List/View/Form; API method names; DevOps (Dockerfile Spring/Quarkus+FE static paths); k8s ConfigMap Spring vs Quarkus env vars, telemetry, audit log, circuit breaker, response cache; docker-compose audit on/off + Quarkus URIs + cache env vars; BridgeController bearer-token, apiKey, no-security branches; Spring/Quarkus pom CB+cache deps |
 | `ApiBridgeRunnerTest` | 2 | CLI argument handling |
 
 E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
@@ -70,6 +57,6 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 19. **Audit log is fire-and-forget** — `ProxySendEvent`, `ProxySuccessEvent`, `ProxyFailEvent` are published via `@Async`/`fireAsync`. If Redis or MongoDB is down the proxy call still completes; unacknowledged stream entries are redelivered on restart.
 20. **Audit Redis Stream** — key `apibridge:audit`, consumer group `apibridge-audit-group`. Three event types: `SEND` (insert PENDING record), `SUCCESS` (update to SUCCESS + response data), `FAIL` (update to FAILED + error). Correlation ID is a UUID generated per request.
 21. **Audit MongoDB TTL** — `expiresAt` field indexed with `expireAfterSeconds=0`; value set to `now + AUDIT_LOG_TTL_DAYS * 86400s`. MongoDB handles log rotation automatically.
-22. **Circuit breaker wraps retry** — retry fires first; only after all attempts are exhausted does the failure count against the circuit breaker. Fallback returns `{"error":"Service Unavailable","circuit":"open"}` with 503.
-23. **Response cache is GET-only** — `@Cacheable`/`@CacheResult` applied only to GET proxy methods; PUT/DELETE/PATCH mutations annotated with `@CacheEvict`/`@CacheInvalidateAll` to keep cache consistent. Non-GET calls always reach upstream.
-24. **Cache is in-process** — Caffeine (Spring Boot) / Quarkus Cache; no Redis required. Each replica warms independently. Cache key = path + sorted query params.
+22. **Circuit breaker wraps retry** — retry fires first (up to `CB_RETRY_MAX_ATTEMPTS`); only after all attempts are exhausted does the failure count against the circuit breaker. `CallNotPermittedException` when open returns `{"error":"Service Unavailable","circuit":"open"}` with 503.
+23. **Response cache is GET-only** — `Cache.getIfPresent(urlWithQuery)` before upstream call for GET; `invalidateAll()` on any non-GET request. Cache key = full upstream URL + query string.
+24. **Cache is in-process (Caffeine)** — no Redis required. Each replica warms independently. `CACHE_TTL_SECONDS` (default 60) + `CACHE_MAX_SIZE` (default 1000) ENV VARs control TTL and LRU eviction.

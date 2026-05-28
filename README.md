@@ -166,6 +166,8 @@ flags:
   securityLevel: "bearer-token"  # bearer-token | apiKey
   enableTelemetry: true
   enableAuditLog: true           # Redis Streams + MongoDB proxy call audit trail
+  enableCircuitBreaker: true     # Resilience4j CB + retry; configurable via CB_* ENV VARs
+  enableResponseCache: true      # Caffeine in-process GET cache; CACHE_TTL_SECONDS / CACHE_MAX_SIZE
   pagination:
     pageParam: "page"            # overrideable via PAGINATION_PAGE_PARAM ENV VAR
     sizeParam: "size"
@@ -329,6 +331,8 @@ Checkstyle rules: 4-space indent, no star imports, no unused imports, braces req
 | `deployTarget` | String | `docker-compose`, `kubernetes`, `openshift`, or `""` |
 | `flags.pagination` | Pagination | Pagination param names; never null when flags is non-null |
 | `flags.enableAuditLog` | boolean | `true` generates Redis Streams + MongoDB audit infrastructure |
+| `flags.enableCircuitBreaker` | boolean | `true` wraps all proxy calls with Resilience4j circuit breaker + retry; configurable via `CB_*` ENV VARs |
+| `flags.enableResponseCache` | boolean | `true` adds Caffeine in-process GET response cache; configurable via `CACHE_TTL_SECONDS` / `CACHE_MAX_SIZE` ENV VARs |
 | `endpoint.uiLayout.component` | String | `Form`, `List`, or `View` |
 | `endpoint.uiLayout.columns` | List\<Column\> | Schema-defined list columns (optional; runtime fallback if absent) |
 | `field.label` | String | Optional display label for form/view fields |

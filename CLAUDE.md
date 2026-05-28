@@ -60,6 +60,8 @@ Valid enum values:
 - `flags.securityLevel`: `bearer-token` | `apiKey`
 - `flags.deployTarget`: `docker-compose` | `kubernetes` | `openshift` (absent = no deployment config generated)
 - `flags.enableAuditLog`: `true` | `false` (default `false`) — generates Redis Streams + MongoDB audit log for all proxy calls
+- `flags.enableCircuitBreaker`: `true` | `false` (default `false`) — wraps all proxy calls with Resilience4j CB + retry; configurable via `CB_*` ENV VARs
+- `flags.enableResponseCache`: `true` | `false` (default `false`) — Caffeine in-process GET cache; configurable via `CACHE_TTL_SECONDS` / `CACHE_MAX_SIZE` ENV VARs
 - `uiLayout.component`: `Form` | `List` | `View` (case-insensitive)
 
 `flags.pagination` sub-fields: `pageParam` (default `page`), `sizeParam` (default `size`), `defaultPageSize` (default `20`), `sortParam` (default `sort`), `directionParam` (default `dir`). All overrideable at runtime via `PAGINATION_*` ENV VARs via `/api/bridge-config`.

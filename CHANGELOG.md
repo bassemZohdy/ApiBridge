@@ -6,6 +6,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Added — Circuit breaker + retry (`flags.enableCircuitBreaker`)
+
+- New schema flag `flags.enableCircuitBreaker: true` generates Resilience4j circuit breaker + retry wrapping every upstream proxy call. No additional infrastructure required.
+- **Spring Boot**: `resilience4j-circuitbreaker` + `resilience4j-retry` added to `pom.xml`. `ProxyService` initializes `CircuitBreaker` + `Retry` programmatically from ENV VARs in constructor via static factory methods.
+- **Quarkus**: Same dependencies + initialization in `@PostConstruct init()`.
+- Circuit opens after `CB_FAILURE_RATE_THRESHOLD`% failures in `CB_SLIDING_WINDOW_SIZE` calls; stays open `CB_WAIT_DURATION_SECONDS`s; then moves to HALF-OPEN. Returns `503 {"error":"Service Unavailable","circuit":"open"}` (`CallNotPermittedException`) when open.
+- Retry wraps the upstream call before the CB counts a failure; up to `CB_RETRY_MAX_ATTEMPTS` attempts with fixed `CB_RETRY_WAIT_MS`ms wait.
+- `docker-compose.yml.ftl` + `configmap.yaml.ftl` gain conditional `CB_*` ENV VAR blocks.
+- 9 new tests: `YamlParserTest` (3) + `ApiBridgeCartridgeEngineTest` (6).
+
+### Added — Response cache (`flags.enableResponseCache`)
+
+- New schema flag `flags.enableResponseCache: true` generates an in-process Caffeine GET response cache in `ProxyService`. No additional infrastructure required.
+- **Spring Boot**: `caffeine` added to `pom.xml` (version managed by Spring Boot BOM). Cache built in constructor with TTL + max-size from `CACHE_TTL_SECONDS` / `CACHE_MAX_SIZE` ENV VARs.
+- **Quarkus**: `caffeine:3.1.8` added to `pom.xml`. Cache built in `@PostConstruct init()`.
+- Cache key = full upstream URL + query string. GET hit → return immediately without upstream call. Non-GET request → `invalidateAll()` for consistency.
+- `docker-compose.yml.ftl` + `configmap.yaml.ftl` gain conditional `CACHE_*` ENV VAR blocks.
+- 9 new tests: `YamlParserTest` (3) + `ApiBridgeCartridgeEngineTest` (6).
+- Test count: 119 → 137.
+
+---
+
 ### Added — Audit log (`flags.enableAuditLog`)
 
 - New schema flag `flags.enableAuditLog: true` generates a decoupled proxy call audit trail using Redis Streams as the event transport and MongoDB as the record store.

@@ -6,6 +6,8 @@ flags:
   backendFlavor: "spring-boot"
   feFlavor: "react"
   deployTarget: "docker-compose"
+  enableCircuitBreaker: true
+  enableResponseCache: true
   pagination:
     pageParam: "page"
     sizeParam: "size"
