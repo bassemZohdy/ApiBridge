@@ -18,6 +18,19 @@ All error responses use `Content-Type: application/json`.
 
 ---
 
+## Planned features (Phase 5)
+
+Two new flags designed but not yet implemented — see `TODO.md` for full task breakdown.
+
+| Flag | Mechanism | Infrastructure |
+|---|---|---|
+| `flags.enableCircuitBreaker: true` | Resilience4j (Spring Boot) / SmallRye Fault Tolerance (Quarkus) — circuit breaker + retry on all proxy calls; 503 fallback when open | None |
+| `flags.enableResponseCache: true` | Caffeine (Spring Boot) / Quarkus Cache — in-process GET response cache; non-GET mutations evict | None |
+
+Both flags use ENV VAR overrides only (no schema-level config). See `TODO.md` for ENV VAR tables and exact cartridge changes required.
+
+---
+
 ## Test status
 
 ```
@@ -57,3 +70,6 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 19. **Audit log is fire-and-forget** — `ProxySendEvent`, `ProxySuccessEvent`, `ProxyFailEvent` are published via `@Async`/`fireAsync`. If Redis or MongoDB is down the proxy call still completes; unacknowledged stream entries are redelivered on restart.
 20. **Audit Redis Stream** — key `apibridge:audit`, consumer group `apibridge-audit-group`. Three event types: `SEND` (insert PENDING record), `SUCCESS` (update to SUCCESS + response data), `FAIL` (update to FAILED + error). Correlation ID is a UUID generated per request.
 21. **Audit MongoDB TTL** — `expiresAt` field indexed with `expireAfterSeconds=0`; value set to `now + AUDIT_LOG_TTL_DAYS * 86400s`. MongoDB handles log rotation automatically.
+22. **Circuit breaker wraps retry** — retry fires first; only after all attempts are exhausted does the failure count against the circuit breaker. Fallback returns `{"error":"Service Unavailable","circuit":"open"}` with 503.
+23. **Response cache is GET-only** — `@Cacheable`/`@CacheResult` applied only to GET proxy methods; PUT/DELETE/PATCH mutations annotated with `@CacheEvict`/`@CacheInvalidateAll` to keep cache consistent. Non-GET calls always reach upstream.
+24. **Cache is in-process** — Caffeine (Spring Boot) / Quarkus Cache; no Redis required. Each replica warms independently. Cache key = path + sorted query params.
