@@ -42,6 +42,8 @@ public class BridgeSchemaModel {
     public static class Flags {
         /** Whether to emit OpenTelemetry tracing spans in generated backend code. */
         private boolean enableTelemetry;
+        /** Whether to generate Redis Streams + MongoDB audit log for all proxy calls. */
+        private boolean enableAuditLog;
         /** Security validation mode: "bearer-token", "apiKey", or null for no security. */
         private String securityLevel;
         /** Backend framework to generate: "spring-boot" (default) or "quarkus". */
@@ -55,6 +57,9 @@ public class BridgeSchemaModel {
 
         public boolean isEnableTelemetry() { return enableTelemetry; }
         public void setEnableTelemetry(boolean enableTelemetry) { this.enableTelemetry = enableTelemetry; }
+
+        public boolean isEnableAuditLog() { return enableAuditLog; }
+        public void setEnableAuditLog(boolean enableAuditLog) { this.enableAuditLog = enableAuditLog; }
 
         public String getSecurityLevel() { return securityLevel; }
         public void setSecurityLevel(String securityLevel) { this.securityLevel = securityLevel; }
@@ -73,8 +78,8 @@ public class BridgeSchemaModel {
 
         @Override
         public String toString() {
-            return "Flags{enableTelemetry=" + enableTelemetry + ", securityLevel='" + securityLevel
-                    + "', backendFlavor='" + backendFlavor
+            return "Flags{enableTelemetry=" + enableTelemetry + ", enableAuditLog=" + enableAuditLog
+                    + ", securityLevel='" + securityLevel + "', backendFlavor='" + backendFlavor
                     + "', feFlavor='" + feFlavor + "', deployTarget='" + deployTarget
                     + "', pagination=" + pagination + '}';
         }

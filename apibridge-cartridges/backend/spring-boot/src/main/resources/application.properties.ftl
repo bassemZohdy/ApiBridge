@@ -57,6 +57,12 @@ management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 #   PAGINATION_DIRECTION_PARAM=dir  Query param name for sort direction (asc/desc)
 #   PROXY_CONNECT_TIMEOUT=5000     Proxy connect timeout in milliseconds (default: 5000)
 #   PROXY_READ_TIMEOUT=30000       Proxy read timeout in milliseconds (default: 30000)
+<#if (flags.enableAuditLog)!false>
+#   SPRING_DATA_REDIS_URL=redis://localhost:6379   Redis connection URL
+#   SPRING_DATA_MONGODB_URI=mongodb://localhost:27017  MongoDB connection URI
+#   SPRING_DATA_MONGODB_DATABASE=${id}-audit       MongoDB database name
+#   AUDIT_LOG_TTL_DAYS=30          Days to retain audit records (MongoDB TTL index)
+</#if>
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                      Expected X-API-Key header value; empty = validation disabled
 </#if>

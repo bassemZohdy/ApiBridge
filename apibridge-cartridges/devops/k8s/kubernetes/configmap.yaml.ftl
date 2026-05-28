@@ -56,3 +56,17 @@ data:
 <#list endpoints as endpoint>
   BACKEND_URL_${pathToEnvKey(endpoint.path)}: "${endpoint.backendUrl}"
 </#list>
+<#if (flags.enableAuditLog)!false>
+  # ── Audit log ────────────────────────────────────────────────────────────────
+  # Note: for production, store connection strings in Secrets rather than ConfigMap
+<#if backendFlavor == "spring-boot">
+  SPRING_DATA_REDIS_URL: "redis://redis:6379"
+  SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017"
+  SPRING_DATA_MONGODB_DATABASE: "${id}-audit"
+<#else>
+  QUARKUS_REDIS_HOSTS: "redis://redis:6379"
+  QUARKUS_MONGODB_CONNECTION_STRING: "mongodb://mongo:27017"
+  QUARKUS_MONGODB_DATABASE: "${id}-audit"
+</#if>
+  AUDIT_LOG_TTL_DAYS: "30"
+</#if>

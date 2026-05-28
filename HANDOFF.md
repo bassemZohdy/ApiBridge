@@ -21,13 +21,13 @@ All error responses use `Content-Type: application/json`.
 ## Test status
 
 ```
-mvn test → 91/91 PASS
+mvn test → 98/98 PASS
 ```
 
 | Test class | Count | Covers |
 |---|---|---|
-| `YamlParserTest` | 52 | Schema validation, HTTP method whitelist, duplicate endpoints, case-insensitive component, pagination, columns, field.label |
-| `ApiBridgeCartridgeEngineTest` | 37 | All cartridge generations, List/View/Form model, API method names, DevOps (Dockerfile + docker-compose), multi-endpoint models |
+| `YamlParserTest` | 55 | Schema validation, HTTP method whitelist, duplicate endpoints, case-insensitive component, pagination, columns, field.label, enableAuditLog |
+| `ApiBridgeCartridgeEngineTest` | 41 | All cartridge generations, List/View/Form model, API method names, DevOps, audit log on/off for Spring Boot + Quarkus + docker-compose |
 | `ApiBridgeRunnerTest` | 2 | CLI argument handling |
 
 E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
@@ -54,3 +54,6 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 16. **Auth RestTemplate has timeouts** — 5s connect / 10s read.
 17. **Proxy timeouts configurable** — `PROXY_CONNECT_TIMEOUT` / `PROXY_READ_TIMEOUT` env vars.
 18. **Form field type mapping** — `email` → `<input type="email">` + pattern validation; `date`/`url`/`password` → native HTML types; Angular adds `Validators.email` for email fields.
+19. **Audit log is fire-and-forget** — `ProxySendEvent`, `ProxySuccessEvent`, `ProxyFailEvent` are published via `@Async`/`fireAsync`. If Redis or MongoDB is down the proxy call still completes; unacknowledged stream entries are redelivered on restart.
+20. **Audit Redis Stream** — key `apibridge:audit`, consumer group `apibridge-audit-group`. Three event types: `SEND` (insert PENDING record), `SUCCESS` (update to SUCCESS + response data), `FAIL` (update to FAILED + error). Correlation ID is a UUID generated per request.
+21. **Audit MongoDB TTL** — `expiresAt` field indexed with `expireAfterSeconds=0`; value set to `now + AUDIT_LOG_TTL_DAYS * 86400s`. MongoDB handles log rotation automatically.

@@ -47,6 +47,16 @@
             <artifactId>quarkus-opentelemetry</artifactId>
         </dependency>
 </#if>
+<#if (flags.enableAuditLog)!false>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-redis-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-mongodb-panache</artifactId>
+        </dependency>
+</#if>
     </dependencies>
 
     <build>

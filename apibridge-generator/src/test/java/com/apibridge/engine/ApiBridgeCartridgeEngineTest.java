@@ -747,6 +747,102 @@ public class ApiBridgeCartridgeEngineTest {
         return model;
     }
 
+    @Test
+    public void testSpringBootCartridgeWithAuditLog(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableAuditLog(true);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("output-spring-audit").toFile();
+
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path auditDir = outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/audit");
+        assertTrue(Files.exists(auditDir), "audit/ package must be generated");
+        assertTrue(Files.exists(auditDir.resolve("ProxySendEvent.java")), "ProxySendEvent.java");
+        assertTrue(Files.exists(auditDir.resolve("ProxySuccessEvent.java")), "ProxySuccessEvent.java");
+        assertTrue(Files.exists(auditDir.resolve("ProxyFailEvent.java")), "ProxyFailEvent.java");
+        assertTrue(Files.exists(auditDir.resolve("AuditRecord.java")), "AuditRecord.java");
+        assertTrue(Files.exists(auditDir.resolve("RedisAuditPublisher.java")), "RedisAuditPublisher.java");
+        assertTrue(Files.exists(auditDir.resolve("AuditStreamConsumer.java")), "AuditStreamConsumer.java");
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("spring-boot-starter-data-redis"), "Redis dep in pom");
+        assertTrue(pom.contains("spring-boot-starter-data-mongodb"), "MongoDB dep in pom");
+
+        String proxy = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(proxy.contains("ApplicationEventPublisher"), "Event publisher injected");
+        assertTrue(proxy.contains("ProxySendEvent"), "SEND event published");
+        assertTrue(proxy.contains("ProxySuccessEvent"), "SUCCESS event published");
+        assertTrue(proxy.contains("ProxyFailEvent"), "FAIL event published");
+
+        String app = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/Application.java"));
+        assertTrue(app.contains("@EnableAsync"), "@EnableAsync on Application");
+    }
+
+    @Test
+    public void testSpringBootCartridgeAuditLogDisabledByDefault(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("output-spring-no-audit").toFile();
+
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path auditDir = outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/audit");
+        assertFalse(Files.exists(auditDir.resolve("ProxySendEvent.java")),
+                "No audit files when enableAuditLog=false");
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertFalse(pom.contains("spring-boot-starter-data-redis"), "No Redis dep without audit");
+    }
+
+    @Test
+    public void testQuarkusCartridgeWithAuditLog(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableAuditLog(true);
+        model.getFlags().setBackendFlavor("quarkus");
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("output-quarkus-audit").toFile();
+
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path auditDir = outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/audit");
+        assertTrue(Files.exists(auditDir), "audit/ package must be generated");
+        assertTrue(Files.exists(auditDir.resolve("RedisAuditPublisher.java")), "RedisAuditPublisher.java");
+        assertTrue(Files.exists(auditDir.resolve("AuditStreamConsumer.java")), "AuditStreamConsumer.java");
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("quarkus-redis-client"), "Redis dep in pom");
+        assertTrue(pom.contains("quarkus-mongodb-panache"), "MongoDB dep in pom");
+
+        String proxy = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(proxy.contains("fireAsync"), "CDI async events fired");
+        assertTrue(proxy.contains("ProxySendEvent"), "SEND event fired");
+    }
+
+    @Test
+    public void testDockerComposeWithAuditLog(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableAuditLog(true);
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("output-compose-audit").toFile();
+
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String compose = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(compose.contains("redis:"), "Redis service");
+        assertTrue(compose.contains("mongo:"), "MongoDB service");
+        assertTrue(compose.contains("SPRING_DATA_REDIS_URL"), "Redis URI env");
+        assertTrue(compose.contains("SPRING_DATA_MONGODB_URI"), "MongoDB URI env");
+        assertTrue(compose.contains("depends_on"), "App depends on redis and mongo");
+    }
+
     private void writeFtl(File cartridgeDir, String relativePath, String content) throws IOException {
         File target = new File(cartridgeDir, relativePath + ".ftl");
         target.getParentFile().mkdirs();

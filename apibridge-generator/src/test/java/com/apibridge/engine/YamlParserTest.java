@@ -919,6 +919,56 @@ public class YamlParserTest {
         assertNull(fields.get(1).getLabel());
     }
 
+    // --- Audit log flag tests ---
+
+    @Test
+    public void testEnableAuditLogDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        boolean auditEnabled = model.getFlags() != null && model.getFlags().isEnableAuditLog();
+        assertFalse(auditEnabled, "enableAuditLog must default to false when flags absent");
+    }
+
+    @Test
+    public void testEnableAuditLogParsedTrue(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  enableAuditLog: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertNotNull(model.getFlags());
+        assertTrue(model.getFlags().isEnableAuditLog());
+    }
+
+    @Test
+    public void testEnableAuditLogExplicitFalse(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                flags:
+                  enableAuditLog: false
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableAuditLog());
+    }
+
     // --- Helper ---
 
     private File writeYaml(Path dir, String name, String content) throws IOException {

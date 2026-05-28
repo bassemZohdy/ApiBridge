@@ -59,6 +59,12 @@ quarkus.otel.service.name=${id}
 #   PAGINATION_DIRECTION_PARAM=dir    Query param name for sort direction (asc/desc)
 #   PROXY_CONNECT_TIMEOUT=5000        Proxy connect timeout in milliseconds (default: 5000)
 #   PROXY_READ_TIMEOUT=30000          Proxy read timeout in milliseconds (default: 30000)
+<#if (flags.enableAuditLog)!false>
+#   QUARKUS_REDIS_HOSTS=redis://localhost:6379   Redis connection URL
+#   QUARKUS_MONGODB_CONNECTION_STRING=mongodb://localhost:27017  MongoDB URI
+#   QUARKUS_MONGODB_DATABASE=${id}-audit         MongoDB database name
+#   AUDIT_LOG_TTL_DAYS=30            Days to retain audit records (MongoDB TTL index)
+</#if>
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                          Expected X-API-Key header; empty = validation disabled
 </#if>

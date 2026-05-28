@@ -41,6 +41,16 @@
             <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
 </#if>
+<#if (flags.enableAuditLog)!false>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+</#if>
     </dependencies>
 
     <build>

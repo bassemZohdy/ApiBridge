@@ -165,6 +165,7 @@ flags:
   feFlavor: "react"              # angular | react | vue  (omit for BE-only)
   securityLevel: "bearer-token"  # bearer-token | apiKey
   enableTelemetry: true
+  enableAuditLog: true           # Redis Streams + MongoDB proxy call audit trail
   pagination:
     pageParam: "page"            # overrideable via PAGINATION_PAGE_PARAM ENV VAR
     sizeParam: "size"
@@ -237,6 +238,29 @@ docker run -p 8080:8080 \
 
 See [`docs/white-label-style-guide.md`](docs/white-label-style-guide.md) for the full CSS custom properties reference and class inventory.
 
+### Audit log
+
+When `flags.enableAuditLog: true`, every proxy call is tracked through a three-event lifecycle:
+
+| Event | When | MongoDB effect |
+|---|---|---|
+| `SEND` | Before upstream call | Insert `AuditRecord` with `status: PENDING` |
+| `SUCCESS` | Upstream responded | Update: `status: SUCCESS`, response data, `durationMs` |
+| `FAIL` | Upstream threw or returned 5xx | Update: `status: FAILED`, error message, `durationMs` |
+
+Events flow through Redis Stream `apibridge:audit` — decoupled from the request thread so audit logging never adds latency or fails the proxy call. Unacknowledged entries are redelivered on restart.
+
+Runtime ENV VARs:
+
+| ENV VAR | Default | Purpose |
+|---|---|---|
+| `SPRING_DATA_REDIS_URL` / `QUARKUS_REDIS_HOSTS` | `redis://localhost:6379` | Redis connection |
+| `SPRING_DATA_MONGODB_URI` / `QUARKUS_MONGODB_CONNECTION_STRING` | `mongodb://localhost:27017` | MongoDB connection |
+| `SPRING_DATA_MONGODB_DATABASE` / `QUARKUS_MONGODB_DATABASE` | `{id}-audit` | MongoDB database name |
+| `AUDIT_LOG_TTL_DAYS` | `30` | MongoDB TTL index — records auto-expire |
+
+When `enableAuditLog` is set, `docker-compose.yml` automatically includes `redis` and `mongo` services.
+
 ---
 
 ## Common combinations
@@ -304,6 +328,7 @@ Checkstyle rules: 4-space indent, no star imports, no unused imports, braces req
 | `feFlavor` | String | `react`, `angular`, `vue`, or `""` if unset |
 | `deployTarget` | String | `docker-compose`, `kubernetes`, `openshift`, or `""` |
 | `flags.pagination` | Pagination | Pagination param names; never null when flags is non-null |
+| `flags.enableAuditLog` | boolean | `true` generates Redis Streams + MongoDB audit infrastructure |
 | `endpoint.uiLayout.component` | String | `Form`, `List`, or `View` |
 | `endpoint.uiLayout.columns` | List\<Column\> | Schema-defined list columns (optional; runtime fallback if absent) |
 | `field.label` | String | Optional display label for form/view fields |

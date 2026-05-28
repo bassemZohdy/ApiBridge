@@ -6,6 +6,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Added — Audit log (`flags.enableAuditLog`)
+
+- New schema flag `flags.enableAuditLog: true` generates a decoupled proxy call audit trail using Redis Streams as the event transport and MongoDB as the record store.
+- **Event state machine per request**: `SEND` (emitted before upstream call, creates a PENDING `AuditRecord`) → `SUCCESS` (updates record with response status, body, duration) or `FAIL` (updates record with error message, duration). Correlation ID (UUID) links events across the lifecycle.
+- **Spring Boot**: `ApplicationEventPublisher` dispatches `ProxySendEvent`, `ProxySuccessEvent`, `ProxyFailEvent` in-process. `@EventListener @Async` `RedisAuditPublisher` forwards each to the Redis Stream `apibridge:audit`. `AuditStreamConsumer` reads via `StreamMessageListenerContainer` (consumer group `apibridge-audit-group`) and writes/updates MongoDB via `MongoTemplate`. `Application.java` gains `@EnableAsync`.
+- **Quarkus**: CDI `Event<T>.fireAsync()` dispatches the same three event types. `@ObservesAsync` `RedisAuditPublisher` forwards to Redis using `ReactiveRedisDataSource`. `AuditStreamConsumer` polls via a scheduled XREAD loop and persists via Panache MongoDB.
+- **`AuditRecord`** MongoDB document: `correlationId`, `endpoint`, `method`, `requestBody`, `status`, `responseStatus`, `responseBody`, `errorMessage`, `durationMs`, `sentAt`, `completedAt`, `expiresAt` (TTL index — MongoDB handles log rotation automatically via `AUDIT_LOG_TTL_DAYS`, default 30 days).
+- Unacknowledged stream entries are redelivered on consumer restart — audit logging never blocks or fails the proxy call.
+- `docker-compose.yml.ftl` gains conditional `redis` and `mongo` services + `depends_on` when flag is set.
+- `configmap.yaml.ftl` gains conditional audit connection URI env vars.
+- New runtime ENV VARs: `AUDIT_REDIS_URI` / `QUARKUS_REDIS_HOSTS`, `AUDIT_MONGO_URI` / `QUARKUS_MONGODB_CONNECTION_STRING`, `AUDIT_MONGO_DATABASE`, `AUDIT_LOG_TTL_DAYS`.
+- 3 new `YamlParserTest` cases (`enableAuditLog` default, explicit true, explicit false).
+- 4 new `ApiBridgeCartridgeEngineTest` cases (Spring Boot with/without audit, Quarkus with audit, docker-compose with audit).
+- Test count: 91 → 98 (7 new).
+
 ### Added
 
 - Form field validation driven by schema `field.type` across React, Angular, and Vue Form templates:

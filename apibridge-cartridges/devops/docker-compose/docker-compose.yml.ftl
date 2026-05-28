@@ -70,6 +70,22 @@ services:
 <#list endpoints as endpoint>
       BACKEND_URL_${pathToEnvKey(endpoint.path)}: "${endpoint.backendUrl}"
 </#list>
+<#if (flags.enableAuditLog)!false>
+      # ── Audit log ──────────────────────────────────────────────────────────
+<#if backendFlavor == "spring-boot">
+      SPRING_DATA_REDIS_URL: "redis://redis:6379"
+      SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017"
+      SPRING_DATA_MONGODB_DATABASE: "${id}-audit"
+<#else>
+      QUARKUS_REDIS_HOSTS: "redis://redis:6379"
+      QUARKUS_MONGODB_CONNECTION_STRING: "mongodb://mongo:27017"
+      QUARKUS_MONGODB_DATABASE: "${id}-audit"
+</#if>
+      AUDIT_LOG_TTL_DAYS: "30"
+    depends_on:
+      - redis
+      - mongo
+</#if>
     deploy:
       resources:
         limits:
@@ -94,6 +110,24 @@ services:
     networks:
       - ${id}-net
 
+<#if (flags.enableAuditLog)!false>
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - ${id}-net
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    networks:
+      - ${id}-net
+
+</#if>
 networks:
   ${id}-net:
     driver: bridge

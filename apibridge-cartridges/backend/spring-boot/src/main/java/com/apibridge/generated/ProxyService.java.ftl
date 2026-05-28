@@ -9,6 +9,13 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
+<#if (flags.enableAuditLog)!false>
+import org.springframework.context.ApplicationEventPublisher;
+import com.apibridge.generated.audit.ProxySendEvent;
+import com.apibridge.generated.audit.ProxySuccessEvent;
+import com.apibridge.generated.audit.ProxyFailEvent;
+import java.util.UUID;
+</#if>
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
@@ -29,10 +36,18 @@ public class ProxyService {
     private int readTimeout;
 
     private final RestTemplate restTemplate;
+<#if (flags.enableAuditLog)!false>
+    private final ApplicationEventPublisher events;
 
+    public ProxyService(ApplicationEventPublisher events) {
+        this.restTemplate = new RestTemplate();
+        this.events = events;
+    }
+<#else>
     public ProxyService() {
         this.restTemplate = new RestTemplate();
     }
+</#if>
 
     public ResponseEntity<String> forward(
             String targetUrl,
@@ -64,6 +79,12 @@ public class ProxyService {
 
         HttpEntity<String> entity = new HttpEntity<>(requestBody, outboundHeaders);
         HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase());
+<#if (flags.enableAuditLog)!false>
+
+        String correlationId = UUID.randomUUID().toString();
+        events.publishEvent(new ProxySendEvent(correlationId, urlWithQuery, method, requestBody));
+        long startMs = System.currentTimeMillis();
+</#if>
 
         try {
             ResponseEntity<String> upstream = restTemplate.exchange(
@@ -75,16 +96,36 @@ public class ProxyService {
                     values.forEach(v -> responseHeaders.add(name, v));
                 }
             });
+<#if (flags.enableAuditLog)!false>
+
+            events.publishEvent(new ProxySuccessEvent(
+                    correlationId,
+                    upstream.getStatusCode().value(),
+                    upstream.getBody(),
+                    System.currentTimeMillis() - startMs));
+</#if>
 
             return ResponseEntity.status(upstream.getStatusCode())
                     .headers(responseHeaders)
                     .body(upstream.getBody());
 
         } catch (RestClientResponseException ex) {
+<#if (flags.enableAuditLog)!false>
+            events.publishEvent(new ProxyFailEvent(
+                    correlationId,
+                    ex.getStatusCode().value() + " " + ex.getStatusText(),
+                    System.currentTimeMillis() - startMs));
+</#if>
             return ResponseEntity
                     .status(ex.getStatusCode())
                     .body(ex.getResponseBodyAsString());
         } catch (Exception ex) {
+<#if (flags.enableAuditLog)!false>
+            events.publishEvent(new ProxyFailEvent(
+                    correlationId,
+                    ex.getMessage(),
+                    System.currentTimeMillis() - startMs));
+</#if>
             return ResponseEntity
                     .status(502)
                     .body("{\"error\":\"Bad Gateway\"}");

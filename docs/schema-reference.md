@@ -20,6 +20,7 @@ The ApiBridge schema is a YAML Platform-Independent Model (PIM) that drives all 
 | Field | Type | Default | Valid values | Description |
 |---|---|---|---|---|
 | `enableTelemetry` | boolean | `false` | `true` \| `false` | When `true`, all endpoints must have `telemetryName`. Conditionally injects OpenTelemetry instrumentation in backend templates. |
+| `enableAuditLog` | boolean | `false` | `true` \| `false` | When `true`, generates a Redis Streams + MongoDB audit trail. Every proxy call emits `SEND`, `SUCCESS`, or `FAIL` events via Spring `ApplicationEventPublisher` / Quarkus CDI `fireAsync`. Events are published to a Redis Stream (`apibridge:audit`) and consumed by an in-process listener that writes/updates `AuditRecord` documents in MongoDB. Adds `redis` and `mongo` services to `docker-compose.yml`. Runtime overrides: `AUDIT_REDIS_URI`, `AUDIT_MONGO_URI`, `AUDIT_MONGO_DATABASE`, `AUDIT_LOG_TTL_DAYS` (default 30). |
 | `backendFlavor` | string | `spring-boot` | `spring-boot` \| `quarkus` | Selects backend framework for subdirectory-routed cartridges. |
 | `feFlavor` | string | — | `angular` \| `react` \| `vue` | Selects frontend framework for subdirectory-routed cartridges. No default — absence means BE-only output. |
 | `securityLevel` | string | — | `bearer-token` \| `apiKey` | Controls Authorization header injection in frontend templates. |
