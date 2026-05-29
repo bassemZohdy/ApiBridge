@@ -291,6 +291,58 @@ endpoints:
 
 ---
 
+## Cartridge Reference Formats
+
+The `--cartridge=` argument accepts three reference formats:
+
+### Local path
+
+```bash
+--cartridge=./path/to/my-cartridge
+--cartridge=/absolute/path/to/my-cartridge
+```
+
+Any value that does not start with `http://`, `https://`, or `github:` is treated as a local filesystem path and passed directly to the engine.
+
+### URL
+
+```bash
+--cartridge=https://example.com/my-cartridge.zip
+```
+
+Downloads the ZIP from the given URL, extracts it, and caches the result in `~/.apibridge/cartridges/<sha256-of-url>/`. Subsequent runs with the same URL reuse the cached directory without re-downloading.
+
+### GitHub shorthand
+
+```bash
+--cartridge=github:owner/repo
+--cartridge=github:owner/repo/subpath
+--cartridge=github:owner/repo@ref
+--cartridge=github:owner/repo/subpath@ref
+```
+
+Expands to `https://github.com/owner/repo/archive/refs/heads/<ref>.zip` (default `ref` = `main`), downloads the GitHub archive ZIP, extracts it, and caches under `~/.apibridge/cartridges/<sha256-of-spec>/`. When a `subpath` is given, the resolved directory is `<cacheDir>/repo-<ref>/<subpath>/`.
+
+**Examples:**
+
+```bash
+# Built-in local cartridge
+--cartridge=apibridge-cartridges/backend/spring-boot
+
+# Public ZIP from any server
+--cartridge=https://releases.example.com/my-team-cartridge-1.0.zip
+
+# Latest main branch of a GitHub repo
+--cartridge=github:my-org/apibridge-cartridges
+
+# Specific subdirectory of a GitHub repo at a pinned branch
+--cartridge=github:my-org/apibridge-cartridges/backend/custom-spring@release-1
+```
+
+Cache location (automatically managed): `~/.apibridge/cartridges/<sha256>/`
+
+---
+
 ## Validation summary
 
 The engine (`YamlParser`) enforces these rules at parse time and throws `IllegalArgumentException` for any violation:

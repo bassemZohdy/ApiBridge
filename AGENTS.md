@@ -69,6 +69,11 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
 
 CLI overrides take precedence over schema `flags`: `--be-flavor=`, `--fe-flavor=`, `--deploy-target=`, `--security-level=`.
 
+**Cartridge reference formats** (`--cartridge=` accepts three forms):
+- Local path: `./my-cartridge` or `/abs/path` — passed directly to engine
+- URL: `https://host/file.zip` — downloaded, extracted, cached at `~/.apibridge/cartridges/<sha256>/`
+- GitHub shorthand: `github:owner/repo[/subpath][@ref]` — downloads GitHub archive ZIP, default ref is `main`
+
 ## E2E tests
 
 - Script: `./e2e-tests/run-all-e2e.sh` (bash — requires Linux/macOS or WSL).

@@ -1,0 +1,59 @@
+package com.apibridge.engine;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+public class CartridgeDownloader {
+
+    private final HttpClient httpClient;
+
+    public CartridgeDownloader() {
+        this.httpClient = HttpClient.newHttpClient();
+    }
+
+    CartridgeDownloader(HttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
+    public void downloadAndExtract(String url, File targetDir) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
+        byte[] zipBytes = httpClient
+                .send(request, HttpResponse.BodyHandlers.ofByteArray())
+                .body();
+        extractZip(zipBytes, targetDir);
+    }
+
+    static void extractZip(byte[] zipBytes, File targetDir) throws IOException {
+        String canonicalDest = targetDir.getCanonicalPath() + File.separator;
+        targetDir.mkdirs();
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                File outFile = new File(targetDir, entry.getName());
+                if (!outFile.getCanonicalPath().startsWith(canonicalDest)) {
+                    throw new IOException("ZIP slip rejected: " + entry.getName());
+                }
+                if (entry.isDirectory()) {
+                    outFile.mkdirs();
+                } else {
+                    outFile.getParentFile().mkdirs();
+                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                        zis.transferTo(fos);
+                    }
+                }
+                zis.closeEntry();
+            }
+        }
+    }
+}
