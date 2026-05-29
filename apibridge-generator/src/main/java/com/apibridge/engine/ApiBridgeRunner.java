@@ -14,7 +14,7 @@ public class ApiBridgeRunner {
         System.out.println("  ApiBridge Pluggable MDA Code Generator Engine");
         System.out.println("==================================================");
 
-        String schemaPath = null;
+        List<String> schemaPaths = new java.util.ArrayList<>();
         List<String> cartridgePaths = new java.util.ArrayList<>();
         String outputPath = null;
         String feFlavorOverride = null;
@@ -24,7 +24,7 @@ public class ApiBridgeRunner {
 
         for (String arg : args) {
             if (arg.startsWith("--schema=")) {
-                schemaPath = arg.substring("--schema=".length());
+                schemaPaths.add(arg.substring("--schema=".length()));
             } else if (arg.startsWith("--cartridge=")) {
                 cartridgePaths.add(arg.substring("--cartridge=".length()));
             } else if (arg.startsWith("--output=")) {
@@ -48,8 +48,8 @@ public class ApiBridgeRunner {
             }
         }
 
-        if (schemaPath == null || schemaPath.isBlank()) {
-            System.err.println("Error: Missing required argument '--schema=<path>'");
+        if (schemaPaths.isEmpty()) {
+            System.err.println("Error: At least one '--schema=<path>' argument is required");
             printUsage();
             System.exit(1);
         }
@@ -65,16 +65,20 @@ public class ApiBridgeRunner {
         }
 
         try {
-            File schemaFile = new File(schemaPath);
             File outputDir = new File(outputPath);
-
-            System.out.println("Parsing Unified PIM Schema: " + schemaFile.getAbsolutePath());
             YamlParser parser = new YamlParser();
-            BridgeSchemaModel model = parser.parse(schemaFile);
-            
-            System.out.println("Parsed Schema ID  : " + model.getId());
-            System.out.println("Parsed Base Path  : " + model.getBasePath());
-            System.out.println("Parsed Endpoints  : " + model.getEndpoints().size());
+            List<BridgeSchemaModel> parsedSchemas = new java.util.ArrayList<>();
+
+            for (String sp : schemaPaths) {
+                File schemaFile = new File(sp);
+                System.out.println("Parsing schema: " + schemaFile.getAbsolutePath());
+                parsedSchemas.add(parser.parse(schemaFile));
+            }
+
+            BridgeSchemaModel model = new SchemaComposer().compose(parsedSchemas);
+            System.out.println("Composed Schema ID  : " + model.getId());
+            System.out.println("Composed Base Path  : " + model.getBasePath());
+            System.out.println("Composed Endpoints  : " + model.getEndpoints().size());
 
             // Apply CLI overrides (take precedence over schema flags)
             if (model.getFlags() == null) {
@@ -87,9 +91,10 @@ public class ApiBridgeRunner {
 
             parser.validate(model);
 
+            CartridgeResolver resolver = new CartridgeResolver();
             ApiBridgeCartridgeEngine engine = new ApiBridgeCartridgeEngine();
             for (String cartridgePath : cartridgePaths) {
-                File cartridgeDir = new File(cartridgePath);
+                File cartridgeDir = resolver.resolve(cartridgePath);
                 System.out.println("Applying cartridge: " + cartridgeDir.getAbsolutePath());
                 engine.generate(model, cartridgeDir, outputDir);
             }
@@ -102,6 +107,12 @@ public class ApiBridgeRunner {
             System.out.printf("  Execution Time: %.2f ms\n", durationMs);
             System.out.println("==================================================");
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("==================================================");
+            System.err.println("❌ CARTRIDGE GENERATION INTERRUPTED.");
+            System.err.println("==================================================");
+            System.exit(2);
         } catch (Exception e) {
             System.err.println("==================================================");
             System.err.println("❌ CARTRIDGE GENERATION FAILED due to a critical exception:");
@@ -130,8 +141,11 @@ public class ApiBridgeRunner {
         System.out.println("\nUsage:");
         System.out.println("  java -jar apibridge-generator.jar --schema=<path> --cartridge=<path> [--cartridge=<path2>...] --output=<path> [options]");
         System.out.println("\nRequired:");
-        System.out.println("  --schema=<path>      Path to the unified YAML configuration schema (PIM)");
-        System.out.println("  --cartridge=<path>   Cartridge to apply (repeatable; applied in order to same output dir)");
+        System.out.println("  --schema=<path>      Path to a YAML schema (repeatable; schemas are merged in order)");
+        System.out.println("  --cartridge=<ref>    Cartridge to apply (repeatable; applied in order). Formats:");
+        System.out.println("                         ./local/path           Local filesystem path");
+        System.out.println("                         https://host/file.zip  URL to a ZIP archive (cached)");
+        System.out.println("                         github:owner/repo[/subpath][@ref]  GitHub archive");
         System.out.println("  --output=<path>      Path to the output directory for generated artifacts");
         System.out.println("\nOptional overrides (override schema flags):");
         System.out.println("  --fe-flavor=<val>      Frontend framework: angular | react | vue");
