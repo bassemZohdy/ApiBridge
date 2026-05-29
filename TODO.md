@@ -17,6 +17,12 @@ Pre-P7 code review findings. All actionable items resolved. Architecture notes d
 | Q1 | `buildContext()` top-level boolean flags — investigated, NOT dead code | [x] Done |
 | Q2 | FreeMarker `Configuration` rebuilt on every `generate()` | [x] Done |
 | Q3 | `ApiBridgeRunner` re-validation guard manual extension | [x] Done |
+| V6 | Transform `add` map allows blank header values | [x] Done |
+| V7 | Transform warning fires twice per endpoint | [x] Done |
+| Q4 | `applyOverride` first param `flags` unused | [x] Done |
+| Q5 | `pagination != null` guard is dead code — documented invariant | [x] Done |
+| Q6 | `flags??` dead outer guard in templates | [x] Done |
+| Q7 | `configurationCache` never gets cache hit — made static | [x] Done |
 | A1 | `YamlParser.validate()` flat method — extract helpers | [ ] Deferred to P7 |
 | A2 | `searchMode`/`enableSearch` cross-field pattern precedent | [ ] Deferred to P7 |
 

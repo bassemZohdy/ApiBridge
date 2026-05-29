@@ -80,10 +80,10 @@ public class ApiBridgeRunner {
             if (model.getFlags() == null) {
                 model.setFlags(new com.apibridge.engine.model.BridgeSchemaModel.Flags());
             }
-            applyOverride(model.getFlags(), feFlavorOverride, "FE Flavor", v -> model.getFlags().setFeFlavor(v));
-            applyOverride(model.getFlags(), beFlavorOverride, "BE Flavor", v -> model.getFlags().setBackendFlavor(v));
-            applyOverride(model.getFlags(), deployTargetOverride, "Deploy Target", v -> model.getFlags().setDeployTarget(v));
-            applyOverride(model.getFlags(), securityLevelOverride, "Security Level", v -> model.getFlags().setSecurityLevel(v));
+            applyOverride(feFlavorOverride, "FE Flavor", v -> model.getFlags().setFeFlavor(v));
+            applyOverride(beFlavorOverride, "BE Flavor", v -> model.getFlags().setBackendFlavor(v));
+            applyOverride(deployTargetOverride, "Deploy Target", v -> model.getFlags().setDeployTarget(v));
+            applyOverride(securityLevelOverride, "Security Level", v -> model.getFlags().setSecurityLevel(v));
 
             parser.validate(model);
 
@@ -119,7 +119,7 @@ public class ApiBridgeRunner {
         return (v != null && !v.isBlank()) ? v : "unknown";
     }
 
-    private static void applyOverride(BridgeSchemaModel.Flags flags, String value, String label, java.util.function.Consumer<String> setter) {
+    private static void applyOverride(String value, String label, java.util.function.Consumer<String> setter) {
         if (value != null && !value.isBlank()) {
             setter.accept(value);
             System.out.println(label + " Override: " + value);

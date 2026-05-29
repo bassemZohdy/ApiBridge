@@ -91,6 +91,10 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 37. **Pagination param names non-blank** — `pageParam`, `sizeParam`, `sortParam`, `directionParam` validated when pagination object present.
 38. **CLI overrides always re-validate** — `parser.validate(model)` called unconditionally after applying overrides, preventing invalid models from reaching the engine.
 39. **FreeMarker Configuration cached per cartridge** — `Map<String, Configuration>` avoids redundant init on multi-cartridge runs.
+40. **Transform `add` map values validated** — blank header values rejected, matching `rename` validation.
+41. **Transform warning deduplicated** — printed once per `validate()` call, listing all affected endpoints.
+42. **`flags` is always non-null in FreeMarker context** — `ApiBridgeRunner` synthesises `new Flags()` when absent. Templates should use field-level guards (`flags.securityLevel??`), not `flags??`.
+43. **`Pagination` is auto-initialized** — never null when flags is non-null. The null guard documents intent.
 
 ---
 

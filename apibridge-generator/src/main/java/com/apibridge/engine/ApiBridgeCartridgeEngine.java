@@ -20,7 +20,7 @@ import java.util.function.Function;
 
 public class ApiBridgeCartridgeEngine {
 
-    private final Map<String, Configuration> configurationCache = new HashMap<>();
+    private static final Map<String, Configuration> CONFIGURATION_CACHE = new HashMap<>();
 
     // Cartridges nested under one of these category dirs auto-prefix their output with that dir name.
     private static final java.util.Set<String> OUTPUT_PREFIX_CATEGORIES =
@@ -124,7 +124,7 @@ public class ApiBridgeCartridgeEngine {
 
     private Configuration buildConfiguration(File cartridgeDir) throws IOException {
         String cacheKey = cartridgeDir.getCanonicalPath();
-        Configuration cached = configurationCache.get(cacheKey);
+        Configuration cached = CONFIGURATION_CACHE.get(cacheKey);
         if (cached != null) {
             return cached;
         }
@@ -134,7 +134,7 @@ public class ApiBridgeCartridgeEngine {
         cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
         cfg.setLogTemplateExceptions(false);
         cfg.setWrapUncheckedExceptions(true);
-        configurationCache.put(cacheKey, cfg);
+        CONFIGURATION_CACHE.put(cacheKey, cfg);
         return cfg;
     }
 

@@ -8,7 +8,7 @@ servers:
   - url: "http://localhost:8080<#if apiVersion?has_content>/${apiVersion}</#if>${basePath}"
     description: "Local development server"
 <#assign securitySchemesNeeded = false />
-<#if flags?? && flags.securityLevel??>
+<#if flags.securityLevel??>
 <#assign securitySchemesNeeded = true />
 </#if>
 <#if securitySchemesNeeded>

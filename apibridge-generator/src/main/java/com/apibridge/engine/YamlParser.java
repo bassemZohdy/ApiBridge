@@ -7,7 +7,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,6 +48,7 @@ public class YamlParser {
     }
 
     public void validate(BridgeSchemaModel model) {
+        List<String> transformWarningEndpoints = new ArrayList<>();
         if (model.getId() == null || model.getId().isBlank()) {
             throw new IllegalArgumentException("Schema validation error: Missing or empty 'id' parameter.");
         }
@@ -86,6 +89,8 @@ public class YamlParser {
             }
         }
 
+        // Pagination is auto-initialized (never null when flags is non-null), so this guard
+        // checks whether the user explicitly set pagination values. Defaults pass validation.
         if (model.getFlags() != null && model.getFlags().getPagination() != null) {
             BridgeSchemaModel.Pagination p = model.getFlags().getPagination();
             if (p.getDefaultPageSize() <= 0) {
@@ -192,7 +197,7 @@ public class YamlParser {
             if (endpoint.getTransforms() != null) {
                 boolean transformEnabled = model.getFlags() != null && model.getFlags().isEnableTransform();
                 if (!transformEnabled) {
-                    System.err.println("Warning: transforms defined on endpoint '" + endpoint.getPath() + "' but flags.enableTransform is not true — transforms will be ignored.");
+                    transformWarningEndpoints.add(endpoint.getPath());
                 } else {
                     validateTransformSubObject(endpoint.getTransforms().getRequestHeaders(), location, "requestHeaders");
                     validateTransformSubObject(endpoint.getTransforms().getResponseHeaders(), location, "responseHeaders");
@@ -200,6 +205,11 @@ public class YamlParser {
                     validateFieldTransform(endpoint.getTransforms().getResponseFields(), location, "responseFields");
                 }
             }
+        }
+
+        if (!transformWarningEndpoints.isEmpty()) {
+            System.err.println("Warning: transforms defined on endpoint(s) " + transformWarningEndpoints
+                    + " but flags.enableTransform is not true — transforms will be ignored.");
         }
     }
 
@@ -220,6 +230,9 @@ public class YamlParser {
             for (Map.Entry<String, String> entry : ht.getAdd().entrySet()) {
                 if (entry.getKey() == null || entry.getKey().isBlank()) {
                     throw new IllegalArgumentException("Schema validation error at " + base + ".add: blank header name.");
+                }
+                if (entry.getValue() == null || entry.getValue().isBlank()) {
+                    throw new IllegalArgumentException("Schema validation error at " + base + ".add: blank value for header '" + entry.getKey() + "'.");
                 }
             }
         }

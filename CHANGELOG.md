@@ -6,6 +6,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Fixed — Pre-P7 code review round 2 (V6, V7, Q4–Q7)
+
+- **V6** Transform `add` map now validates blank header values — mirrors the `rename` map validation that already checked both keys and values.
+- **V7** Transform warning deduplicated — printed once per `validate()` call listing all affected endpoints, instead of once per endpoint.
+- **Q4** Removed unused `flags` parameter from `applyOverride()` in `ApiBridgeRunner`.
+- **Q5** Documented that `Pagination` is auto-initialized (never null when flags present) — the null guard checks user intent, not null-safety.
+- **Q6** Removed dead `flags??` outer guard from `openapi.yaml.ftl` — `flags` is always non-null in the FreeMarker context.
+- **Q7** `configurationCache` made `static final` for JVM-wide reuse across multiple `ApiBridgeCartridgeEngine` instances.
+
 ### Fixed — Pre-P7 code review (B1, V1–V5, Q2, Q3)
 
 - **B1** React List `${id}` unescaped in backtick string — FreeMarker was substituting the schema `id` at generation time instead of the JavaScript row variable. Now uses `${r"${id}"}` like Angular and Vue.
