@@ -20,6 +20,8 @@ import java.util.function.Function;
 
 public class ApiBridgeCartridgeEngine {
 
+    private final Map<String, Configuration> configurationCache = new HashMap<>();
+
     // Cartridges nested under one of these category dirs auto-prefix their output with that dir name.
     private static final java.util.Set<String> OUTPUT_PREFIX_CATEGORIES =
             java.util.Set.of("backend", "frontend", "k8s");
@@ -42,12 +44,7 @@ public class ApiBridgeCartridgeEngine {
             throw new IOException("Failed to create target output directory: " + effectiveOutputDir.getAbsolutePath());
         }
 
-        Configuration cfg = new Configuration(Configuration.VERSION_2_3_32);
-        cfg.setDirectoryForTemplateLoading(cartridgeDir);
-        cfg.setDefaultEncoding(StandardCharsets.UTF_8.name());
-        cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
-        cfg.setLogTemplateExceptions(false);
-        cfg.setWrapUncheckedExceptions(true);
+        Configuration cfg = buildConfiguration(cartridgeDir);
 
         List<TemplateEntry> entries = new ArrayList<>();
         collectTemplates(cartridgeDir, cartridgeDir, effectiveOutputDir, entries);
@@ -104,6 +101,8 @@ public class ApiBridgeCartridgeEngine {
         }
     }
 
+    // Templates access all flags via the `flags` object (e.g. flags.enableRateLimiter).
+    // Some templates also use top-level convenience booleans for enableX flags.
     private Map<String, Object> buildContext(BridgeSchemaModel model) {
         Map<String, Object> context = new HashMap<>();
         context.put("id", model.getId());
@@ -121,6 +120,22 @@ public class ApiBridgeCartridgeEngine {
         context.put("enableOfflineSupport", resolvedFlag(model, f -> f.isEnableOfflineSupport()));
         context.put("enableOpenApi", resolvedFlag(model, f -> f.isEnableOpenApi()));
         return context;
+    }
+
+    private Configuration buildConfiguration(File cartridgeDir) throws IOException {
+        String cacheKey = cartridgeDir.getCanonicalPath();
+        Configuration cached = configurationCache.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_32);
+        cfg.setDirectoryForTemplateLoading(cartridgeDir);
+        cfg.setDefaultEncoding(StandardCharsets.UTF_8.name());
+        cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+        cfg.setLogTemplateExceptions(false);
+        cfg.setWrapUncheckedExceptions(true);
+        configurationCache.put(cacheKey, cfg);
+        return cfg;
     }
 
     private File resolveEffectiveOutputDir(File cartridgeDir, File baseOutputDir) {

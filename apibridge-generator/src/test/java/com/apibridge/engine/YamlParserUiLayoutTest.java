@@ -331,6 +331,8 @@ public class YamlParserUiLayoutTest extends YamlParserTestBase {
         var file = writeYaml(tempDir, "schema.yaml", """
                 id: "test"
                 basePath: "/api"
+                flags:
+                  enableSearch: true
                 endpoints:
                   - path: "/items"
                     method: "GET"
@@ -350,6 +352,8 @@ public class YamlParserUiLayoutTest extends YamlParserTestBase {
         var file = writeYaml(tempDir, "schema.yaml", """
                 id: "test"
                 basePath: "/api"
+                flags:
+                  enableSearch: true
                 endpoints:
                   - path: "/items"
                     method: "GET"
@@ -369,6 +373,8 @@ public class YamlParserUiLayoutTest extends YamlParserTestBase {
         var file = writeYaml(tempDir, "schema.yaml", """
                 id: "test"
                 basePath: "/api"
+                flags:
+                  enableSearch: true
                 endpoints:
                   - path: "/items"
                     method: "GET"

@@ -80,26 +80,12 @@ public class ApiBridgeRunner {
             if (model.getFlags() == null) {
                 model.setFlags(new com.apibridge.engine.model.BridgeSchemaModel.Flags());
             }
-            if (feFlavorOverride != null && !feFlavorOverride.isBlank()) {
-                model.getFlags().setFeFlavor(feFlavorOverride);
-                System.out.println("FE Flavor Override: " + feFlavorOverride);
-            }
-            if (beFlavorOverride != null && !beFlavorOverride.isBlank()) {
-                model.getFlags().setBackendFlavor(beFlavorOverride);
-                System.out.println("BE Flavor Override: " + beFlavorOverride);
-            }
-            if (deployTargetOverride != null && !deployTargetOverride.isBlank()) {
-                model.getFlags().setDeployTarget(deployTargetOverride);
-                System.out.println("Deploy Target Override: " + deployTargetOverride);
-            }
-            if (securityLevelOverride != null && !securityLevelOverride.isBlank()) {
-                model.getFlags().setSecurityLevel(securityLevelOverride);
-                System.out.println("Security Level Override: " + securityLevelOverride);
-            }
+            applyOverride(model.getFlags(), feFlavorOverride, "FE Flavor", v -> model.getFlags().setFeFlavor(v));
+            applyOverride(model.getFlags(), beFlavorOverride, "BE Flavor", v -> model.getFlags().setBackendFlavor(v));
+            applyOverride(model.getFlags(), deployTargetOverride, "Deploy Target", v -> model.getFlags().setDeployTarget(v));
+            applyOverride(model.getFlags(), securityLevelOverride, "Security Level", v -> model.getFlags().setSecurityLevel(v));
 
-            if (feFlavorOverride != null || beFlavorOverride != null || deployTargetOverride != null || securityLevelOverride != null) {
-                parser.validate(model);
-            }
+            parser.validate(model);
 
             ApiBridgeCartridgeEngine engine = new ApiBridgeCartridgeEngine();
             for (String cartridgePath : cartridgePaths) {
@@ -131,6 +117,13 @@ public class ApiBridgeRunner {
     static String getVersion() {
         String v = ApiBridgeRunner.class.getPackage().getImplementationVersion();
         return (v != null && !v.isBlank()) ? v : "unknown";
+    }
+
+    private static void applyOverride(BridgeSchemaModel.Flags flags, String value, String label, java.util.function.Consumer<String> setter) {
+        if (value != null && !value.isBlank()) {
+            setter.accept(value);
+            System.out.println(label + " Override: " + value);
+        }
     }
 
     private static void printUsage() {

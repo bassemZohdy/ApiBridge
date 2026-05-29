@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class YamlParser {
@@ -90,6 +91,10 @@ public class YamlParser {
             if (p.getDefaultPageSize() <= 0) {
                 throw new IllegalArgumentException("Schema validation error: flags.pagination.defaultPageSize must be a positive integer.");
             }
+            validatePaginationParam(p.getPageParam(), "pageParam");
+            validatePaginationParam(p.getSizeParam(), "sizeParam");
+            validatePaginationParam(p.getSortParam(), "sortParam");
+            validatePaginationParam(p.getDirectionParam(), "directionParam");
         }
 
         if (model.getFlags() != null && model.getFlags().getApiVersion() != null) {
@@ -182,6 +187,74 @@ public class YamlParser {
                 if (mock.getDelayMs() < 0) {
                     throw new IllegalArgumentException("Schema validation error at " + location + ".mockResponse.delayMs: Must be >= 0. Got " + mock.getDelayMs() + ".");
                 }
+            }
+
+            if (endpoint.getTransforms() != null) {
+                boolean transformEnabled = model.getFlags() != null && model.getFlags().isEnableTransform();
+                if (!transformEnabled) {
+                    System.err.println("Warning: transforms defined on endpoint '" + endpoint.getPath() + "' but flags.enableTransform is not true — transforms will be ignored.");
+                } else {
+                    validateTransformSubObject(endpoint.getTransforms().getRequestHeaders(), location, "requestHeaders");
+                    validateTransformSubObject(endpoint.getTransforms().getResponseHeaders(), location, "responseHeaders");
+                    validateFieldTransform(endpoint.getTransforms().getRequestFields(), location, "requestFields");
+                    validateFieldTransform(endpoint.getTransforms().getResponseFields(), location, "responseFields");
+                }
+            }
+        }
+    }
+
+    private void validatePaginationParam(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Schema validation error: flags.pagination." + fieldName + " must not be blank.");
+        }
+    }
+
+    private void validateTransformSubObject(BridgeSchemaModel.HeaderTransform ht, String location, String subName) {
+        if (ht == null) {
+            return;
+        }
+        String base = location + ".transforms." + subName;
+        validateRenameMap(ht.getRename(), base);
+        validateRemoveList(ht.getRemove(), base);
+        if (ht.getAdd() != null) {
+            for (Map.Entry<String, String> entry : ht.getAdd().entrySet()) {
+                if (entry.getKey() == null || entry.getKey().isBlank()) {
+                    throw new IllegalArgumentException("Schema validation error at " + base + ".add: blank header name.");
+                }
+            }
+        }
+    }
+
+    private void validateFieldTransform(BridgeSchemaModel.FieldTransform ft, String location, String subName) {
+        if (ft == null) {
+            return;
+        }
+        String base = location + ".transforms." + subName;
+        validateRenameMap(ft.getRename(), base);
+        validateRemoveList(ft.getRemove(), base);
+    }
+
+    private void validateRenameMap(java.util.Map<String, String> rename, String base) {
+        if (rename == null) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : rename.entrySet()) {
+            if (entry.getKey() == null || entry.getKey().isBlank()) {
+                throw new IllegalArgumentException("Schema validation error at " + base + ".rename: blank key.");
+            }
+            if (entry.getValue() == null || entry.getValue().isBlank()) {
+                throw new IllegalArgumentException("Schema validation error at " + base + ".rename: blank value for key '" + entry.getKey() + "'.");
+            }
+        }
+    }
+
+    private void validateRemoveList(java.util.List<String> remove, String base) {
+        if (remove == null) {
+            return;
+        }
+        for (String entry : remove) {
+            if (entry == null || entry.isBlank()) {
+                throw new IllegalArgumentException("Schema validation error at " + base + ".remove: blank entry.");
             }
         }
     }
