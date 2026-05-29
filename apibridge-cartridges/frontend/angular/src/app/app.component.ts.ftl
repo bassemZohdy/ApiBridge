@@ -21,6 +21,7 @@ export class AppComponent implements OnInit, OnDestroy {
   currentPage: Page = 'unknown';
   currentId = '';
   configLoaded = false;
+  theme: 'light' | 'dark' = 'light';
 
   private hashHandler = () => this.parseRoute();
 
@@ -30,12 +31,29 @@ export class AppComponent implements OnInit, OnDestroy {
     this.configService.loadConfig().subscribe(() => {
       this.configLoaded = true;
     });
+    this.initTheme();
     this.parseRoute();
     window.addEventListener('hashchange', this.hashHandler);
   }
 
   ngOnDestroy(): void {
     window.removeEventListener('hashchange', this.hashHandler);
+  }
+
+  private initTheme(): void {
+    const stored = localStorage.getItem('apib-theme');
+    if (stored === 'dark' || stored === 'light') {
+      this.theme = stored as 'light' | 'dark';
+    } else {
+      this.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', this.theme);
+  }
+
+  toggleTheme(): void {
+    this.theme = this.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', this.theme);
+    localStorage.setItem('apib-theme', this.theme);
   }
 
   private parseRoute(): void {

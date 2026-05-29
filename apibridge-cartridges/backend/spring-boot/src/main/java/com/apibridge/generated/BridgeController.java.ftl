@@ -3,6 +3,13 @@
   <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
   <#return s />
 </#function>
+<#macro mapLiteral map>
+<#if map?? && map?has_content>Map.of(<#list map as k, v>"${k}", "${v}"<#if k?has_next>, </#if></#list>)<#else>null</#if>
+</#macro>
+<#macro listLiteral list>
+<#if list?? && list?has_content>List.of(<#list list as v>"${v}"<#if v?has_next>, </#if></#list>)<#else>null</#if>
+</#macro>
+<#macro transformArgs t><#assign rh = (t.requestHeaders)!{} /><#assign rsh = (t.responseHeaders)!{} /><#assign rf = (t.requestFields)!{} /><#assign rsf = (t.responseFields)!{} />, <@mapLiteral (rh.add)!{} />, <@listLiteral (rh.remove)![] />, <@mapLiteral (rh.rename)!{} />, <@mapLiteral (rf.rename)!{} />, <@listLiteral (rf.remove)![] />, <@mapLiteral (rsh.add)!{} />, <@listLiteral (rsh.remove)![] />, <@mapLiteral (rsh.rename)!{} />, <@mapLiteral (rsf.rename)!{} />, <@listLiteral (rsf.remove)![] /></#macro>
 package com.apibridge.generated;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -17,9 +24,13 @@ import io.opentelemetry.context.Scope;
 </#if>
 
 import jakarta.servlet.http.HttpServletRequest;
+<#if (flags.enableTransform)!false>
+import java.util.List;
+import java.util.Map;
+</#if>
 
 @RestController
-@RequestMapping("${basePath}")
+@RequestMapping("<#if apiVersion?has_content>/${apiVersion}</#if>${basePath}")
 public class BridgeController {
 
     @Value("${r"${BLOCK_TRAFFIC:false}"}")
@@ -116,7 +127,16 @@ public class BridgeController {
             @RequestBody(required = false) String body,
             HttpServletRequest request) {
         if (blockTraffic) return ResponseEntity.status(503).body("{\"error\":\"Service temporarily unavailable\"}");
-        if (mockMode) return ResponseEntity.ok("{\"status\":\"mock\",\"endpoint\":\"${endpoint.path}\",\"method\":\"${endpoint.method?upper_case}\"}");
+        if (mockMode) {
+<#if (endpoint.mockResponse)??>
+<#if ((endpoint.mockResponse.delayMs)!0) gt 0>
+            try { Thread.sleep(${endpoint.mockResponse.delayMs}); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+</#if>
+            return ResponseEntity.status(${(endpoint.mockResponse.statusCode)!200}).body(<#if (endpoint.mockResponse.body)??>"${endpoint.mockResponse.body?j_string}"<#else>null</#if>);
+<#else>
+            return ResponseEntity.ok("{\"status\":\"mock\",\"endpoint\":\"${endpoint.path}\",\"method\":\"${endpoint.method?upper_case}\"}");
+</#if>
+        }
 <#if (flags.securityLevel!"") == "apiKey">
         if (expectedApiKey != null && !expectedApiKey.isBlank()) {
             String providedKey = request.getHeader("X-API-Key");
@@ -137,7 +157,7 @@ public class BridgeController {
                 .setAttribute("http.url", resolvedUrl)
                 .startSpan();
         try (Scope scope${endpoint?index} = span${endpoint?index}.makeCurrent()) {
-            return proxyService.forward(resolvedUrl, "${endpoint.method}", body, request);
+            return proxyService.forward(resolvedUrl, "${endpoint.method}", body, request<#if (flags.enableTransform)!false><#assign t = endpoint.transforms!{} /><@transformArgs t /></#if>);
         } catch (Exception e${endpoint?index}) {
             span${endpoint?index}.recordException(e${endpoint?index});
             throw e${endpoint?index};
@@ -145,7 +165,7 @@ public class BridgeController {
             span${endpoint?index}.end();
         }
 <#else>
-        return proxyService.forward(resolvedUrl, "${endpoint.method}", body, request);
+        return proxyService.forward(resolvedUrl, "${endpoint.method}", body, request<#if (flags.enableTransform)!false><#assign t = endpoint.transforms!{} /><@transformArgs t /></#if>);
 </#if>
     }
 

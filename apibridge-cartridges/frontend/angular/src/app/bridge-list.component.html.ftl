@@ -24,6 +24,18 @@
 </#if>
       </div>
     </div>
+<#if (enableSearch)!false>
+
+    <div class="apib-search-bar">
+      <input
+        type="text"
+        class="apib-search-input"
+        placeholder="Search..."
+        [value]="searchTerm"
+        (input)="handleSearchChange($any($event.target).value)"
+      />
+    </div>
+</#if>
 
     <div *ngIf="error" class="apib-error">{{ error }}</div>
 
@@ -48,11 +60,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="rows.length === 0">
+          <tr *ngIf="displayRows.length === 0">
             <td [attr.colspan]="columns.length + 1" class="apib-td apib-td--empty">No records found</td>
           </tr>
           <tr
-            *ngFor="let row of rows; let i = index; trackBy: trackByIdx"
+            *ngFor="let row of displayRows; let i = index; trackBy: trackByIdx"
             class="apib-tr"
 <#if hasViewEndpoint>
             (click)="handleRowClick(row)"
@@ -70,7 +82,7 @@
       </table>
     </div>
 
-    <div *ngIf="!loading && (totalPages !== null || rows.length > 0)" class="apib-pagination">
+    <div *ngIf="!loading && (totalPages !== null || displayRows.length > 0)" class="apib-pagination">
       <span class="apib-pagination-info">{{ recordCountLabel }}</span>
       <div class="apib-pagination-controls">
         <button class="apib-page-btn" (click)="prevPage()" [disabled]="isPrevDisabled">‹ Prev</button>

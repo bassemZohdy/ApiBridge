@@ -58,7 +58,7 @@ export function getAuthHeaders(<#if securityLevel == "bearer-token">token?: stri
 export async function ${methodName}(<#list pathParams as param>${param}: string, </#list><#if hasBody>body?: unknown<#else>_body?: unknown</#if><#if securityLevel == "bearer-token">, token?: string<#elseif securityLevel == "apiKey">, _apiKey?: string</#if>): Promise<unknown> {
   const headers: Record<string, string> = { ...getAuthHeaders(<#if securityLevel == "bearer-token">token</#if>), 'Content-Type': 'application/json' };
   const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const url = (baseUrl + '${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
+  const url = (baseUrl + '<#if apiVersion?has_content>/${apiVersion}</#if>${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
   const res = await fetch(url, {
     method: '${endpoint.method}',
     headers,

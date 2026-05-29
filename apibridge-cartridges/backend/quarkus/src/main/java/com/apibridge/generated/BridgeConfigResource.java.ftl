@@ -32,6 +32,9 @@ public class BridgeConfigResource {
     @ConfigProperty(name = "CUSTOM_CSS_PATH", defaultValue = "")
     String customCssPath;
 
+    @ConfigProperty(name = "SEARCH_PARAM", defaultValue = "q")
+    String searchParam;
+
     @GET
     @Path("/bridge-config")
     @Produces(MediaType.APPLICATION_JSON)
@@ -47,6 +50,10 @@ public class BridgeConfigResource {
         config.put("securityLevel", "${(flags.securityLevel)!""}");
         config.put("basePath", "${basePath}");
         config.put("enableTelemetry", ${((flags.enableTelemetry)!false)?c});
+        config.put("apiVersion", "${(apiVersion)!""}");
+        config.put("enableHealthCheck", ${((enableHealthCheck)!false)?c});
+        config.put("enableSearch", ${((enableSearch)!false)?c});
+        config.put("searchParam", searchParam);
         config.put("pagination", pagination);
         config.put("customCssPath", customCssPath);
 

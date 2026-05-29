@@ -30,14 +30,33 @@ import io.github.resilience4j.retry.RetryRegistry;
 import java.time.Duration;
 import java.util.function.Supplier;
 </#if>
+<#if (flags.enableRateLimiter)!false>
+import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.github.resilience4j.ratelimiter.RateLimiterConfig;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import java.time.Duration;
+import java.util.function.Supplier;
+</#if>
 <#if (flags.enableResponseCache)!false>
-import com.github.ben-manes.caffeine.cache.Cache;
 import com.github.ben-manes.caffeine.cache.Caffeine;
 import java.util.concurrent.TimeUnit;
+<#if (flags.enableAuditLog)!false>
+import io.quarkus.redis.client.RedisClient;
+import io.quarkus.redis.client.reactive.ReactiveRedisDataSource;
+import io.vertx.redis.client.Response;
+</#if>
 </#if>
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+<#if (flags.enableTransform)!false>
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+</#if>
 
 @ApplicationScoped
 public class ProxyService {
@@ -70,7 +89,48 @@ public class ProxyService {
     private Retry retry;
 </#if>
 <#if (flags.enableResponseCache)!false>
-    private Cache<String, String> responseCache;
+    private ResponseCache responseCache;
+
+    interface ResponseCache {
+        String getIfPresent(String key);
+        void put(String key, String value);
+        void invalidateAll();
+    }
+
+    static class CaffeineResponseCache implements ResponseCache {
+        private final com.github.ben-manes.caffeine.cache.Cache<String, String> cache;
+        CaffeineResponseCache(long ttlSeconds, long maxSize) {
+            this.cache = Caffeine.newBuilder()
+                    .maximumSize(maxSize)
+                    .expireAfterWrite(ttlSeconds, TimeUnit.SECONDS)
+                    .build();
+        }
+        @Override public String getIfPresent(String key) { return cache.getIfPresent(key); }
+        @Override public void put(String key, String value) { cache.put(key, value); }
+        @Override public void invalidateAll() { cache.invalidateAll(); }
+    }
+<#if (flags.enableAuditLog)!false>
+
+    static class RedisResponseCache implements ResponseCache {
+        private final RedisClient redisClient;
+        private final long ttlSeconds;
+        RedisResponseCache(RedisClient redisClient, long ttlSeconds) {
+            this.redisClient = redisClient;
+            this.ttlSeconds = ttlSeconds;
+        }
+        @Override public String getIfPresent(String key) {
+            Response resp = redisClient.get(key);
+            return resp != null ? resp.toString() : null;
+        }
+        @Override public void put(String key, String value) {
+            redisClient.setex(key, String.valueOf(ttlSeconds), value);
+        }
+        @Override public void invalidateAll() { redisClient.flushdb(); }
+    }
+</#if>
+</#if>
+<#if (flags.enableRateLimiter)!false>
+    private RateLimiter rateLimiter;
 </#if>
 
     @PostConstruct
@@ -93,10 +153,26 @@ public class ProxyService {
         this.retry = RetryRegistry.of(retryConfig).retry("proxy");
 </#if>
 <#if (flags.enableResponseCache)!false>
-        this.responseCache = Caffeine.newBuilder()
-                .maximumSize(Long.parseLong(System.getenv().getOrDefault("CACHE_MAX_SIZE", "1000")))
-                .expireAfterWrite(Long.parseLong(System.getenv().getOrDefault("CACHE_TTL_SECONDS", "60")), TimeUnit.SECONDS)
+        String redisUrl = System.getenv().getOrDefault("CACHE_REDIS_URL", "");
+        long cacheTtl = Long.parseLong(System.getenv().getOrDefault("CACHE_TTL_SECONDS", "60"));
+        long cacheMaxSize = Long.parseLong(System.getenv().getOrDefault("CACHE_MAX_SIZE", "1000"));
+        if (!redisUrl.isBlank()) {
+<#if (flags.enableAuditLog)!false>
+            this.responseCache = new RedisResponseCache(redisClient, cacheTtl);
+<#else>
+            this.responseCache = new CaffeineResponseCache(cacheTtl, cacheMaxSize);
+</#if>
+        } else {
+            this.responseCache = new CaffeineResponseCache(cacheTtl, cacheMaxSize);
+        }
+</#if>
+<#if (flags.enableRateLimiter)!false>
+        RateLimiterConfig rlConfig = RateLimiterConfig.custom()
+                .limitForPeriod(Integer.parseInt(System.getenv().getOrDefault("RATE_LIMIT_PERMITS", "10")))
+                .limitRefreshPeriod(Duration.ofSeconds(Long.parseLong(System.getenv().getOrDefault("RATE_LIMIT_PERIOD_SECONDS", "1"))))
+                .timeoutDuration(Duration.ofMillis(Long.parseLong(System.getenv().getOrDefault("RATE_LIMIT_TIMEOUT_MILLIS", "5000"))))
                 .build();
+        this.rateLimiter = RateLimiterRegistry.of(rlConfig).rateLimiter("proxy");
 </#if>
     }
 
@@ -107,7 +183,65 @@ public class ProxyService {
         }
     }
 
-    public Response forward(String targetUrl, String method, String requestBody, HttpHeaders headers) {
+<#if (flags.enableTransform)!false>
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    static MultivaluedMap<String, String> applyHeaderTransforms(
+            MultivaluedMap<String, String> headers,
+            Map<String, String> add,
+            List<String> remove,
+            Map<String, String> rename) {
+        if (add != null) add.forEach((k, v) -> headers.putSingle(k, v));
+        if (remove != null) remove.forEach(headers::remove);
+        if (rename != null) {
+            Map<String, String> copied = new HashMap<>();
+            rename.forEach((oldName, newName) -> {
+                String val = headers.getFirst(oldName);
+                if (val != null) {
+                    copied.put(newName, val);
+                    headers.remove(oldName);
+                }
+            });
+            copied.forEach((k, v) -> headers.putSingle(k, v));
+        }
+        return headers;
+    }
+
+    static String applyFieldTransforms(String body,
+                                        Map<String, String> rename,
+                                        List<String> remove) {
+        if (body == null || body.isBlank()) return body;
+        if ((rename == null || rename.isEmpty()) && (remove == null || remove.isEmpty())) return body;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = MAPPER.readValue(body, Map.class);
+            if (remove != null) remove.forEach(map::remove);
+            if (rename != null) {
+                Map<String, Object> renamed = new HashMap<>();
+                rename.forEach((oldName, newName) -> {
+                    Object val = map.remove(oldName);
+                    if (val != null) renamed.put(newName, val);
+                });
+                map.putAll(renamed);
+            }
+            return MAPPER.writeValueAsString(map);
+        } catch (Exception e) {
+            return body;
+        }
+    }
+
+</#if>
+    public Response forward(String targetUrl, String method, String requestBody, HttpHeaders headers<#if (flags.enableTransform)!false>,
+            Map<String, String> reqHeaderAdd,
+            List<String> reqHeaderRemove,
+            Map<String, String> reqHeaderRename,
+            Map<String, String> reqFieldRename,
+            List<String> reqFieldRemove,
+            Map<String, String> resHeaderAdd,
+            List<String> resHeaderRemove,
+            Map<String, String> resHeaderRename,
+            Map<String, String> resFieldRename,
+            List<String> resFieldRemove</#if>) {
 <#if (flags.enableResponseCache)!false>
         if ("GET".equalsIgnoreCase(method)) {
             String cached = responseCache.getIfPresent(targetUrl);
@@ -136,13 +270,39 @@ public class ProxyService {
                     }
                 }
             }
+<#if (flags.enableTransform)!false>
+            applyHeaderTransforms(requestHeaders, reqHeaderAdd, reqHeaderRemove, reqHeaderRename);
+            requestBody = applyFieldTransforms(requestBody, reqFieldRename, reqFieldRemove);
+            var transformTarget = client.target(targetUrl).request();
+            for (var entry : requestHeaders.entrySet()) {
+                for (String value : entry.getValue()) {
+                    transformTarget = transformTarget.header(entry.getKey(), value);
+                }
+            }
+            target = transformTarget;
+</#if>
 
             String contentType = headers.getHeaderString(HttpHeaders.CONTENT_TYPE);
             if (contentType == null) {
                 contentType = MediaType.APPLICATION_JSON;
             }
 
-<#if (flags.enableCircuitBreaker)!false>
+<#if (flags.enableRateLimiter)!false && (flags.enableCircuitBreaker)!false>
+            final var targetFinal = target;
+            final String methodUpper = method.toUpperCase();
+            final String bodyFinal = requestBody;
+            final String ctFinal = contentType;
+            Supplier<Response> innerCall = CircuitBreaker.decorateSupplier(circuitBreaker,
+                    Retry.decorateSupplier(retry, () -> {
+                        if (bodyFinal != null && !bodyFinal.isBlank()) {
+                            return targetFinal.method(methodUpper, Entity.entity(bodyFinal, ctFinal));
+                        } else {
+                            return targetFinal.method(methodUpper);
+                        }
+                    }));
+            Supplier<Response> call = RateLimiter.decorateSupplier(rateLimiter, innerCall);
+            upstream = call.get();
+<#elseif (flags.enableCircuitBreaker)!false>
             final var targetFinal = target;
             final String methodUpper = method.toUpperCase();
             final String bodyFinal = requestBody;
@@ -156,6 +316,19 @@ public class ProxyService {
                         }
                     }));
             upstream = call.get();
+<#elseif (flags.enableRateLimiter)!false>
+            final var targetFinal = target;
+            final String methodUpper = method.toUpperCase();
+            final String bodyFinal = requestBody;
+            final String ctFinal = contentType;
+            Supplier<Response> call = RateLimiter.decorateSupplier(rateLimiter, () -> {
+                if (bodyFinal != null && !bodyFinal.isBlank()) {
+                    return targetFinal.method(methodUpper, Entity.entity(bodyFinal, ctFinal));
+                } else {
+                    return targetFinal.method(methodUpper);
+                }
+            });
+            upstream = call.get();
 <#else>
             if (requestBody != null && !requestBody.isBlank()) {
                 upstream = target.method(method.toUpperCase(), Entity.entity(requestBody, contentType));
@@ -165,6 +338,9 @@ public class ProxyService {
 </#if>
 
             String body = upstream.readEntity(String.class);
+<#if (flags.enableTransform)!false>
+            body = applyFieldTransforms(body, resFieldRename, resFieldRemove);
+</#if>
 <#if (flags.enableResponseCache)!false>
             if ("GET".equalsIgnoreCase(method) && body != null) {
                 responseCache.put(targetUrl, body);
@@ -182,6 +358,26 @@ public class ProxyService {
                     }
                 }
             }
+<#if (flags.enableTransform)!false>
+            if (resHeaderAdd != null) resHeaderAdd.forEach((k, v) -> builder.header(k, v));
+            if (resHeaderRemove != null) {
+                MultivaluedMap<String, Object> filtered = new jakarta.ws.rs.core.MultivaluedHashMap<>();
+                upstreamHeaders.forEach((name, values) -> {
+                    if (!resHeaderRemove.contains(name)) {
+                        filtered.put(name, values);
+                    }
+                });
+            }
+            if (resHeaderRename != null) {
+                resHeaderRename.forEach((oldName, newName) -> {
+                    var values = upstreamHeaders.get(oldName);
+                    if (values != null) {
+                        builder.getHeaders().remove(oldName);
+                        values.forEach(v -> builder.header(newName, v.toString()));
+                    }
+                });
+            }
+</#if>
 <#if (flags.enableAuditLog)!false>
 
             successEvent.fireAsync(new ProxySuccessEvent(
@@ -193,6 +389,13 @@ public class ProxyService {
 
             return builder.build();
 
+<#if (flags.enableRateLimiter)!false>
+        } catch (RequestNotPermitted e) {
+            return Response.status(429)
+                    .entity("{\"error\":\"Too Many Requests\",\"rateLimit\":\"exceeded\"}")
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+</#if>
 <#if (flags.enableCircuitBreaker)!false>
         } catch (CallNotPermittedException e) {
             return Response.status(503)

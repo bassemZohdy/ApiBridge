@@ -5,9 +5,15 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 <#if (flags.enableAuditLog)!false>
 import org.springframework.scheduling.annotation.EnableAsync;
 </#if>
+<#if (enableHealthCheck)!false>
+import org.springframework.scheduling.annotation.EnableScheduling;
+</#if>
 
 <#if (flags.enableAuditLog)!false>
 @EnableAsync
+</#if>
+<#if (enableHealthCheck)!false>
+@EnableScheduling
 </#if>
 @SpringBootApplication
 public class Application {

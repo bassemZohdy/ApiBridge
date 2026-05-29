@@ -2,11 +2,15 @@
 <#assign listEndpoint = "" />
 <#assign listColumns = [] />
 <#assign viewEndpoint = "" />
+<#assign searchMode = "" />
 <#list endpoints as ep>
   <#if ep.method?upper_case == "GET" && !ep.path?contains("{") && listEndpoint == "">
     <#assign listEndpoint = ep />
     <#if ep.uiLayout?? && ep.uiLayout.columns??>
       <#assign listColumns = ep.uiLayout.columns />
+    </#if>
+    <#if ep.uiLayout?? && (ep.uiLayout.searchMode!"") != "">
+      <#assign searchMode = ep.uiLayout.searchMode />
     </#if>
   </#if>
   <#if ep.method?upper_case == "GET" && ep.path?contains("{") && viewEndpoint == "">
@@ -34,6 +38,14 @@ const page = ref(1);
 const sortField = ref('');
 const sortDir = ref<'asc' | 'desc'>('asc');
 const total = ref<number | null>(null);
+<#if (enableSearch)!false>
+const searchParam = computed(() => props.config.searchParam ?? 'q');
+const searchTerm = ref(() => {
+  const hash = window.location.hash;
+  const qs = hash.includes('?') ? hash.slice(hash.indexOf('?') + 1) : '';
+  return new URLSearchParams(qs).get(searchParam.value) ?? '';
+}());
+</#if>
 
 const pageParam = computed(() => props.config.pagination.pageParam);
 const sizeParam = computed(() => props.config.pagination.sizeParam);
@@ -46,14 +58,17 @@ async function fetchData() {
   loading.value = true;
   error.value = null;
   try {
-    const params = new URLSearchParams({
+    const params = new URLSearchParams(<#if searchMode != "local">{
       [pageParam.value]: String(page.value),
       [sizeParam.value]: String(pageSize.value),
-    });
+    }<#else>{}</#if>);
     if (sortField.value) {
       params.set(sortParam.value, sortField.value);
       params.set(directionParam.value, sortDir.value);
     }
+<#if (enableSearch)!false && searchMode != "local">
+    if (searchTerm.value) params.set(searchParam.value, searchTerm.value);
+</#if>
     const res = await fetch(`${basePath}${listEndpoint.path}?${r"${params}"}`, {
       headers: {
 <#if (flags.securityLevel!"") != "">
@@ -63,11 +78,15 @@ async function fetchData() {
       },
     });
     if (!res.ok) throw new Error(`${r"HTTP ${res.status}"}`);
+<#if searchMode != "local">
     const totalHeader = res.headers.get('X-Total-Count');
     if (totalHeader) total.value = parseInt(totalHeader, 10);
+</#if>
     const data = await res.json();
     rows.value = Array.isArray(data) ? data : data.content ?? data.items ?? data.data ?? [];
+<#if searchMode != "local">
     if (!totalHeader && !Array.isArray(data) && typeof data.total === 'number') total.value = data.total;
+</#if>
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Request failed';
   } finally {
@@ -75,7 +94,36 @@ async function fetchData() {
   }
 }
 
-watch([page, sortField, sortDir], fetchData, { immediate: true });
+watch([<#if searchMode != "local">page, </#if>sortField, sortDir<#if (enableSearch)!false && searchMode != "local">, searchTerm</#if>], fetchData, { immediate: true });
+</#if>
+<#if (enableSearch)!false>
+
+watch(searchTerm, (term) => {
+  const hash = window.location.hash;
+  const base = hash.includes('?') ? hash.slice(0, hash.indexOf('?')) : (hash || '#/list');
+  window.history.replaceState(null, '', base + (term ? `${r"?${searchParam.value}=${encodeURIComponent(term)}"}` : ''));
+  page.value = 1;
+});
+<#if searchMode == "local">
+
+const visibleRows = computed(() => {
+  if (!searchTerm.value) return rows.value;
+  const term = searchTerm.value.toLowerCase();
+  return rows.value.filter(row => Object.values(row).some(v => String(v ?? '').toLowerCase().includes(term)));
+});
+const localTotal = computed(() => visibleRows.value.length);
+const displayRows = computed(() => visibleRows.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value));
+const totalPages = computed(() => localTotal.value > 0 ? Math.ceil(localTotal.value / pageSize.value) : null);
+<#else>
+const totalPages = computed(() => total.value !== null ? Math.ceil(total.value / pageSize.value) : null);
+const displayRows = computed(() => rows.value);
+</#if>
+<#else>
+
+const totalPages = computed(() =>
+  total.value !== null ? Math.ceil(total.value / pageSize.value) : null
+);
+const displayRows = computed(() => rows.value);
 </#if>
 
 <#if listColumns?has_content>
@@ -109,10 +157,6 @@ function handleRowClick(row: Row) {
   props.onNavigate(`view/${r"${id}"}`);
 }
 </#if>
-
-const totalPages = computed(() =>
-  total.value !== null ? Math.ceil(total.value / pageSize.value) : null
-);
 </script>
 
 <template>
@@ -133,6 +177,18 @@ const totalPages = computed(() =>
 </#list>
         </div>
       </div>
+<#if (enableSearch)!false>
+
+      <div class="apib-search-bar">
+        <input
+          type="text"
+          class="apib-search-input"
+          placeholder="Search..."
+          :value="searchTerm"
+          @input="searchTerm = ($event.target as HTMLInputElement).value"
+        />
+      </div>
+</#if>
 
       <div v-if="error" class="apib-error">{{ error }}</div>
 
@@ -142,11 +198,7 @@ const totalPages = computed(() =>
           <thead>
             <tr>
               <th
-<#if listColumns?has_content>
                 v-for="col in columns"
-<#else>
-                v-for="col in columns"
-</#if>
                 :key="col.field"
                 :class="['apib-th', col.sortable ? 'apib-th--sortable' : '', sortField === col.field ? 'apib-th--sorted' : '']"
                 @click="handleSort(col.field, col.sortable)"
@@ -160,12 +212,12 @@ const totalPages = computed(() =>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="rows.length === 0">
+            <tr v-if="displayRows.length === 0">
               <td :colspan="columns.length + 1" class="apib-td apib-td--empty">No records found</td>
             </tr>
             <tr
               v-else
-              v-for="(row, idx) in rows"
+              v-for="(row, idx) in displayRows"
               :key="String(row['id'] ?? row['_id'] ?? idx)"
               class="apib-tr"
 <#if viewEndpoint != "">
@@ -184,9 +236,13 @@ const totalPages = computed(() =>
         </table>
       </div>
 
-      <div v-if="totalPages !== null || rows.length > 0" class="apib-pagination">
+      <div v-if="totalPages !== null || displayRows.length > 0" class="apib-pagination">
         <span class="apib-pagination-info">
+<#if (enableSearch)!false && searchMode == "local">
+          {{ `${r"${localTotal}"} records` }}
+<#else>
           {{ total !== null ? `${r"${total}"} records` : `${r"${rows.length}"} records` }}
+</#if>
         </span>
         <div class="apib-pagination-controls">
           <button class="apib-page-btn" @click="page = Math.max(1, page - 1)" :disabled="page === 1">‹ Prev</button>
@@ -208,6 +264,24 @@ const totalPages = computed(() =>
   justify-content: center;
   padding: 2rem;
 }
+
+/* ── Search bar ─────────────────────────────────────────────── */
+.apib-search-bar {
+  margin-bottom: 1rem;
+}
+.apib-search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  outline: none;
+  box-sizing: border-box;
+}
+.apib-search-input:focus { border-color: var(--accent); }
 
 /* ── Buttons ────────────────────────────────────────────────── */
 .apib-btn {

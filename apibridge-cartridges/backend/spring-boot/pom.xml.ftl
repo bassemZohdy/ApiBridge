@@ -50,6 +50,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
+<#elseif (flags.enableResponseCache)!false>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
 </#if>
 <#if (flags.enableCircuitBreaker)!false>
         <dependency>
@@ -60,6 +65,13 @@
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-retry</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+</#if>
+<#if (flags.enableRateLimiter)!false>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-ratelimiter</artifactId>
             <version>2.2.0</version>
         </dependency>
 </#if>

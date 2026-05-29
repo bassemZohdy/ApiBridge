@@ -57,6 +57,12 @@ management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 #   PAGINATION_DIRECTION_PARAM=dir  Query param name for sort direction (asc/desc)
 #   PROXY_CONNECT_TIMEOUT=5000     Proxy connect timeout in milliseconds (default: 5000)
 #   PROXY_READ_TIMEOUT=30000       Proxy read timeout in milliseconds (default: 30000)
+#   DEBUG_MODE=false                Enable debug logging (request/response details); off in production
+<#if (flags.enableTransform)!false>
+#   Transforms are schema-defined at build time — no runtime configuration needed.
+#   Header transforms: add, remove, rename on request and response headers.
+#   Field transforms: rename, remove on JSON request and response body fields.
+</#if>
 <#if (flags.enableAuditLog)!false>
 #   SPRING_DATA_REDIS_URL=redis://localhost:6379   Redis connection URL
 #   SPRING_DATA_MONGODB_URI=mongodb://localhost:27017  MongoDB connection URI
@@ -71,8 +77,21 @@ management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 #   CB_RETRY_WAIT_MS=500           Wait between retry attempts in milliseconds
 </#if>
 <#if (flags.enableResponseCache)!false>
-#   CACHE_TTL_SECONDS=60           TTL for cached GET responses
-#   CACHE_MAX_SIZE=1000            Maximum cached entries (LRU eviction)
+#   CACHE_REDIS_URL=                 Redis URL for distributed cache; empty/absent = embedded Caffeine
+#   CACHE_TTL_SECONDS=60            TTL for cached GET responses
+#   CACHE_MAX_SIZE=1000             Maximum cached entries (LRU eviction, Caffeine only)
+</#if>
+<#if (flags.enableRateLimiter)!false>
+#   RATE_LIMIT_PERMITS=10           Max requests per rate limit period
+#   RATE_LIMIT_PERIOD_SECONDS=1     Rate limit period in seconds
+#   RATE_LIMIT_TIMEOUT_MILLIS=5000  Max wait for a permit before 429
+</#if>
+<#if (enableHealthCheck)!false>
+#   HEALTH_CHECK_INTERVAL_SECONDS=30  Interval between upstream probes in seconds
+#   HEALTH_CHECK_TIMEOUT_MS=3000      Per-probe HTTP timeout in milliseconds
+</#if>
+<#if (enableSearch)!false>
+#   SEARCH_PARAM=q                    Query param name sent to upstream for search (delegate mode)
 </#if>
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                      Expected X-API-Key header value; empty = validation disabled

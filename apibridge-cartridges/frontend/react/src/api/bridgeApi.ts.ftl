@@ -55,7 +55,7 @@ export function getAuthHeaders(token?: string): Record<string, string> {
 export async function ${methodName}(<#list pathParams as param>${param}: string, </#list><#if hasBody>body?: unknown<#else>_body?: unknown</#if><#if securityLevel == "bearer-token">, token?: string</#if>): Promise<unknown> {
   const headers: Record<string, string> = { ...getAuthHeaders(token), 'Content-Type': 'application/json' };
   const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const url = (baseUrl + '${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
+  const url = (baseUrl + '<#if apiVersion?has_content>/${apiVersion}</#if>${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
 <#if hasBody>
   const response = await axios({ method: '${endpoint.method}', url, data: body, headers });
 <#else>

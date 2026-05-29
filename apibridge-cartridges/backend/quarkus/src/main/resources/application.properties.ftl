@@ -59,6 +59,12 @@ quarkus.otel.service.name=${id}
 #   PAGINATION_DIRECTION_PARAM=dir    Query param name for sort direction (asc/desc)
 #   PROXY_CONNECT_TIMEOUT=5000        Proxy connect timeout in milliseconds (default: 5000)
 #   PROXY_READ_TIMEOUT=30000          Proxy read timeout in milliseconds (default: 30000)
+#   DEBUG_MODE=false                   Enable debug logging (request/response details); off in production
+<#if (flags.enableTransform)!false>
+#   Transforms are schema-defined at build time — no runtime configuration needed.
+#   Header transforms: add, remove, rename on request and response headers.
+#   Field transforms: rename, remove on JSON request and response body fields.
+</#if>
 <#if (flags.enableAuditLog)!false>
 #   QUARKUS_REDIS_HOSTS=redis://localhost:6379   Redis connection URL
 #   QUARKUS_MONGODB_CONNECTION_STRING=mongodb://localhost:27017  MongoDB URI
@@ -73,8 +79,14 @@ quarkus.otel.service.name=${id}
 #   CB_RETRY_WAIT_MS=500             Wait between retry attempts in milliseconds
 </#if>
 <#if (flags.enableResponseCache)!false>
+#   CACHE_REDIS_URL=                 Redis URL for distributed cache; empty/absent = embedded Caffeine
 #   CACHE_TTL_SECONDS=60             TTL for cached GET responses
-#   CACHE_MAX_SIZE=1000              Maximum cached entries (LRU eviction)
+#   CACHE_MAX_SIZE=1000              Maximum cached entries (LRU eviction, Caffeine only)
+</#if>
+<#if (flags.enableRateLimiter)!false>
+#   RATE_LIMIT_PERMITS=10            Max requests per rate limit period
+#   RATE_LIMIT_PERIOD_SECONDS=1      Rate limit period in seconds
+#   RATE_LIMIT_TIMEOUT_MILLIS=5000   Max wait for a permit before 429
 </#if>
 <#if (flags.securityLevel!"") == "apiKey">
 #   API_KEY=                          Expected X-API-Key header; empty = validation disabled

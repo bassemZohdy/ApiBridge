@@ -51,6 +51,16 @@ function parseHash(hash: string): Route {
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
   const [config, setConfig] = useState<BridgeConfig | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const stored = localStorage.getItem('apib-theme');
+    if (stored === 'dark' || stored === 'light') return stored as 'light' | 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('apib-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     loadBridgeConfig().then(setConfig);
@@ -66,42 +76,69 @@ export function App() {
     window.location.hash = path;
   };
 
+  const themeToggle = (
+    <button className="apib-theme-toggle" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
+      {theme === 'dark' ? '☀' : '☾'}
+    </button>
+  );
+
   if (!config) {
     return (
-      <div className="apib-shell">
-        <div className="apib-topbar" />
-        <div className="apib-loading"><span className="apib-spinner" /></div>
-      </div>
+      <>
+        {themeToggle}
+        <div className="apib-shell">
+          <div className="apib-topbar" />
+          <div className="apib-loading"><span className="apib-spinner" /></div>
+        </div>
+      </>
     );
   }
 
 <#if hasListEndpoint>
   if (route.page === 'list') {
-    return <ApiBridgeList config={config} onNavigate={navigate} />;
+    return (
+      <>
+        {themeToggle}
+        <ApiBridgeList config={config} onNavigate={navigate} />
+      </>
+    );
   }
 </#if>
 <#if hasViewEndpoint>
   if (route.page === 'view') {
-    return <ApiBridgeView recordId={(route as { page: 'view'; id: string }).id} onNavigate={navigate} />;
+    return (
+      <>
+        {themeToggle}
+        <ApiBridgeView recordId={(route as { page: 'view'; id: string }).id} onNavigate={navigate} />
+      </>
+    );
   }
 </#if>
 <#if hasFormEndpoint>
   if (route.page === 'form') {
     const formRoute = route as { page: 'form'; id?: string };
-    return <ApiBridgeForm editId={formRoute.id} onNavigate={navigate} />;
+    return (
+      <>
+        {themeToggle}
+        <ApiBridgeForm editId={formRoute.id} onNavigate={navigate} />
+      </>
+    );
   }
 </#if>
 
   return (
-    <div className="apib-shell">
-      <div className="apib-topbar" />
-      <div className="apib-card">
-        <div className="apib-header">
-          <span className="apib-badge">${id?upper_case}</span>
-          <h1 className="apib-title">API Bridge</h1>
+    <>
+      {themeToggle}
+      <div className="apib-shell">
+        <div className="apib-topbar" />
+        <div className="apib-card">
+          <div className="apib-header">
+            <span className="apib-badge">${id?upper_case}</span>
+            <h1 className="apib-title">API Bridge</h1>
+          </div>
+          <p className="apib-label">Page not found.</p>
         </div>
-        <p className="apib-label">Page not found.</p>
       </div>
-    </div>
+    </>
   );
 }

@@ -1223,6 +1223,317 @@ public class YamlParserTest {
         assertFalse(model.getFlags().isEnableResponseCache());
     }
 
+    // --- Phase 6: Rate Limiter tests ---
+
+    @Test
+    public void testEnableRateLimiterDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableRateLimiter(), "enableRateLimiter must default to false");
+    }
+
+    @Test
+    public void testEnableRateLimiterExplicitTrue(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableRateLimiter: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableRateLimiter());
+    }
+
+    // --- Phase 6: API Versioning tests ---
+
+    @Test
+    public void testApiVersionValidV1(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  apiVersion: "v1"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("v1", model.getFlags().getApiVersion());
+    }
+
+    @Test
+    public void testApiVersionValidV2(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  apiVersion: "v2"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("v2", model.getFlags().getApiVersion());
+    }
+
+    @Test
+    public void testApiVersionInvalidFormatThrows(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  apiVersion: "x1"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("apiVersion"));
+    }
+
+    @Test
+    public void testApiVersionNullIsValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertNull(model.getFlags().getApiVersion());
+    }
+
+    // --- Phase 6: Health Check tests ---
+
+    @Test
+    public void testEnableHealthCheckDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableHealthCheck(), "enableHealthCheck must default to false");
+    }
+
+    // --- Phase 6: MockResponse tests ---
+
+    @Test
+    public void testMockResponseValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    mockResponse:
+                      statusCode: 201
+                      body: '{"status":"ok"}'
+                      delayMs: 100
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        BridgeSchemaModel.MockResponse mock = model.getEndpoints().get(0).getMockResponse();
+        assertEquals(201, mock.getStatusCode());
+        assertEquals("{\"status\":\"ok\"}", mock.getBody());
+        assertEquals(100, mock.getDelayMs());
+    }
+
+    @Test
+    public void testMockResponseInvalidStatusCodeThrows(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    mockResponse:
+                      statusCode: 99
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("statusCode"));
+    }
+
+    @Test
+    public void testMockResponseStatusCode600Throws(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    mockResponse:
+                      statusCode: 600
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("statusCode"));
+    }
+
+    @Test
+    public void testMockResponseNegativeDelayThrows(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    mockResponse:
+                      delayMs: -1
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("delayMs"));
+    }
+
+    // --- Phase 6: SearchMode tests ---
+
+    @Test
+    public void testSearchModeDelegateValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      searchMode: "delegate"
+                      columns:
+                        - field: "name"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("delegate", model.getEndpoints().get(0).getUiLayout().getSearchMode());
+    }
+
+    @Test
+    public void testSearchModeLocalValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      searchMode: "local"
+                      columns:
+                        - field: "name"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("local", model.getEndpoints().get(0).getUiLayout().getSearchMode());
+    }
+
+    @Test
+    public void testSearchModeInvalidValueThrows(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      searchMode: "auto"
+                      columns:
+                        - field: "name"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("searchMode"));
+    }
+
+    @Test
+    public void testSearchModeOnNonListThrows(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items/{id}"
+                    method: "GET"
+                    backendUrl: "https://example.com/items/1"
+                    uiLayout:
+                      component: "View"
+                      searchMode: "delegate"
+                      fields:
+                        - name: "name"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("searchMode") && ex.getMessage().contains("List"));
+    }
+
+    // --- Phase 6: Transforms tests ---
+
+    @Test
+    public void testTransformsParsesCorrectly(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    transforms:
+                      requestHeaders:
+                        add: { "X-Source": "apibridge" }
+                        remove: [ "X-Internal" ]
+                        rename: { "X-Old": "X-New" }
+                      responseFields:
+                        rename: { "upstream_name": "displayName" }
+                        remove: [ "secret" ]
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        BridgeSchemaModel.Transforms t = model.getEndpoints().get(0).getTransforms();
+        assertNotNull(t);
+        assertEquals("apibridge", t.getRequestHeaders().getAdd().get("X-Source"));
+        assertTrue(t.getRequestHeaders().getRemove().contains("X-Internal"));
+        assertEquals("X-New", t.getRequestHeaders().getRename().get("X-Old"));
+        assertEquals("displayName", t.getResponseFields().getRename().get("upstream_name"));
+        assertTrue(t.getResponseFields().getRemove().contains("secret"));
+    }
+
+    @Test
+    public void testTransformsWithoutFlagStillValid(@TempDir Path tempDir) throws Exception {
+        File file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    transforms:
+                      requestHeaders:
+                        add: { "X-Source": "test" }
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertNotNull(model.getEndpoints().get(0).getTransforms());
+    }
+
     // --- Helper ---
 
     private File writeYaml(Path dir, String name, String content) throws IOException {

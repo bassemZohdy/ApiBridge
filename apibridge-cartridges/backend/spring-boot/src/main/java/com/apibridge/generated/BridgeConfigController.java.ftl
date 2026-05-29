@@ -31,6 +31,9 @@ public class BridgeConfigController {
     @Value("${r"${CUSTOM_CSS_PATH:}"}")
     private String customCssPath;
 
+    @Value("${r"${SEARCH_PARAM:q}"}")
+    private String searchParam;
+
     @GetMapping("/bridge-config")
     public ResponseEntity<Map<String, Object>> config() {
         Map<String, Object> pagination = new LinkedHashMap<>();
@@ -44,6 +47,10 @@ public class BridgeConfigController {
         config.put("securityLevel", "${(flags.securityLevel)!""}");
         config.put("basePath", "${basePath}");
         config.put("enableTelemetry", ${((flags.enableTelemetry)!false)?c});
+        config.put("apiVersion", "${(apiVersion)!""}");
+        config.put("enableHealthCheck", ${((enableHealthCheck)!false)?c});
+        config.put("enableSearch", ${((enableSearch)!false)?c});
+        config.put("searchParam", searchParam);
         config.put("pagination", pagination);
         config.put("customCssPath", customCssPath);
 

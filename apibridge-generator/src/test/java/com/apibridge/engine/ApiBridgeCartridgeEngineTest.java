@@ -1211,6 +1211,647 @@ public class ApiBridgeCartridgeEngineTest {
         assertTrue(content.contains("CACHE_MAX_SIZE"), "docker-compose must have CACHE_MAX_SIZE");
     }
 
+    // --- Phase 6: Rate Limiter engine tests ---
+
+    @Test
+    public void testSpringBootPomContainsRateLimiterDep(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableRateLimiter(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("resilience4j-ratelimiter"), "Spring Boot pom must include resilience4j-ratelimiter");
+    }
+
+    @Test
+    public void testSpringBootPomNoRateLimiterDepWhenDisabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableRateLimiter(false);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertFalse(pom.contains("resilience4j-ratelimiter"), "No rate limiter dep when flag off");
+    }
+
+    @Test
+    public void testSpringBootProxyServiceContainsRateLimiterCode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableRateLimiter(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("RateLimiter"), "ProxyService must reference RateLimiter");
+        assertTrue(content.contains("RequestNotPermitted"), "ProxyService must catch RequestNotPermitted");
+        assertTrue(content.contains("Too Many Requests"), "ProxyService must return 429 fallback");
+    }
+
+    @Test
+    public void testQuarkusPomContainsRateLimiterDep(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableRateLimiter(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("resilience4j-ratelimiter"), "Quarkus pom must include resilience4j-ratelimiter");
+    }
+
+    @Test
+    public void testQuarkusProxyServiceContainsRateLimiterCode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableRateLimiter(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("RateLimiter"), "Quarkus ProxyService must reference RateLimiter");
+        assertTrue(content.contains("RequestNotPermitted"), "Quarkus ProxyService must catch RequestNotPermitted");
+    }
+
+    @Test
+    public void testDockerComposeRateLimiterEnvVars(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableRateLimiter(true);
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(content.contains("RATE_LIMIT_PERMITS"), "docker-compose must have RATE_LIMIT_PERMITS");
+        assertTrue(content.contains("RATE_LIMIT_PERIOD_SECONDS"), "docker-compose must have RATE_LIMIT_PERIOD_SECONDS");
+    }
+
+    // --- F2: Redis distributed cache tests ---
+
+    @Test
+    public void testSpringBootPomContainsRedisDepWhenCacheEnabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("spring-boot-starter-data-redis"), "pom must contain redis dep when cache enabled");
+    }
+
+    @Test
+    public void testSpringBootPomContainsRedisDepWhenAuditEnabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableAuditLog(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("spring-boot-starter-data-redis"), "pom must contain redis dep when audit enabled");
+    }
+
+    @Test
+    public void testSpringBootProxyServiceContainsRedisCacheCode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("ResponseCache"), "must contain ResponseCache interface");
+        assertTrue(content.contains("CaffeineResponseCache"), "must contain CaffeineResponseCache");
+        assertTrue(content.contains("CACHE_REDIS_URL"), "must check CACHE_REDIS_URL env var");
+    }
+
+    @Test
+    public void testSpringBootRedisCacheRequiresAuditForRedisImpl(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableAuditLog(false);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("CaffeineResponseCache"), "must contain CaffeineResponseCache fallback");
+        assertFalse(content.contains("RedisResponseCache"), "must not contain RedisResponseCache without audit");
+    }
+
+    @Test
+    public void testSpringBootRedisCacheWithAudit(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableAuditLog(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("RedisResponseCache"), "must contain RedisResponseCache when audit enabled");
+        assertTrue(content.contains("RedisConnectionFactory"), "must contain RedisConnectionFactory");
+    }
+
+    @Test
+    public void testQuarkusPomContainsRedisDepWhenCacheEnabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String pom = Files.readString(outputDir.toPath().resolve("backend/pom.xml"));
+        assertTrue(pom.contains("quarkus-redis-client"), "pom must contain redis dep when cache enabled");
+    }
+
+    @Test
+    public void testQuarkusProxyServiceContainsDualCacheCode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("ResponseCache"), "must contain ResponseCache interface");
+        assertTrue(content.contains("CaffeineResponseCache"), "must contain CaffeineResponseCache");
+        assertTrue(content.contains("CACHE_REDIS_URL"), "must check CACHE_REDIS_URL env var");
+    }
+
+    @Test
+    public void testDockerComposeContainsCacheRedisUrl(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(content.contains("CACHE_REDIS_URL"), "docker-compose must have CACHE_REDIS_URL");
+    }
+
+    @Test
+    public void testDockerComposeContainsRedisServiceWhenCacheOnly(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableAuditLog(false);
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(content.contains("redis:7-alpine"), "docker-compose must have redis service");
+        assertFalse(content.contains("mongo:7"), "docker-compose must not have mongo when audit disabled");
+    }
+
+    @Test
+    public void testK8sConfigmapContainsCacheRedisUrl(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("CACHE_REDIS_URL"), "configmap must have CACHE_REDIS_URL");
+    }
+
+    // --- F6: Debug mode tests ---
+
+    @Test
+    public void testSpringBootDebugFilterGenerated(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path filterFile = outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/DebugLoggingFilter.java");
+        assertTrue(Files.exists(filterFile), "DebugLoggingFilter.java must be generated");
+        String content = Files.readString(filterFile);
+        assertTrue(content.contains("OncePerRequestFilter"), "must extend OncePerRequestFilter");
+        assertTrue(content.contains("debugMode"), "must check debugMode flag");
+    }
+
+    @Test
+    public void testQuarkusDebugFilterGenerated(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        Path filterFile = outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/DebugLoggingFilter.java");
+        assertTrue(Files.exists(filterFile), "DebugLoggingFilter.java must be generated");
+        String content = Files.readString(filterFile);
+        assertTrue(content.contains("ContainerRequestFilter"), "must implement ContainerRequestFilter");
+        assertTrue(content.contains("ContainerResponseFilter"), "must implement ContainerResponseFilter");
+    }
+
+    @Test
+    public void testDockerComposeContainsDebugMode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("devops/docker-compose");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(content.contains("DEBUG_MODE"), "docker-compose must have DEBUG_MODE");
+    }
+
+    @Test
+    public void testK8sConfigmapContainsDebugMode(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File cartridgeDir = findCartridgeDir("devops/k8s/kubernetes");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("DEBUG_MODE"), "configmap must have DEBUG_MODE");
+    }
+
+    // --- F3: Request/Response Transform tests ---
+
+    @Test
+    public void testSpringBootProxyServiceContainsTransformMethods(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTransformTestModel();
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("applyHeaderTransforms"), "must contain applyHeaderTransforms");
+        assertTrue(content.contains("applyFieldTransforms"), "must contain applyFieldTransforms");
+        assertTrue(content.contains("ObjectMapper"), "must use ObjectMapper for field transforms");
+    }
+
+    @Test
+    public void testSpringBootControllerPassesTransformArgs(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTransformTestModel();
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java"));
+        assertTrue(content.contains("Map.of("), "controller must pass transform maps");
+        assertTrue(content.contains("List.of("), "controller must pass transform lists");
+        assertTrue(content.contains("X-Source"), "controller must contain header add data");
+    }
+
+    @Test
+    public void testSpringBootNoTransformCodeWhenFlagOff(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableTransform(false);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String proxy = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertFalse(proxy.contains("applyHeaderTransforms"), "no transform code when flag off");
+        assertFalse(proxy.contains("ObjectMapper"), "no ObjectMapper when flag off");
+    }
+
+    @Test
+    public void testQuarkusProxyServiceContainsTransformMethods(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTransformTestModel();
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("applyHeaderTransforms"), "must contain applyHeaderTransforms");
+        assertTrue(content.contains("applyFieldTransforms"), "must contain applyFieldTransforms");
+    }
+
+    @Test
+    public void testQuarkusResourcePassesTransformArgs(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTransformTestModel();
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/BridgeResource.java"));
+        assertTrue(content.contains("Map.of("), "resource must pass transform maps");
+        assertTrue(content.contains("List.of("), "resource must pass transform lists");
+        assertTrue(content.contains("X-Source"), "resource must contain header add data");
+    }
+
+    @Test
+    public void testQuarkusNoTransformCodeWhenFlagOff(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableTransform(false);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String proxy = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertFalse(proxy.contains("applyHeaderTransforms"), "no transform code when flag off");
+        assertFalse(proxy.contains("ObjectMapper"), "no ObjectMapper when flag off");
+    }
+
+    @Test
+    public void testSpringBootTransformHeaderAddGenerated(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTransformTestModel();
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java"));
+        assertTrue(content.contains("X-Source"), "controller must contain X-Source from header add");
+        assertTrue(content.contains("apibridge"), "controller must contain apibridge value from header add");
+    }
+
+    @Test
+    public void testQuarkusTransformHeaderAddGenerated(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTransformTestModel();
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/BridgeResource.java"));
+        assertTrue(content.contains("X-Source"), "resource must contain X-Source from header add");
+        assertTrue(content.contains("apibridge"), "resource must contain apibridge value from header add");
+    }
+
+    @Test
+    public void testSpringBootEndpointWithoutTransformsPassesNull(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableTransform(true);
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java"));
+        String normalized = content.replace("\n", "").replace("\r", "");
+        assertTrue(normalized.contains("null, null, null"), "no-transform endpoint must pass null args");
+        assertFalse(content.contains("Map.of"), "no-transform endpoint must not have Map.of");
+    }
+
+    @Test
+    public void testSpringBootTransformForwardSignatureHasExtraParams(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTransformTestModel();
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String proxy = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(proxy.contains("Map<String, String> reqHeaderAdd"), "forward must accept reqHeaderAdd");
+        assertTrue(proxy.contains("List<String> reqHeaderRemove"), "forward must accept reqHeaderRemove");
+        assertTrue(proxy.contains("Map<String, String> resFieldRename"), "forward must accept resFieldRename");
+    }
+
+    // --- F7: Health Check engine tests ---
+
+    @Test
+    public void testSpringBootGeneratesHealthCheckService(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableHealthCheck(true);
+        model.getFlags().setEnableTelemetry(false);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("backend/spring-boot"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/HealthCheckService.java"));
+        assertTrue(content.contains("HealthCheckService"), "must generate HealthCheckService");
+        assertTrue(content.contains("runHealthChecks"), "must have scheduled probe method");
+    }
+
+    @Test
+    public void testSpringBootGeneratesBridgeHealthController(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableHealthCheck(true);
+        model.getFlags().setEnableTelemetry(false);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("backend/spring-boot"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/BridgeHealthController.java"));
+        assertTrue(content.contains("BridgeHealthController"), "must generate BridgeHealthController");
+        assertTrue(content.contains("/bridge-health"), "must expose /api/bridge-health endpoint");
+    }
+
+    @Test
+    public void testQuarkusGeneratesHealthCheckService(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableHealthCheck(true);
+        model.getFlags().setEnableTelemetry(false);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("backend/quarkus"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/HealthCheckService.java"));
+        assertTrue(content.contains("HealthCheckService"), "must generate HealthCheckService");
+        assertTrue(content.contains("@Scheduled"), "must have Quarkus @Scheduled");
+    }
+
+    @Test
+    public void testQuarkusGeneratesBridgeHealthResource(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableHealthCheck(true);
+        model.getFlags().setEnableTelemetry(false);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("backend/quarkus"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/BridgeHealthResource.java"));
+        assertTrue(content.contains("BridgeHealthResource"), "must generate BridgeHealthResource");
+        assertTrue(content.contains("/bridge-health"), "must expose /api/bridge-health");
+    }
+
+    @Test
+    public void testBridgeConfigContainsEnableHealthCheck(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableHealthCheck(true);
+        model.getFlags().setEnableTelemetry(false);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("backend/spring-boot"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("backend/src/main/java/com/apibridge/generated/BridgeConfigController.java"));
+        assertTrue(content.contains("enableHealthCheck"), "BridgeConfigController must expose enableHealthCheck");
+    }
+
+    @Test
+    public void testDockerComposeContainsHealthCheckEnvVars(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableHealthCheck(true);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("devops/docker-compose"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(content.contains("HEALTH_CHECK_INTERVAL_SECONDS"), "docker-compose must have HEALTH_CHECK_INTERVAL_SECONDS");
+        assertTrue(content.contains("HEALTH_CHECK_TIMEOUT_MS"), "docker-compose must have HEALTH_CHECK_TIMEOUT_MS");
+    }
+
+    @Test
+    public void testConfigmapContainsHealthCheckEnvVars(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableHealthCheck(true);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("devops/k8s/kubernetes"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("k8s/configmap.yaml"));
+        assertTrue(content.contains("HEALTH_CHECK_INTERVAL_SECONDS"), "configmap must have HEALTH_CHECK_INTERVAL_SECONDS");
+    }
+
+    // --- F5: Enhanced Mock Mode engine tests ---
+
+    @Test
+    public void testSpringBootControllerUsesSchemaDefinedMockBody(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createMockResponseTestModel();
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java"));
+        assertTrue(content.contains("status\\\":\\\"ok\\\"") || content.contains("{\\\"status\\\":\\\"ok\\\"}"),
+                "BridgeController must contain schema-defined mock body");
+        assertTrue(content.contains("ResponseEntity.status(201)"), "BridgeController must use schema-defined status code 201");
+    }
+
+    @Test
+    public void testQuarkusResourceUsesSchemaDefinedMockBody(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createMockResponseTestModel();
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeResource.java"));
+        assertTrue(content.contains("status\\\":\\\"ok\\\"") || content.contains("{\\\"status\\\":\\\"ok\\\"}"),
+                "BridgeResource must contain schema-defined mock body");
+        assertTrue(content.contains("Response.status(201)"), "BridgeResource must use schema-defined status code 201");
+    }
+
+    // --- F4: API Versioning engine tests ---
+
+    @Test
+    public void testSpringBootControllerHasVersionPrefix(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setApiVersion("v1");
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeController.java"));
+        assertTrue(content.contains("/v1"), "BridgeController must include /v1 version prefix");
+        assertTrue(content.contains("@RequestMapping"), "BridgeController must have @RequestMapping");
+    }
+
+    @Test
+    public void testQuarkusResourceHasVersionPrefix(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setApiVersion("v1");
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/quarkus");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeResource.java"));
+        assertTrue(content.contains("/v1"), "BridgeResource must include /v1 version prefix");
+        assertTrue(content.contains("@Path"), "BridgeResource must have @Path");
+    }
+
+    @Test
+    public void testReactBridgeApiIncludesVersionPrefix(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setApiVersion("v1");
+        File cartridgeDir = findCartridgeDir("frontend/react");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("frontend/src/api/bridgeApi.ts"));
+        assertTrue(content.contains("/v1"), "bridgeApi.ts must include /v1 version prefix in URL");
+    }
+
+    @Test
+    public void testBridgeConfigControllerContainsApiVersion(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setApiVersion("v1");
+        model.getFlags().setEnableTelemetry(false);
+        File cartridgeDir = findCartridgeDir("backend/spring-boot");
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, cartridgeDir, outputDir);
+
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeConfigController.java"));
+        assertTrue(content.contains("apiVersion"), "BridgeConfigController must expose apiVersion in config response");
+        assertTrue(content.contains("v1"), "BridgeConfigController must contain the versioned value");
+    }
+
+    private BridgeSchemaModel createMockResponseTestModel() {
+        BridgeSchemaModel model = new BridgeSchemaModel();
+        model.setId("mock-service");
+        model.setBasePath("/api/mock");
+
+        BridgeSchemaModel.Flags flags = new BridgeSchemaModel.Flags();
+        flags.setEnableTelemetry(false);
+        model.setFlags(flags);
+
+        BridgeSchemaModel.Endpoint endpoint = new BridgeSchemaModel.Endpoint();
+        endpoint.setPath("/items");
+        endpoint.setMethod("GET");
+        endpoint.setBackendUrl("https://upstream.example.com/items");
+
+        BridgeSchemaModel.MockResponse mock = new BridgeSchemaModel.MockResponse();
+        mock.setStatusCode(201);
+        mock.setBody("{\"status\":\"ok\"}");
+        mock.setDelayMs(0);
+        endpoint.setMockResponse(mock);
+
+        model.setEndpoints(java.util.List.of(endpoint));
+        return model;
+    }
+
+    private BridgeSchemaModel createTransformTestModel() {
+        BridgeSchemaModel model = new BridgeSchemaModel();
+        model.setId("transform-service");
+        model.setBasePath("/api/transform");
+
+        BridgeSchemaModel.Flags flags = new BridgeSchemaModel.Flags();
+        flags.setEnableTelemetry(false);
+        flags.setEnableTransform(true);
+        model.setFlags(flags);
+
+        BridgeSchemaModel.Endpoint endpoint = new BridgeSchemaModel.Endpoint();
+        endpoint.setPath("/data");
+        endpoint.setMethod("GET");
+        endpoint.setBackendUrl("https://upstream.example.com/data");
+
+        BridgeSchemaModel.Transforms transforms = new BridgeSchemaModel.Transforms();
+        BridgeSchemaModel.HeaderTransform reqHeaders = new BridgeSchemaModel.HeaderTransform();
+        reqHeaders.setAdd(java.util.Map.of("X-Source", "apibridge"));
+        reqHeaders.setRemove(java.util.List.of("X-Internal-Only"));
+        reqHeaders.setRename(java.util.Map.of("X-Old-Name", "X-New-Name"));
+        transforms.setRequestHeaders(reqHeaders);
+
+        BridgeSchemaModel.FieldTransform resFields = new BridgeSchemaModel.FieldTransform();
+        resFields.setRename(java.util.Map.of("upstream_name", "displayName"));
+        resFields.setRemove(java.util.List.of("secret_field"));
+        transforms.setResponseFields(resFields);
+
+        endpoint.setTransforms(transforms);
+        model.setEndpoints(java.util.List.of(endpoint));
+        return model;
+    }
+
     private File findCartridgeDir(String cartridgePath) {
         File dir = new File("../apibridge-cartridges/" + cartridgePath);
         if (!dir.exists()) {
@@ -1220,5 +1861,136 @@ public class ApiBridgeCartridgeEngineTest {
             throw new IllegalStateException("Cartridge folder not found: " + cartridgePath);
         }
         return dir;
+    }
+
+    // --- F8: Search & Filtering engine tests ---
+
+    @Test
+    public void testReactListContainsSearchBarWhenEnabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createSearchTestModel();
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("frontend/react"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("frontend/src/ApiBridgeList.tsx"));
+        assertTrue(content.contains("apib-search-bar"), "React List must contain apib-search-bar when enableSearch=true");
+        assertTrue(content.contains("searchTerm"), "React List must have searchTerm state");
+    }
+
+    @Test
+    public void testAngularListContainsSearchWhenEnabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createSearchTestModel();
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("frontend/angular"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("frontend/src/app/bridge-list.component.ts"));
+        assertTrue(content.contains("searchTerm"), "Angular List must have searchTerm field when enableSearch=true");
+        assertTrue(content.contains("searchParam"), "Angular List must use searchParam");
+    }
+
+    @Test
+    public void testVueListContainsSearchWhenEnabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createSearchTestModel();
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("frontend/vue"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("frontend/src/ApiBridgeList.vue"));
+        assertTrue(content.contains("apib-search-bar"), "Vue List must contain apib-search-bar when enableSearch=true");
+        assertTrue(content.contains("searchTerm"), "Vue List must have searchTerm ref");
+    }
+
+    @Test
+    public void testReactListNoSearchWhenDisabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createSearchTestModel();
+        model.getFlags().setEnableSearch(false);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("frontend/react"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("frontend/src/ApiBridgeList.tsx"));
+        assertFalse(content.contains("apib-search-bar"), "React List must not have search bar when enableSearch=false");
+        assertFalse(content.contains("searchTerm"), "React List must not have searchTerm when enableSearch=false");
+    }
+
+    @Test
+    public void testBridgeConfigControllerContainsEnableSearchAndSearchParam(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createSearchTestModel();
+        model.getFlags().setEnableTelemetry(false);
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("backend/spring-boot"), outputDir);
+        String content = Files.readString(outputDir.toPath()
+                .resolve("backend/src/main/java/com/apibridge/generated/BridgeConfigController.java"));
+        assertTrue(content.contains("enableSearch"), "BridgeConfigController must expose enableSearch");
+        assertTrue(content.contains("searchParam"), "BridgeConfigController must expose searchParam");
+        assertTrue(content.contains("SEARCH_PARAM"), "BridgeConfigController must inject SEARCH_PARAM env var");
+    }
+
+    @Test
+    public void testDockerComposeContainsSearchParamWhenEnabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createSearchTestModel();
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("devops/docker-compose"), outputDir);
+        String content = Files.readString(outputDir.toPath().resolve("docker-compose.yml"));
+        assertTrue(content.contains("SEARCH_PARAM"), "docker-compose must contain SEARCH_PARAM when enableSearch=true");
+    }
+
+    private BridgeSchemaModel createSearchTestModel() {
+        BridgeSchemaModel model = new BridgeSchemaModel();
+        model.setId("search-service");
+        model.setBasePath("/api/search");
+
+        BridgeSchemaModel.Flags flags = new BridgeSchemaModel.Flags();
+        flags.setEnableTelemetry(false);
+        flags.setEnableSearch(true);
+        flags.setFeFlavor("react");
+        model.setFlags(flags);
+
+        BridgeSchemaModel.Endpoint listEp = new BridgeSchemaModel.Endpoint();
+        listEp.setPath("/items");
+        listEp.setMethod("GET");
+        listEp.setBackendUrl("https://example.com/items");
+        BridgeSchemaModel.UiLayout layout = new BridgeSchemaModel.UiLayout();
+        layout.setComponent("List");
+        layout.setSearchMode("delegate");
+        listEp.setUiLayout(layout);
+
+        model.setEndpoints(java.util.List.of(listEp));
+        return model;
+    }
+
+    // --- F9: Dark Mode / Theme Switcher engine tests ---
+
+    @Test
+    public void testReactAppContainsDarkModeToggle(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("frontend/react"), outputDir);
+        String app = Files.readString(outputDir.toPath().resolve("frontend/src/App.tsx"));
+        assertTrue(app.contains("apib-theme-toggle"), "React App must render apib-theme-toggle button");
+        assertTrue(app.contains("localStorage.getItem('apib-theme')"), "React App must read theme from localStorage");
+        assertTrue(app.contains("data-theme"), "React App must set data-theme attribute");
+        String css = Files.readString(outputDir.toPath().resolve("frontend/src/index.css"));
+        assertTrue(css.contains("[data-theme=\"dark\"]"), "index.css must contain dark mode CSS block");
+    }
+
+    @Test
+    public void testAngularAppContainsDarkModeToggle(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("frontend/angular"), outputDir);
+        String ts = Files.readString(outputDir.toPath().resolve("frontend/src/app/app.component.ts"));
+        assertTrue(ts.contains("toggleTheme"), "Angular AppComponent must have toggleTheme method");
+        assertTrue(ts.contains("apib-theme"), "Angular AppComponent must reference apib-theme localStorage key");
+        assertTrue(ts.contains("data-theme"), "Angular AppComponent must set data-theme attribute");
+        String html = Files.readString(outputDir.toPath().resolve("frontend/src/app/app.component.html"));
+        assertTrue(html.contains("apib-theme-toggle"), "Angular app.component.html must render apib-theme-toggle button");
+        String css = Files.readString(outputDir.toPath().resolve("frontend/src/styles.css"));
+        assertTrue(css.contains("[data-theme=\"dark\"]"), "styles.css must contain dark mode CSS block");
+    }
+
+    @Test
+    public void testVueAppContainsDarkModeToggle(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        File outputDir = tempDir.resolve("out").toFile();
+        engine.generate(model, findCartridgeDir("frontend/vue"), outputDir);
+        String app = Files.readString(outputDir.toPath().resolve("frontend/src/App.vue"));
+        assertTrue(app.contains("apib-theme-toggle"), "Vue App must render apib-theme-toggle button");
+        assertTrue(app.contains("localStorage.getItem('apib-theme')"), "Vue App must read theme from localStorage");
+        assertTrue(app.contains("[data-theme=\"dark\"]"), "Vue App.vue must contain dark mode CSS block");
+        assertTrue(app.contains("toggleTheme"), "Vue App must have toggleTheme function");
     }
 }

@@ -92,6 +92,13 @@ public class YamlParser {
             }
         }
 
+        if (model.getFlags() != null && model.getFlags().getApiVersion() != null) {
+            String version = model.getFlags().getApiVersion().trim();
+            if (!version.matches("v[0-9]+")) {
+                throw new IllegalArgumentException("Schema validation error: flags.apiVersion must match pattern v[0-9]+ (e.g. 'v1', 'v2'). Got '" + version + "'.");
+            }
+        }
+
         Set<String> seenEndpoints = new HashSet<>();
         for (int i = 0; i < model.getEndpoints().size(); i++) {
             BridgeSchemaModel.Endpoint endpoint = model.getEndpoints().get(i);
@@ -151,6 +158,25 @@ public class YamlParser {
                             throw new IllegalArgumentException("Schema validation error at " + colLocation + ": Missing or empty column 'field'.");
                         }
                     }
+                }
+                if (layout.getSearchMode() != null) {
+                    String sm = layout.getSearchMode().toLowerCase();
+                    if (!sm.equals("delegate") && !sm.equals("local")) {
+                        throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: Must be 'delegate' or 'local'. Got '" + layout.getSearchMode() + "'.");
+                    }
+                    if (!comp.equals("list")) {
+                        throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: searchMode is only valid on List components.");
+                    }
+                }
+            }
+
+            if (endpoint.getMockResponse() != null) {
+                BridgeSchemaModel.MockResponse mock = endpoint.getMockResponse();
+                if (mock.getStatusCode() < 100 || mock.getStatusCode() > 599) {
+                    throw new IllegalArgumentException("Schema validation error at " + location + ".mockResponse.statusCode: Must be 100–599. Got " + mock.getStatusCode() + ".");
+                }
+                if (mock.getDelayMs() < 0) {
+                    throw new IllegalArgumentException("Schema validation error at " + location + ".mockResponse.delayMs: Must be >= 0. Got " + mock.getDelayMs() + ".");
                 }
             }
         }

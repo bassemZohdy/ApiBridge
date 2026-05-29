@@ -46,7 +46,7 @@ export class BridgeApiService {
   <#assign methodName = method?lower_case + baseName + paramSuffix />
   <#assign hasBody = (method == "POST" || method == "PUT" || method == "PATCH") />
   ${methodName}(<#list pathParams as param>${param}: string, </#list><#if hasBody>body: unknown<#else>_body?: unknown</#if><#if securityLevel == "bearer-token">, token: string</#if>): Observable<unknown> {
-    const url = (environment.apiBaseUrl + '${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
+    const url = (environment.apiBaseUrl + '<#if apiVersion?has_content>/${apiVersion}</#if>${basePath}${endpoint.path}')<#list pathParams as param>.replace('{${param}}', ${param})</#list>;
     const headers = this.getAuthHeaders(<#if securityLevel == "bearer-token">token</#if>);
 <#if hasBody>
     return this.http.request<unknown>('${endpoint.method}', url, { body, headers });

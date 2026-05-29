@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class ApiBridgeCartridgeEngine {
 
@@ -112,6 +113,13 @@ public class ApiBridgeCartridgeEngine {
         context.put("feFlavor", resolvedFeFlavor(model));
         context.put("backendFlavor", resolvedBeFlavor(model));
         context.put("deployTarget", resolvedDeployTarget(model));
+        context.put("enableRateLimiter", resolvedFlag(model, f -> f.isEnableRateLimiter()));
+        context.put("enableTransform", resolvedFlag(model, f -> f.isEnableTransform()));
+        context.put("apiVersion", resolvedString(model, f -> f.getApiVersion()));
+        context.put("enableHealthCheck", resolvedFlag(model, f -> f.isEnableHealthCheck()));
+        context.put("enableSearch", resolvedFlag(model, f -> f.isEnableSearch()));
+        context.put("enableOfflineSupport", resolvedFlag(model, f -> f.isEnableOfflineSupport()));
+        context.put("enableOpenApi", resolvedFlag(model, f -> f.isEnableOpenApi()));
         return context;
     }
 
@@ -140,6 +148,21 @@ public class ApiBridgeCartridgeEngine {
     private String resolvedDeployTarget(BridgeSchemaModel model) {
         if (model.getFlags() != null && model.getFlags().getDeployTarget() != null) {
             return model.getFlags().getDeployTarget().toLowerCase();
+        }
+        return "";
+    }
+
+    private boolean resolvedFlag(BridgeSchemaModel model, Function<BridgeSchemaModel.Flags, Boolean> getter) {
+        if (model.getFlags() != null) {
+            return getter.apply(model.getFlags());
+        }
+        return false;
+    }
+
+    private String resolvedString(BridgeSchemaModel model, Function<BridgeSchemaModel.Flags, String> getter) {
+        if (model.getFlags() != null) {
+            String val = getter.apply(model.getFlags());
+            return val != null ? val : "";
         }
         return "";
     }

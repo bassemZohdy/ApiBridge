@@ -100,6 +100,47 @@ Both backends:
 - Every config value is overridable at runtime via ENV VAR (see `application.properties`)
 - When a `frontend/` cartridge is also applied, the backend serves the compiled FE assets from its static resources directory (`classpath:/static/` for Spring Boot, `META-INF/resources/` for Quarkus)
 
+#### Rate Limiting (`enableRateLimiter`)
+
+Wraps all proxy calls with a Resilience4j rate limiter. Returns `429 {"error":"Too Many Requests","rateLimit":"exceeded"}` when the limit is exceeded.
+
+| ENV VAR | Default | Purpose |
+|---|---|---|
+| `RATE_LIMIT_PERMITS` | `10` | Max requests per period |
+| `RATE_LIMIT_PERIOD_SECONDS` | `1` | Time window in seconds |
+| `RATE_LIMIT_TIMEOUT_MILLIS` | `5000` | Max wait for permit before 429 |
+
+Layer order: `RateLimiter → CircuitBreaker → Retry → HTTP call`
+
+#### Distributed Cache (`enableResponseCache`)
+
+When `enableResponseCache` is enabled, the proxy caches GET responses. At runtime, if `CACHE_REDIS_URL` is set, Redis is used as the cache store. If empty/absent, the embedded Caffeine cache is used. Zero breaking change to existing deployments.
+
+#### Request/Response Transformation (`enableTransform`)
+
+Apply header and JSON body transforms per endpoint. Header transforms: add, remove, rename. Field transforms: rename keys, remove keys. Configured per endpoint via the `transforms` schema section.
+
+#### API Versioning (`apiVersion`)
+
+Global version prefix on all proxy endpoints. When `flags.apiVersion: "v1"` is set, routes become `/{apiVersion}{basePath}{path}`. Health and config endpoints remain unversioned.
+
+#### Enhanced Mock Mode
+
+Define per-endpoint mock responses in the schema via `mockResponse` (statusCode, body, delayMs). When `MOCK_MODE=true`, endpoints with a defined mock return the schema-specified response with simulated latency. Endpoints without a mock definition fall back to the generic canned response.
+
+#### Debug Mode (`DEBUG_MODE`)
+
+Runtime-only flag (`DEBUG_MODE=true`). Logs full request/response details (method, path, headers, body preview, duration) as structured JSON. Bodies truncated to 1024 chars; Authorization values masked. Must be off in production.
+
+#### Health Check Aggregation (`enableHealthCheck`)
+
+Periodically probes each endpoint's `backendUrl` and exposes aggregated health at `GET /api/bridge-health`. Returns `UP`, `DEGRADED`, or `DOWN` status with per-endpoint latency and last check time. Integrates with Spring Actuator / Quarkus Health.
+
+| ENV VAR | Default | Purpose |
+|---|---|---|
+| `HEALTH_CHECK_INTERVAL_SECONDS` | `30` | Probe interval |
+| `HEALTH_CHECK_TIMEOUT_MS` | `3000` | Per-probe timeout |
+
 ### Frontend cartridges
 
 | Cartridge | Output |
@@ -115,6 +156,18 @@ Frontend pages are generated from the schema:
 - **View** — detail view for GET by-ID endpoints, with optional DELETE support
 - All pages use a centralized `getAuthHeaders()` helper for security
 
+#### Search & Filtering (`enableSearch`)
+
+Per-endpoint search support on List pages. Set `uiLayout.searchMode: "delegate"` to pass search/filter params through to the upstream API, or `"local"` to filter client-side. Search param name configurable via `SEARCH_PARAM` ENV VAR (default `"q"`).
+
+#### Dark Mode / Theme Switcher
+
+Always available when a frontend is generated. Toggle in topbar, persisted via `localStorage`. Falls back to `prefers-color-scheme` media query. Pure CSS variables — zero bundle cost.
+
+#### Offline Support (`enableOfflineSupport`)
+
+Generates a Service Worker with cache-first for the app shell and stale-while-revalidate for API GET responses. Shows an offline banner when the network is unavailable. Non-GET requests are network-only.
+
 ### DevOps cartridges
 
 | Cartridge | Output |
@@ -127,6 +180,12 @@ Frontend pages are generated from the schema:
 The `devops/dockerfile` FE build stage is automatically omitted when no `feFlavor` is set (BE-only output).
 
 For OpenShift: apply both `devops/k8s/kubernetes` and `devops/k8s/openshift` to get the full manifest set including a TLS edge-terminated Route.
+
+### Documentation cartridges
+
+| Cartridge | Output |
+|---|---|
+| `docs/openapi` | `openapi.yaml` — OpenAPI 3.0.3 spec generated from schema (when `flags.enableOpenApi: true`) |
 
 ### Single-JAR deployment
 
@@ -167,7 +226,14 @@ flags:
   enableTelemetry: true
   enableAuditLog: true           # Redis Streams + MongoDB proxy call audit trail
   enableCircuitBreaker: true     # Resilience4j CB + retry; configurable via CB_* ENV VARs
-  enableResponseCache: true      # Caffeine in-process GET cache; CACHE_TTL_SECONDS / CACHE_MAX_SIZE
+  enableResponseCache: true      # Caffeine (default) or Redis (when CACHE_REDIS_URL set) GET cache
+  enableRateLimiter: true        # Resilience4j rate limiter; configurable via RATE_LIMIT_* ENV VARs
+  enableTransform: true          # Per-endpoint header/field request/response transformation
+  enableHealthCheck: true        # Aggregated upstream health at /api/bridge-health
+  enableSearch: true             # Search bar + column filters on List pages
+  enableOfflineSupport: true     # Service Worker for offline-capable SPA
+  enableOpenApi: true            # Generate OpenAPI 3.0.3 spec
+  apiVersion: "v1"               # Global version prefix on proxy routes (v[0-9]+)
   pagination:
     pageParam: "page"            # overrideable via PAGINATION_PAGE_PARAM ENV VAR
     sizeParam: "size"
@@ -178,8 +244,17 @@ endpoints:
   - path: "/submissions"
     method: "GET"
     backendUrl: "https://mesh.internal/customer/submissions"
+    mockResponse:
+      statusCode: 200
+      body: '[{"id":1,"email":"test@example.com","companyName":"Acme","status":"pending"}]'
+      delayMs: 200
+    transforms:
+      responseFields:
+        rename: { "upstream_name": "displayName" }
+        remove: [ "secret_field" ]
     uiLayout:
       component: "List"          # List | View | Form
+      searchMode: "delegate"     # delegate | local  (only when enableSearch=true)
       columns:
         - field: "email"
           label: "Email"
@@ -203,6 +278,11 @@ endpoints:
     method: "POST"
     backendUrl: "https://mesh.internal/customer/create"
     telemetryName: "apibridge_onboarding_initiate"
+    transforms:
+      requestHeaders:
+        add: { "X-Source": "apibridge" }
+      requestFields:
+        rename: { "upstream_field": "our_field" }
     uiLayout:
       component: "Form"
       fields:
@@ -226,6 +306,8 @@ Frontend projects use hash-based SPA routing (no router library). The generated 
 | `#/view/:id` | View page (GET by-ID endpoint) |
 | `#/form` | New record form |
 | `#/form/:id` | Edit record form |
+
+When `enableSearch` is active, List page URLs support search/filter state: `#/list?q=acme&status=active`.
 
 ### White-label CSS
 
@@ -332,9 +414,22 @@ Checkstyle rules: 4-space indent, no star imports, no unused imports, braces req
 | `flags.pagination` | Pagination | Pagination param names; never null when flags is non-null |
 | `flags.enableAuditLog` | boolean | `true` generates Redis Streams + MongoDB audit infrastructure |
 | `flags.enableCircuitBreaker` | boolean | `true` wraps all proxy calls with Resilience4j circuit breaker + retry; configurable via `CB_*` ENV VARs |
-| `flags.enableResponseCache` | boolean | `true` adds Caffeine in-process GET response cache; configurable via `CACHE_TTL_SECONDS` / `CACHE_MAX_SIZE` ENV VARs |
+| `flags.enableResponseCache` | boolean | `true` adds GET response cache (Caffeine by default, Redis when `CACHE_REDIS_URL` set); configurable via `CACHE_*` ENV VARs |
+| `flags.enableRateLimiter` | boolean | `true` wraps all proxy calls with Resilience4j rate limiter; configurable via `RATE_LIMIT_*` ENV VARs |
+| `flags.enableTransform` | boolean | `true` enables per-endpoint header/field request/response transformation |
+| `flags.enableHealthCheck` | boolean | `true` generates periodic upstream health probing + `/api/bridge-health` endpoint |
+| `flags.enableSearch` | boolean | `true` adds search bar + column filters to List pages |
+| `flags.enableOfflineSupport` | boolean | `true` generates Service Worker for offline-capable SPA |
+| `flags.enableOpenApi` | boolean | `true` generates OpenAPI 3.0.3 spec from schema |
+| `flags.apiVersion` | String | Global version prefix (e.g. `"v1"`) on proxy routes; null = no prefix |
+| `endpoint.uiLayout.searchMode` | String | `"delegate"` or `"local"` — how List search is handled (requires `enableSearch`) |
+| `endpoint.transforms` | Transforms | Per-endpoint header/field transforms (requires `enableTransform`) |
+| `endpoint.mockResponse` | MockResponse | Per-endpoint mock response for MOCK_MODE (statusCode, body, delayMs) |
 | `endpoint.uiLayout.component` | String | `Form`, `List`, or `View` |
 | `endpoint.uiLayout.columns` | List\<Column\> | Schema-defined list columns (optional; runtime fallback if absent) |
+| `endpoint.uiLayout.searchMode` | String | `"delegate"` or `"local"` — search/filter strategy for List endpoints |
+| `endpoint.transforms` | Transforms | Per-endpoint header/field transforms (requires `enableTransform`) |
+| `endpoint.mockResponse` | MockResponse | Per-endpoint mock definition (statusCode, body, delayMs) |
 | `field.label` | String | Optional display label for form/view fields |
 
 **Filtering form endpoints in templates**: use `endpoints?filter(ep -> ep.method?upper_case != "GET")` to get only mutation endpoints. All Form templates already do this internally via the `formEndpoints` assignment.

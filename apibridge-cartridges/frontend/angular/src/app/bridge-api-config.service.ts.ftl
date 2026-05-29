@@ -13,6 +13,9 @@ export interface PaginationConfig {
 
 export interface BridgeConfig {
   pagination: PaginationConfig;
+  apiVersion: string;
+  enableSearch: boolean;
+  searchParam: string;
 }
 
 const DEFAULT_CONFIG: BridgeConfig = {
@@ -23,6 +26,9 @@ const DEFAULT_CONFIG: BridgeConfig = {
     sortParam: '${(flags.pagination.sortParam)!"sort"}',
     directionParam: '${(flags.pagination.directionParam)!"dir"}',
   },
+  apiVersion: '${(apiVersion)!""}',
+  enableSearch: ${((enableSearch)!false)?c},
+  searchParam: 'q',
 };
 
 @Injectable({ providedIn: 'root' })

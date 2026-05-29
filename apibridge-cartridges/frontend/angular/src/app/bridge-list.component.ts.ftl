@@ -3,11 +3,15 @@
 <#assign listColumns = [] />
 <#assign hasViewEndpoint = false />
 <#assign hasPostEndpoint = false />
+<#assign searchMode = "" />
 <#list endpoints as ep>
   <#if ep.method?upper_case == "GET" && !ep.path?contains("{") && listEndpoint == "">
     <#assign listEndpoint = ep />
     <#if ep.uiLayout?? && ep.uiLayout.columns??>
       <#assign listColumns = ep.uiLayout.columns />
+    </#if>
+    <#if ep.uiLayout?? && (ep.uiLayout.searchMode!"") != "">
+      <#assign searchMode = ep.uiLayout.searchMode />
     </#if>
   </#if>
   <#if ep.method?upper_case == "GET" && ep.path?contains("{")>
@@ -46,6 +50,10 @@ export class BridgeListComponent implements OnInit {
   sortField = '';
   sortDir: 'asc' | 'desc' = 'asc';
   total: number | null = null;
+<#if (enableSearch)!false>
+  searchTerm = '';
+  get searchParam(): string { return this.config?.searchParam ?? 'q'; }
+</#if>
 
 <#if listColumns?has_content>
   readonly columns: ColumnDef[] = [
@@ -75,35 +83,62 @@ export class BridgeListComponent implements OnInit {
   }
 
   get totalPages(): number | null {
+<#if (enableSearch)!false && searchMode == "local">
+    return this.localTotal > 0 ? Math.ceil(this.localTotal / this.pageSize) : null;
+<#else>
     return this.total !== null ? Math.ceil(this.total / this.pageSize) : null;
+</#if>
   }
+<#if (enableSearch)!false && searchMode == "local">
+
+  get visibleRows(): Row[] {
+    if (!this.searchTerm) return this.rows;
+    const term = this.searchTerm.toLowerCase();
+    return this.rows.filter(row => Object.values(row).some(v => String(v ?? '').toLowerCase().includes(term)));
+  }
+
+  get localTotal(): number { return this.visibleRows.length; }
+
+  get displayRows(): Row[] {
+    return this.visibleRows.slice((this.page - 1) * this.pageSize, this.page * this.pageSize);
+  }
+<#else>
+  get displayRows(): Row[] { return this.rows; }
+</#if>
 
   fetchData(): void {
 <#if listEndpoint != "">
     this.loading = true;
     this.error = null;
     const { pageParam, sizeParam, sortParam, directionParam } = this.config.pagination;
-    let queryStr = `${r"${pageParam}"}=${r"${this.page}"}&${r"${sizeParam}"}=${r"${this.pageSize}"}`;
+    let queryStr = <#if searchMode != "local">`${r"${pageParam}"}=${r"${this.page}"}&${r"${sizeParam}"}=${r"${this.pageSize}"}`<#else>''</#if>;
     if (this.sortField) {
-      queryStr += `&${r"${sortParam}"}=${r"${this.sortField}"}&${r"${directionParam}"}=${r"${this.sortDir}"}`;
+      queryStr += `${r"${queryStr ? '&' : ''}"}${r"${sortParam}"}=${r"${this.sortField}"}&${r"${directionParam}"}=${r"${this.sortDir}"}`;
     }
-    const url = `${'$'}{r"${basePath}"}${listEndpoint.path}?${r"${queryStr}"}`;
+<#if (enableSearch)!false && searchMode != "local">
+    if (this.searchTerm) {
+      queryStr += `${r"${queryStr ? '&' : ''}"}${r"${this.searchParam}"}=${r"${encodeURIComponent(this.searchTerm)}"}`;
+    }
+</#if>
+    const url = `${'$'}{r"${basePath}"}${listEndpoint.path}${r"${queryStr ? '?' + queryStr : ''}"}`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 <#if (flags.securityLevel!"") != "">
     Object.assign(headers, this.apiService.getAuthHeaders());
 </#if>
     this.http.get<unknown>(url, { headers, observe: 'response' }).subscribe({
       next: (res) => {
-        const totalHeader = res.headers.get('X-Total-Count');
+        <#if searchMode != "local">const totalHeader = res.headers.get('X-Total-Count');
         if (totalHeader) this.total = parseInt(totalHeader, 10);
-        const data = res.body as Row[] | { content?: Row[]; items?: Row[]; data?: Row[]; total?: number };
+        </#if>const data = res.body as Row[] | { content?: Row[]; items?: Row[]; data?: Row[]; total?: number };
         if (Array.isArray(data)) {
           this.rows = data;
         } else {
           this.rows = data?.content ?? data?.items ?? (data as { data?: Row[] })?.data ?? [];
+<#if searchMode != "local">
           if (!totalHeader && typeof (data as { total?: number })?.total === 'number') {
             this.total = (data as { total: number }).total;
           }
+</#if>
         }
 <#if !listColumns?has_content>
         if (this.rows.length > 0 && this.columns.length === 0) {
@@ -134,6 +169,16 @@ export class BridgeListComponent implements OnInit {
     this.page = 1;
     this.fetchData();
   }
+<#if (enableSearch)!false>
+
+  handleSearchChange(term: string): void {
+    this.searchTerm = term;
+    this.page = 1;
+<#if searchMode != "local">
+    this.fetchData();
+</#if>
+  }
+</#if>
 
 <#if hasViewEndpoint>
   handleRowClick(row: Row): void {
@@ -145,14 +190,18 @@ export class BridgeListComponent implements OnInit {
   prevPage(): void {
     if (this.page > 1) {
       this.page--;
+<#if searchMode != "local">
       this.fetchData();
+</#if>
     }
   }
 
   nextPage(): void {
     if (this.totalPages === null || this.page < this.totalPages) {
       this.page++;
+<#if searchMode != "local">
       this.fetchData();
+</#if>
     }
   }
 
@@ -160,7 +209,11 @@ export class BridgeListComponent implements OnInit {
   get isNextDisabled(): boolean { return this.totalPages !== null && this.page >= this.totalPages; }
 
   get recordCountLabel(): string {
+<#if (enableSearch)!false && searchMode == "local">
+    return `${r"${this.localTotal}"} records`;
+<#else>
     return this.total !== null ? `${r"${this.total}"} records` : `${r"${this.rows.length}"} records`;
+</#if>
   }
 
   get pageLabel(): string {

@@ -80,8 +80,26 @@ services:
 </#if>
 <#if (flags.enableResponseCache)!false>
       # ── Response cache ─────────────────────────────────────────────────────────
+      CACHE_REDIS_URL: "redis://redis:6379"
       CACHE_TTL_SECONDS: "60"
       CACHE_MAX_SIZE: "1000"
+</#if>
+<#if (flags.enableRateLimiter)!false>
+      # ── Rate limiter ──────────────────────────────────────────────────────────
+      RATE_LIMIT_PERMITS: "10"
+      RATE_LIMIT_PERIOD_SECONDS: "1"
+      RATE_LIMIT_TIMEOUT_MILLIS: "5000"
+</#if>
+      # ── Search ─────────────────────────────────────────────────────────────
+<#if (enableSearch)!false>
+      SEARCH_PARAM: "q"
+</#if>
+      # ── Debug ──────────────────────────────────────────────────────────────
+      DEBUG_MODE: "false"
+<#if (enableHealthCheck)!false>
+      # ── Health check ───────────────────────────────────────────────────────
+      HEALTH_CHECK_INTERVAL_SECONDS: "30"
+      HEALTH_CHECK_TIMEOUT_MS: "3000"
 </#if>
 <#if (flags.enableAuditLog)!false>
       # ── Audit log ──────────────────────────────────────────────────────────
@@ -98,6 +116,9 @@ services:
     depends_on:
       - redis
       - mongo
+<#elseif (flags.enableResponseCache)!false>
+    depends_on:
+      - redis
 </#if>
     deploy:
       resources:
@@ -136,6 +157,15 @@ services:
     image: mongo:7
     ports:
       - "27017:27017"
+    restart: unless-stopped
+    networks:
+      - ${id}-net
+
+<#elseif (flags.enableResponseCache)!false>
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
     restart: unless-stopped
     networks:
       - ${id}-net
