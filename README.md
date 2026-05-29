@@ -488,6 +488,19 @@ Use `(feFlavor!"") != ""` to gate FE-specific content in templates that apply to
 
 ---
 
+## Web Schema Builder
+
+A browser-based GUI for building `schema.yaml` files without writing YAML by hand.
+
+```bash
+cd apibridge-web-builder
+npm install
+npm run dev     # opens http://localhost:5173
+npm run build   # production build to dist/
+```
+
+---
+
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`): `build` job (`mvn verify` on JDK 21) → `e2e-compile` (all cartridge compile checks) → `e2e-docker` (fullstack Docker build + runtime) → `e2e-json-server` (live API integration). Triggers on push to `main`/`feature**`/`bugfix**` and PRs to `main`.
