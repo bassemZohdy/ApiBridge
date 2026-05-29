@@ -22,6 +22,9 @@ export class AppComponent implements OnInit, OnDestroy {
   currentId = '';
   configLoaded = false;
   theme: 'light' | 'dark' = 'light';
+<#if enableOfflineSupport>
+  isOnline = navigator.onLine;
+</#if>
 
   private hashHandler = () => this.parseRoute();
 
@@ -34,6 +37,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this.initTheme();
     this.parseRoute();
     window.addEventListener('hashchange', this.hashHandler);
+<#if enableOfflineSupport>
+    window.addEventListener('online', () => this.isOnline = true);
+    window.addEventListener('offline', () => this.isOnline = false);
+</#if>
   }
 
   ngOnDestroy(): void {

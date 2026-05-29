@@ -1,6 +1,6 @@
 # Phase 6 — Feature Expansion
 
-> Status: **IN PROGRESS** — Track 0 + F1–F9 done (10/11 features, 206/206 tests pass). Next: F10 Offline Support / Service Worker.
+> Status: **COMPLETE** — All 11 features done, 218/218 tests pass, BUILD SUCCESS.
 > Created: 2026-05-28
 
 ---
@@ -475,17 +475,17 @@ private MockResponse mockResponse;
 8. Engine: configmap has HEALTH_CHECK_* entries
 
 **Task breakdown:**
-- [ ] 7.1 Add `enableHealthCheck` to `Flags`
-- [ ] 7.2 Add `enableHealthCheck` to FreeMarker context
-- [ ] 7.3 Create Spring Boot `HealthCheckService.java.ftl`
-- [ ] 7.4 Create Spring Boot `BridgeHealthController.java.ftl`
-- [ ] 7.5 Create Quarkus `HealthCheckService.java.ftl`
-- [ ] 7.6 Create Quarkus `BridgeHealthResource.java.ftl`
-- [ ] 7.7 Update `BridgeConfigController.java.ftl` + Quarkus equiv — add enableHealthCheck
-- [ ] 7.8 Update `application.properties.ftl` — HEALTH_CHECK_* docs
-- [ ] 7.9 Update `docker-compose.yml.ftl` + `configmap.yaml.ftl` — env vars
-- [ ] 7.10 Add 8 unit tests
-- [ ] 7.11 `mvn verify` passes
+- [x] 7.1 Add `enableHealthCheck` to `Flags`
+- [x] 7.2 Add `enableHealthCheck` to FreeMarker context
+- [x] 7.3 Create Spring Boot `HealthCheckService.java.ftl`
+- [x] 7.4 Create Spring Boot `BridgeHealthController.java.ftl`
+- [x] 7.5 Create Quarkus `HealthCheckService.java.ftl`
+- [x] 7.6 Create Quarkus `BridgeHealthResource.java.ftl`
+- [x] 7.7 Update `BridgeConfigController.java.ftl` + Quarkus equiv — add enableHealthCheck
+- [x] 7.8 Update `application.properties.ftl` — HEALTH_CHECK_* docs
+- [x] 7.9 Update `docker-compose.yml.ftl` + `configmap.yaml.ftl` — env vars
+- [x] 7.10 Add 8 unit tests
+- [x] 7.11 `mvn verify` passes
 
 ---
 
@@ -613,14 +613,14 @@ private MockResponse mockResponse;
 3. Engine: Vue CSS contains `[data-theme="dark"]`
 
 **Task breakdown:**
-- [ ] 9.1 Update React `index.css.ftl` — dark theme CSS block
-- [ ] 9.2 Update React `App.tsx.ftl` — theme toggle + localStorage + prefers-color-scheme
-- [ ] 9.3 Update Angular `styles.css.ftl` — dark theme CSS block
-- [ ] 9.4 Update Angular `app.component.ts/html.ftl` — theme toggle
-- [ ] 9.5 Update Vue CSS — dark theme CSS block
-- [ ] 9.6 Update Vue `App.vue.ftl` — theme toggle
-- [ ] 9.7 Add 3 unit tests
-- [ ] 9.8 `mvn verify` passes
+- [x] 9.1 Update React `index.css.ftl` — dark theme CSS block
+- [x] 9.2 Update React `App.tsx.ftl` — theme toggle + localStorage + prefers-color-scheme
+- [x] 9.3 Update Angular `styles.css.ftl` — dark theme CSS block
+- [x] 9.4 Update Angular `app.component.ts/html.ftl` — theme toggle
+- [x] 9.5 Update Vue CSS — dark theme CSS block
+- [x] 9.6 Update Vue `App.vue.ftl` — theme toggle
+- [x] 9.7 Add 3 unit tests
+- [x] 9.8 `mvn verify` passes
 
 ---
 
@@ -664,13 +664,13 @@ private MockResponse mockResponse;
 6. Engine: React App contains useOnlineStatus hook when flag on
 
 **Task breakdown:**
-- [ ] 10.1 Add `enableOfflineSupport` to `Flags`
-- [ ] 10.2 Add `enableOfflineSupport` to FreeMarker context
-- [ ] 10.3 Create React `sw.js.ftl` + register in `main.tsx.ftl` + `useOnlineStatus` hook + offline banner
-- [ ] 10.4 Create Angular `sw.js.ftl` + register in `main.ts.ftl` + offline banner
-- [ ] 10.5 Create Vue `sw.js.ftl` + register in `main.ts.ftl` + offline banner
-- [ ] 10.6 Add 6 unit tests
-- [ ] 10.7 `mvn verify` passes
+- [x] 10.1 Add `enableOfflineSupport` to `Flags`
+- [x] 10.2 Add `enableOfflineSupport` to FreeMarker context
+- [x] 10.3 Create React `sw.js.ftl` + register in `main.tsx.ftl` + `useOnlineStatus` hook + offline banner
+- [x] 10.4 Create Angular `sw.js.ftl` + register in `main.ts.ftl` + offline banner
+- [x] 10.5 Create Vue `sw.js.ftl` + register in `main.ts.ftl` + offline banner
+- [x] 10.6 Add 6 unit tests
+- [x] 10.7 `mvn verify` passes
 
 ---
 
@@ -713,14 +713,14 @@ private MockResponse mockResponse;
 6. Engine: Quarkus pom has smallrye dep when flag on
 
 **Task breakdown:**
-- [ ] 11.1 Add `enableOpenApi` to `Flags`
-- [ ] 11.2 Add `enableOpenApi` to FreeMarker context
-- [ ] 11.3 Create `docs/openapi/` cartridge directory
-- [ ] 11.4 Create `openapi.yaml.ftl` template
-- [ ] 11.5 Update Spring Boot `pom.xml.ftl` — conditional springdoc dep
-- [ ] 11.6 Update Quarkus `pom.xml.ftl` — conditional smallrye dep
-- [ ] 11.7 Add 6 unit tests
-- [ ] 11.8 `mvn verify` passes
+- [x] 11.1 Add `enableOpenApi` to `Flags`
+- [x] 11.2 Add `enableOpenApi` to FreeMarker context
+- [x] 11.3 Create `docs/openapi/` cartridge directory
+- [x] 11.4 Create `openapi.yaml.ftl` template
+- [x] 11.5 Update Spring Boot `pom.xml.ftl` — conditional springdoc dep
+- [x] 11.6 Update Quarkus `pom.xml.ftl` — conditional smallrye dep
+- [x] 11.7 Add 6 unit tests
+- [x] 11.8 `mvn verify` passes
 
 ---
 

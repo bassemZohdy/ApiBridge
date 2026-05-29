@@ -8,6 +8,9 @@
   <#if ep.method?upper_case == "POST" || ep.method?upper_case == "PUT"><#assign hasFormEndpoint = true /></#if>
 </#list>
 <button class="apib-theme-toggle" (click)="toggleTheme()" aria-label="Toggle theme">{{ theme === 'dark' ? '☀' : '☾' }}</button>
+<#if enableOfflineSupport>
+<div *ngIf="!isOnline" class="apib-offline-banner">You are offline — showing cached data</div>
+</#if>
 <div *ngIf="!configLoaded" class="apib-shell">
   <div class="apib-topbar"></div>
   <div class="apib-loading"><span class="apib-spinner"></span></div>

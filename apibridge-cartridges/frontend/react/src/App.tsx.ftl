@@ -7,8 +7,25 @@
   <#if ep.method?upper_case == "GET" && ep.path?contains("{")><#assign hasViewEndpoint = true /></#if>
   <#if ep.method?upper_case == "POST" || ep.method?upper_case == "PUT"><#assign hasFormEndpoint = true /></#if>
 </#list>
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { loadBridgeConfig, BridgeConfig } from './api/bridgeConfig';
+<#if enableOfflineSupport>
+
+function useOnlineStatus() {
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+  return online;
+}
+</#if>
 <#if hasListEndpoint>
 import { ApiBridgeList } from './ApiBridgeList';
 </#if>
@@ -75,6 +92,14 @@ export function App() {
   const navigate = (path: string) => {
     window.location.hash = path;
   };
+<#if enableOfflineSupport>
+
+  const isOnline = useOnlineStatus();
+
+  const offlineBanner = !isOnline ? (
+    <div className="apib-offline-banner">You are offline — showing cached data</div>
+  ) : null;
+</#if>
 
   const themeToggle = (
     <button className="apib-theme-toggle" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
@@ -86,6 +111,9 @@ export function App() {
     return (
       <>
         {themeToggle}
+<#if enableOfflineSupport>
+        {offlineBanner}
+</#if>
         <div className="apib-shell">
           <div className="apib-topbar" />
           <div className="apib-loading"><span className="apib-spinner" /></div>
@@ -99,6 +127,9 @@ export function App() {
     return (
       <>
         {themeToggle}
+<#if enableOfflineSupport>
+        {offlineBanner}
+</#if>
         <ApiBridgeList config={config} onNavigate={navigate} />
       </>
     );
@@ -109,6 +140,9 @@ export function App() {
     return (
       <>
         {themeToggle}
+<#if enableOfflineSupport>
+        {offlineBanner}
+</#if>
         <ApiBridgeView recordId={(route as { page: 'view'; id: string }).id} onNavigate={navigate} />
       </>
     );
@@ -120,6 +154,9 @@ export function App() {
     return (
       <>
         {themeToggle}
+<#if enableOfflineSupport>
+        {offlineBanner}
+</#if>
         <ApiBridgeForm editId={formRoute.id} onNavigate={navigate} />
       </>
     );
@@ -129,6 +166,9 @@ export function App() {
   return (
     <>
       {themeToggle}
+<#if enableOfflineSupport>
+      {offlineBanner}
+</#if>
       <div className="apib-shell">
         <div className="apib-topbar" />
         <div className="apib-card">

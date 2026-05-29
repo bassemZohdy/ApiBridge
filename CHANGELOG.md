@@ -62,19 +62,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - Dark mode is not behind a flag — always generated. No schema changes required.
 - 3 new engine tests (one per framework). Test count: 203 → 206.
 
-### Added — Search & Filtering (`flags.enableSearch`)
+### Added — Offline Support / Service Worker (`flags.enableOfflineSupport`)
 
-- New schema flag `flags.enableSearch: true` adds a search bar to all List pages across React, Angular, and Vue frontends.
-- Per-endpoint `uiLayout.searchMode: "delegate"` passes `?${SEARCH_PARAM}=<term>` to the upstream API; `"local"` fetches all data and filters client-side (substring match across all visible columns).
-- URL hash sync: search term written to hash query string (`#/list?q=<term>`) and read on component init.
-- `BridgeConfigController` / `BridgeConfigResource` expose `enableSearch` and `searchParam` in `/api/bridge-config`.
-- `BridgeConfig` TypeScript interface (React, Angular, Vue) gains `enableSearch: boolean` and `searchParam: string`.
-- Runtime ENV VAR `SEARCH_PARAM` (default `q`) overrides the search param name; added to `docker-compose.yml` and `configmap.yaml`.
-- 6 new engine tests. Test count: 197 → 203.
+- New schema flag `flags.enableOfflineSupport: true` generates a Service Worker for React, Angular, and Vue frontends.
+- Service Worker uses cache-first for app shell (HTML, JS, CSS, fonts), stale-while-revalidate for API GET responses, and network-only for non-GET requests.
+- React: `useOnlineStatus()` hook + `apib-offline-banner` in `App.tsx`. SW registered in `main.tsx`.
+- Angular: `isOnline` field with online/offline event listeners in `AppComponent`. Offline banner in `app.component.html`. SW registered in `main.ts`.
+- Vue: `isOnline` ref with event listeners in `App.vue <script setup>`. Offline banner in `<template>`. SW registered in `main.ts`.
+- SW templates: `react/public/sw.js.ftl`, `angular/src/sw.js.ftl`, `vue/public/sw.js.ftl`.
+- 6 new engine tests. Test count: 206 → 212.
+
+### Added — OpenAPI 3.0 Spec Generation (`flags.enableOpenApi`)
+
+- New schema flag `flags.enableOpenApi: true` generates an OpenAPI 3.0.3 specification from the schema model.
+- New cartridge: `docs/openapi` with `openapi.yaml.ftl` template. Generates paths, operations, parameters, request bodies, response schemas, and security schemes.
+- Spring Boot: `springdoc-openapi-starter-webmvc-ui:2.5.0` dep added when flag on.
+- Quarkus: `quarkus-smallrye-openapi` dep added when flag on.
+- 6 new engine tests. Test count: 212 → 218.
 
 ### Changed
 
-- Test count: 137 → 206 (69 new tests from Phase 6: Track 0 + F1–F9).
+- Test count: 137 → 218 (81 new tests from Phase 6: Track 0 + F1–F11).
+- `YamlParserTest` (monolithic, 86 tests) split into 9 feature-named files, each extending `YamlParserTestBase`: `YamlParserFileAccessTest`, `YamlParserTopLevelTest`, `YamlParserFlagsTest`, `YamlParserFeatureFlagsTest`, `YamlParserEndpointTest`, `YamlParserUiLayoutTest`, `YamlParserPaginationTest`, `YamlParserMockResponseTest`, `YamlParserTransformsTest`. Test count unchanged (86/86).
+- `ApiBridgeCartridgeEngineTest` (monolithic, 118 tests) split into 16 feature-named classes, each extending `ApiBridgeCartridgeEngineTestBase`: `CoreCartridgeEngineTest`, `DevOpsCartridgeEngineTest`, `AuditLogEngineTest`, `CircuitBreakerEngineTest`, `ResponseCacheEngineTest`, `RateLimiterEngineTest`, `DistributedCacheEngineTest`, `DebugModeEngineTest`, `TransformEngineTest`, `HealthCheckEngineTest`, `MockModeEngineTest`, `ApiVersioningEngineTest`, `SearchFilterEngineTest`, `DarkModeEngineTest`, `OfflineSupportEngineTest`, `OpenApiEngineTest`. Test count unchanged (218/218).
 
 ---
 

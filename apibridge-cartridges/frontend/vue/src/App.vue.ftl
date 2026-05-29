@@ -8,7 +8,7 @@
   <#if ep.method?upper_case == "POST" || ep.method?upper_case == "PUT"><#assign hasFormEndpoint = true /></#if>
 </#list>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted<#if enableOfflineSupport>, onUnmounted</#if> } from 'vue';
 import { loadBridgeConfig } from './api/bridgeConfig';
 import type { BridgeConfig } from './api/bridgeConfig';
 
@@ -28,6 +28,11 @@ function toggleTheme() {
   theme.value = theme.value === 'dark' ? 'light' : 'dark';
   applyTheme(theme.value);
 }
+<#if enableOfflineSupport>
+const isOnline = ref(navigator.onLine);
+const onOnline = () => { isOnline.value = true; };
+const onOffline = () => { isOnline.value = false; };
+</#if>
 <#if hasListEndpoint>
 import ApiBridgeList from './ApiBridgeList.vue';
 </#if>
@@ -76,7 +81,18 @@ onMounted(async () => {
   window.addEventListener('hashchange', () => {
     route.value = parseHash(window.location.hash);
   });
+<#if enableOfflineSupport>
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
+</#if>
 });
+
+<#if enableOfflineSupport>
+onUnmounted(() => {
+  window.removeEventListener('online', onOnline);
+  window.removeEventListener('offline', onOffline);
+});
+</#if>
 
 function navigate(path: string) {
   window.location.hash = path;
@@ -85,6 +101,9 @@ function navigate(path: string) {
 
 <template>
   <button class="apib-theme-toggle" @click="toggleTheme" aria-label="Toggle theme">{{ theme === 'dark' ? '☀' : '☾' }}</button>
+<#if enableOfflineSupport>
+  <div v-if="!isOnline" class="apib-offline-banner">You are offline — showing cached data</div>
+</#if>
   <div v-if="!config" class="apib-shell">
     <div class="apib-topbar"></div>
     <div class="apib-loading"><span class="apib-spinner apib-spinner--dark"></span></div>

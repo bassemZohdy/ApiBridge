@@ -30,6 +30,10 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
 - Lint: `mvn verify` — runs Checkstyle (4-space indent, no star/unused imports, braces required); also runs unit tests
 - E2E tests: `./e2e-tests/run-all-e2e.sh` — run on CI/PR only, not before every local commit (slow; compiles generated Spring Boot, Quarkus, and TypeScript output)
 
+### Engine test class conventions
+
+Engine tests live in `apibridge-generator/src/test/java/com/apibridge/engine/`. **One class per feature**, all extending `ApiBridgeCartridgeEngineTestBase`. The base class holds `parser`, `engine`, `@BeforeEach setUp()`, and shared model builders (`createTestModel()`, `createListViewFormModel()`, `createMultiEndpointModel()`, `writeFtl()`, `findCartridgeDir()`). Feature-specific model builders (e.g. `createTransformTestModel()`) stay in the feature class. New feature test class naming convention: `<FeatureName>EngineTest` (e.g. `OfflineSupportEngineTest`).
+
 ## Cartridge Architecture
 
 Cartridges are **independent, composable directories of `.ftl` FreeMarker templates**. Each addresses one concern; the engine applies them in sequence to the same output directory. There are no cross-cartridge dependencies.

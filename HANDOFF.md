@@ -26,37 +26,51 @@ All error responses use `Content-Type: application/json`.
 ### Current
 
 ```
-mvn test → 206/206 PASS
+mvn test → 218/218 PASS
 ```
 
 | Test class | Count | Covers |
 |---|---|---|
-| `YamlParserTest` | 86 | All schema validation paths; PATCH method; case-normalized duplicate detection; blank column field; pagination boundaries (0 throws, 1 valid); telemetry loop past index 0; empty fields array; enableAuditLog; enableCircuitBreaker; enableResponseCache; enableRateLimiter; apiVersion (v1 valid, v2 valid, x1 invalid, null valid); searchMode (delegate valid, local valid, invalid throws, non-List throws); mockResponse (valid, statusCode 99, statusCode 600, delayMs -1); transforms; enableHealthCheck defaults false |
-| `ApiBridgeCartridgeEngineTest` | 118 | All cartridge generations; List/View/Form; API method names; DevOps (Dockerfile Spring/Quarkus+FE static paths); k8s ConfigMap Spring vs Quarkus env vars, telemetry, audit log, circuit breaker, response cache, rate limiter, redis cache; docker-compose audit on/off + Quarkus URIs + cache env vars + redis service; BridgeController bearer-token, apiKey, no-security branches; Spring/Quarkus pom CB+cache+redis+rate-limiter deps; DebugLoggingFilter generation; transform methods + controller args + no-transform + null args; API versioning prefix; schema-defined mock body (Spring Boot + Quarkus); HealthCheckService + BridgeHealthController/Resource generation; enableHealthCheck in BridgeConfig; HEALTH_CHECK_* in docker-compose + configmap; React/Angular/Vue search bar generation; no search when disabled; BridgeConfig enableSearch+searchParam; SEARCH_PARAM in docker-compose; dark mode toggle in React/Angular/Vue App; [data-theme="dark"] CSS block; localStorage theme persistence |
+| `YamlParserTest` (split into 9 files) | 86 | All schema validation paths; PATCH method; case-normalized duplicate detection; blank column field; pagination boundaries (0 throws, 1 valid); telemetry loop past index 0; empty fields array; enableAuditLog; enableCircuitBreaker; enableResponseCache; enableRateLimiter; apiVersion (v1 valid, v2 valid, x1 invalid, null valid); searchMode (delegate valid, local valid, invalid throws, non-List throws); mockResponse (valid, statusCode 99, statusCode 600, delayMs -1); transforms; enableHealthCheck defaults false |
+| `CoreCartridgeEngineTest` | 33 | Basic cartridge generation, composability, input guards, FreeMarker context, method names, security branches |
+| `DevOpsCartridgeEngineTest` | 17 | Dockerfile (Spring/Quarkus + FE static paths), Docker Compose, k8s ConfigMap Spring vs Quarkus env vars |
+| `AuditLogEngineTest` | 4 | Redis Streams + MongoDB audit trail; docker-compose redis/mongo services |
+| `CircuitBreakerEngineTest` | 6 | Resilience4j CB + retry; pom deps; docker-compose + configmap CB_* env vars |
+| `ResponseCacheEngineTest` | 6 | Caffeine in-process cache; pom deps; docker-compose + configmap CACHE_* env vars |
+| `RateLimiterEngineTest` | 6 | Resilience4j rate limiter; pom deps; docker-compose + configmap RATE_LIMIT_* env vars |
+| `DistributedCacheEngineTest` | 10 | Redis dual-cache (Caffeine vs Redis); CACHE_REDIS_URL switching; conditional redis service |
+| `DebugModeEngineTest` | 4 | DebugLoggingFilter generation (Spring OncePerRequestFilter + Quarkus ContainerFilter) |
+| `TransformEngineTest` | 10 | Header + field transforms; controller args; no-transform pass-through; null args |
+| `HealthCheckEngineTest` | 7 | HealthCheckService + BridgeHealthController/Resource; BridgeConfig enableHealthCheck; HEALTH_CHECK_* env vars |
+| `MockModeEngineTest` | 2 | Schema-defined mock body/status (Spring Boot + Quarkus) |
+| `ApiVersioningEngineTest` | 4 | Global API version prefix in routes; health/config remain unversioned |
+| `SearchFilterEngineTest` | 6 | Search bar in React/Angular/Vue; delegate vs local mode; BridgeConfig enableSearch+searchParam; SEARCH_PARAM env var |
+| `DarkModeEngineTest` | 3 | Theme toggle in React/Angular/Vue; [data-theme="dark"] CSS block; localStorage persistence |
+| `OfflineSupportEngineTest` | 6 | Service Worker generation (React/Angular/Vue); no-sw when flag off; SW registration; useOnlineStatus hook |
+| `OpenApiEngineTest` | 6 | openapi.yaml generation; valid YAML structure; endpoint coverage; no-file when flag off; Spring Boot + Quarkus pom deps |
 | `ApiBridgeRunnerTest` | 2 | CLI argument handling |
 
 E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
 
-### Phase 6 target
+### Phase 6 final
 
 ```
-mvn test → ~212/212 PASS  (137 existing + ~75 new)
+mvn test → 218/218 PASS  (F1–F11 complete)
 ```
 
-| Feature | New Tests | Status |
+| Feature | Tests | Status |
 |---|---|---|
-| F1: Rate Limiting | 8 | Done |
-| F2: Redis Distributed Cache | 11 | Done |
+| F1: Rate Limiting | 6 | Done |
+| F2: Redis Distributed Cache | 10 | Done |
 | F3: Request/Response Transform | 10 | Done |
-| F4: API Versioning | 8 | Done |
-| F5: Enhanced Mock Mode | 6 | Done |
+| F4: API Versioning | 4 | Done |
+| F5: Enhanced Mock Mode | 2 | Done |
 | F6: Debug Mode | 4 | Done |
-| F7: Health Check Aggregation | 8 | Done |
-| F8: Search & Filtering | 10 | Done |
+| F7: Health Check Aggregation | 7 | Done |
+| F8: Search & Filtering | 6 | Done |
 | F9: Dark Mode / Theme | 3 | Done |
-| F10: Offline Support / SW | 6 | Pending |
-| F11: OpenAPI Spec | 6 | Pending |
-| **Total** | **~75** | **36/75** |
+| F10: Offline Support / SW | 6 | Done |
+| F11: OpenAPI Spec | 6 | Done |
 
 ---
 

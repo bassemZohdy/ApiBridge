@@ -8,6 +8,13 @@ flags:
   deployTarget: "docker-compose"
   enableCircuitBreaker: true
   enableResponseCache: true
+  enableRateLimiter: true
+  enableTransform: true
+  enableHealthCheck: true
+  enableSearch: true
+  enableOfflineSupport: true
+  enableOpenApi: true
+  apiVersion: "v1"
   pagination:
     pageParam: "page"
     sizeParam: "size"
@@ -19,8 +26,17 @@ endpoints:
     method: "GET"
     backendUrl: "https://internal-mesh.local/customer/submissions"
     telemetryName: "apibridge_onboarding_list"
+    mockResponse:
+      statusCode: 200
+      body: '[{"id":1,"email":"test@example.com","companyName":"Acme","status":"pending"}]'
+      delayMs: 200
+    transforms:
+      responseFields:
+        rename: { "upstream_name": "displayName" }
+        remove: [ "secret_field" ]
     uiLayout:
       component: "List"
+      searchMode: "delegate"
       columns:
         - field: "id"
           label: "ID"
@@ -55,6 +71,11 @@ endpoints:
     method: "PUT"
     backendUrl: "https://internal-mesh.local/customer/submissions/1"
     telemetryName: "apibridge_onboarding_update"
+    transforms:
+      requestHeaders:
+        add: { "X-Source": "apibridge" }
+      requestFields:
+        rename: { "our_field": "upstream_field" }
     uiLayout:
       component: "Form"
       fields:
@@ -80,6 +101,9 @@ endpoints:
     method: "POST"
     backendUrl: "https://internal-mesh.local/customer/create"
     telemetryName: "apibridge_onboarding_initiate"
+    transforms:
+      requestHeaders:
+        add: { "X-Source": "apibridge" }
     uiLayout:
       component: "Form"
       fields:

@@ -128,15 +128,15 @@
 
 #### Feature 10: Offline Support / Service Worker
 
-- [ ] 10.1 Create React `public/sw.js.ftl` — Service Worker (cache-first shell, stale-while-revalidate API)
-- [ ] 10.2 Update React `main.tsx.ftl` — register SW
-- [ ] 10.3 Update React `App.tsx.ftl` — `useOnlineStatus()` hook + offline banner
-- [ ] 10.4 Create Angular `src/sw.js.ftl` — Service Worker
-- [ ] 10.5 Update Angular `main.ts.ftl` — register SW + offline banner in app component
-- [ ] 10.6 Create Vue `public/sw.js.ftl` — Service Worker
-- [ ] 10.7 Update Vue `main.ts.ftl` — register SW + offline banner in App.vue
-- [ ] 10.8 Add 6 unit tests (sw.js ×3, no-sw ×1, registration ×2)
-- [ ] 10.9 `mvn verify` passes
+- [x] 10.1 Create React `public/sw.js.ftl` — Service Worker (cache-first shell, stale-while-revalidate API)
+- [x] 10.2 Update React `main.tsx.ftl` — register SW
+- [x] 10.3 Update React `App.tsx.ftl` — `useOnlineStatus()` hook + offline banner
+- [x] 10.4 Create Angular `src/sw.js.ftl` — Service Worker
+- [x] 10.5 Update Angular `main.ts.ftl` — register SW + offline banner in app component
+- [x] 10.6 Create Vue `public/sw.js.ftl` — Service Worker
+- [x] 10.7 Update Vue `main.ts.ftl` — register SW + offline banner in App.vue
+- [x] 10.8 Add 6 unit tests (sw.js ×3, no-sw ×1, registration ×2)
+- [x] 10.9 `mvn verify` passes
 
 ---
 
@@ -144,22 +144,59 @@
 
 #### Feature 11: OpenAPI 3.0 Spec Generation
 
-- [ ] 11.1 Create `apibridge-cartridges/docs/openapi/` directory
-- [ ] 11.2 Create `openapi.yaml.ftl` — OpenAPI 3.0.3 spec from model
-- [ ] 11.3 Update Spring Boot `pom.xml.ftl` — conditional springdoc-openapi dep
-- [ ] 11.4 Update Quarkus `pom.xml.ftl` — conditional quarkus-smallrye-openapi dep
-- [ ] 11.5 Add 6 unit tests (parser ×1, engine ×5)
-- [ ] 11.6 `mvn verify` passes
+- [x] 11.1 Create `apibridge-cartridges/docs/openapi/` directory
+- [x] 11.2 Create `openapi.yaml.ftl` — OpenAPI 3.0.3 spec from model
+- [x] 11.3 Update Spring Boot `pom.xml.ftl` — conditional springdoc-openapi dep
+- [x] 11.4 Update Quarkus `pom.xml.ftl` — conditional quarkus-smallrye-openapi dep
+- [x] 11.5 Add 6 unit tests (parser ×1, engine ×5)
+- [x] 11.6 `mvn verify` passes
+
+---
+
+### Backlog: YamlParser Test Coverage Gaps
+
+> ~35 missing tests identified during review. Do after F10/F11 and final cleanup.
+
+- [ ] T.1 Invalid `uiLayout.component` value (e.g. "Table") throws → `YamlParserUiLayoutTest`
+- [ ] T.2 `backendFlavor: "quarkus"` valid parse → `YamlParserFlagsTest`
+- [ ] T.3 Valid HTTP methods `PUT` / `DELETE` → `YamlParserEndpointTest`
+- [ ] T.4 Lowercase HTTP method accepted (`"get"`) → `YamlParserEndpointTest`
+- [ ] T.5 Duplicate endpoint exact same case (`GET /x` + `GET /x`) → `YamlParserEndpointTest`
+- [ ] T.6 Same path different methods allowed (`GET /x` + `POST /x`) → `YamlParserEndpointTest`
+- [ ] T.7 `apiVersion: ""` throws → `YamlParserFeatureFlagsTest`
+- [ ] T.8 `apiVersion: "v"` (no digits) throws → `YamlParserFeatureFlagsTest`
+- [ ] T.9 `apiVersion: "V1"` (uppercase V) throws → `YamlParserFeatureFlagsTest`
+- [ ] T.10 `apiVersion: "v0"` valid → `YamlParserFeatureFlagsTest`
+- [ ] T.11 `apiVersion: "v123"` valid → `YamlParserFeatureFlagsTest`
+- [ ] T.12 `enableTelemetry` default false + explicit true → `YamlParserFeatureFlagsTest`
+- [ ] T.13 `enableSearch` default false + explicit true → `YamlParserFeatureFlagsTest`
+- [ ] T.14 `enableOfflineSupport` default false + explicit true → `YamlParserFeatureFlagsTest`
+- [ ] T.15 `enableOpenApi` default false + explicit true → `YamlParserFeatureFlagsTest`
+- [ ] T.16 `enableTransform` default false + explicit true → `YamlParserFeatureFlagsTest`
+- [ ] T.17 `backendFlavor` defaults `"spring-boot"` when omitted → `YamlParserFlagsTest`
+- [ ] T.18 `MockResponse` defaults (statusCode=200, delayMs=0, body=null) → `YamlParserMockResponseTest`
+- [ ] T.19 `Column.sortable` defaults false → `YamlParserUiLayoutTest`
+- [ ] T.20 `Column.label` null when absent → `YamlParserUiLayoutTest`
+- [ ] T.21 `mockResponse.statusCode: 100` boundary valid → `YamlParserMockResponseTest`
+- [ ] T.22 `mockResponse.statusCode: 599` boundary valid → `YamlParserMockResponseTest`
+- [ ] T.23 `mockResponse.delayMs: 0` boundary valid → `YamlParserMockResponseTest`
+- [ ] T.24 `mockResponse` absent → null on endpoint → `YamlParserMockResponseTest`
+- [ ] T.25 Second field error `fields[1]` in message → `YamlParserUiLayoutTest`
+- [ ] T.26 Second column error `columns[1]` in message → `YamlParserUiLayoutTest`
+- [ ] T.27 Transforms `responseHeaders` + `requestFields` sub-objects → `YamlParserTransformsTest`
+- [ ] T.28 Empty `transforms: {}` → null sub-objects → `YamlParserTransformsTest`
+- [ ] T.29 Transforms absent → null on endpoint → `YamlParserTransformsTest`
+- [ ] T.30 `telemetryName: "my_span"` stored correctly on model → `YamlParserEndpointTest`
 
 ---
 
 ### Final: Documentation & Cleanup
 
-- [ ] F.1 Update `docs/schema-reference.md` with all new flags + schema sections
-- [ ] F.2 Update `sample-schema.yaml` with Phase 6 features demonstrated
-- [ ] F.3 Update `CHANGELOG.md` with Phase 6 entries
-- [ ] F.4 Update `HANDOFF.md` with new test counts + design invariants
-- [ ] F.5 Update `README.md` with Phase 6 feature documentation
+- [x] F.1 Update `docs/schema-reference.md` with all new flags + schema sections
+- [x] F.2 Update `sample-schema.yaml` with Phase 6 features demonstrated
+- [x] F.3 Update `CHANGELOG.md` with Phase 6 entries
+- [x] F.4 Update `HANDOFF.md` with new test counts + design invariants
+- [x] F.5 Update `README.md` with Phase 6 feature documentation
 - [ ] F.6 Full `mvn verify` + E2E smoke test
 
 ---
@@ -178,6 +215,6 @@
 | F7: Health Check Aggregation | Done | 8/8 | — |
 | F8: Search & Filtering | Done | 10/10 | — |
 | F9: Dark Mode / Theme | Done | 3/3 | — |
-| F10: Offline Support / SW | Pending | 0/6 | — |
-| F11: OpenAPI Spec | Pending | 0/6 | — |
-| **Total** | **9/11** | **78/~78** | — |
+| F10: Offline Support / SW | Done | 6/6 | — |
+| F11: OpenAPI Spec | Done | 6/6 | — |
+| **Total** | **11/11** | **90/90** | — |
