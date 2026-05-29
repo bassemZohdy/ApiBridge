@@ -22,7 +22,7 @@ All error responses use `Content-Type: application/json`.
 ## Test status
 
 ```
-mvn test → 254/254 PASS
+mvn verify → 300/300 PASS, 0 Checkstyle violations
 ```
 
 | Test class | Count | Covers |
@@ -44,7 +44,10 @@ mvn test → 254/254 PASS
 | `DebugModeEngineTest` | 4 | DebugLoggingFilter (Spring + Quarkus) |
 | `DarkModeEngineTest` | 3 | Theme toggle (React/Angular/Vue) |
 | `MockModeEngineTest` | 2 | Schema-defined mock body/status |
-| `ApiBridgeRunnerTest` | 2 | CLI argument handling |
+| `ApiBridgeRunnerTest` | 4 | CLI argument handling, version, local cartridge resolve |
+| `CartridgeCacheTest` | 7 | Cache miss/hit, SHA-256 hashing, directory allocation |
+| `CartridgeDownloaderTest` | 4 | HTTP download, ZIP extraction, zip-slip security |
+| `CartridgeResolverTest` | 6 | Local path, URL, GitHub shorthand, cache hit |
 
 E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
 
@@ -214,3 +217,4 @@ BridgeSchemaModel.Pagination:
 | `devops/k8s/kubernetes/**/*.ftl` | `devops/k8s/kubernetes` | K8s Deployment + Service + ConfigMap |
 | `devops/k8s/openshift/**/*.ftl` | `devops/k8s/openshift` | OpenShift Route |
 | `docs/openapi/**/*.ftl` | `docs/openapi` | OpenAPI 3.0.3 spec |
+| `devops/k8s/helm/**/*.ftl` | `devops/k8s/helm` | Helm 3 chart (Chart.yaml, values.yaml, templates/) |
