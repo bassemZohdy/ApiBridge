@@ -119,6 +119,8 @@ public class ApiBridgeCartridgeEngine {
         context.put("enableSearch", resolvedFlag(model, f -> f.isEnableSearch()));
         context.put("enableOfflineSupport", resolvedFlag(model, f -> f.isEnableOfflineSupport()));
         context.put("enableOpenApi", resolvedFlag(model, f -> f.isEnableOpenApi()));
+        context.put("enableOidc", resolvedFlag(model, f -> f.isEnableOidc()));
+        context.put("oidcIssuerUri", resolvedString(model, f -> f.getOidcIssuerUri()));
         return context;
     }
 

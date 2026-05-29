@@ -530,4 +530,75 @@ public class YamlParserFeatureFlagsTest extends YamlParserTestBase {
         BridgeSchemaModel model = parser.parse(file);
         assertTrue(model.getFlags().isEnableTransform());
     }
+
+    // --- enableOidc ---
+
+    @Test
+    public void testEnableOidcDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableOidc(), "enableOidc must default to false");
+    }
+
+    @Test
+    public void testEnableOidcWithIssuerUriParsesCorrectly(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableOidc: true
+                  oidcIssuerUri: "https://keycloak.example.com/realms/myrealm"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableOidc());
+        assertEquals("https://keycloak.example.com/realms/myrealm", model.getFlags().getOidcIssuerUri());
+    }
+
+    @Test
+    public void testEnableOidcWithoutIssuerUriThrows(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableOidc: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("oidcIssuerUri"),
+                "Error must mention oidcIssuerUri");
+    }
+
+    @Test
+    public void testEnableOidcWithBlankIssuerUriThrows(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableOidc: true
+                  oidcIssuerUri: "   "
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("oidcIssuerUri"));
+    }
 }

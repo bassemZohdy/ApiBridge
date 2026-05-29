@@ -94,6 +94,12 @@
             <artifactId>quarkus-smallrye-openapi</artifactId>
         </dependency>
 </#if>
+<#if (flags.enableOidc)!false>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-oidc</artifactId>
+        </dependency>
+</#if>
     </dependencies>
 
     <build>

@@ -104,3 +104,9 @@ quarkus.otel.service.name=${id}
 <#list endpoints as endpoint>
 #   BACKEND_URL_${pathToEnvKey(endpoint.path)}=${endpoint.backendUrl}
 </#list>
+<#if (flags.enableOidc)!false>
+# OIDC Resource Server
+quarkus.oidc.auth-server-url=${r"${OIDC_ISSUER_URI:"}${oidcIssuerUri}${r"}"}
+quarkus.oidc.application-type=service
+quarkus.oidc.token.issuer=${r"${OIDC_ISSUER_URI:"}${oidcIssuerUri}${r"}"}
+</#if>

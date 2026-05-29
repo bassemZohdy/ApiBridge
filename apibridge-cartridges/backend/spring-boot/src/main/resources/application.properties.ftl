@@ -109,3 +109,7 @@ management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 <#list endpoints as endpoint>
 #   BACKEND_URL_${pathToEnvKey(endpoint.path)}=${endpoint.backendUrl}
 </#list>
+<#if (flags.enableOidc)!false>
+# OIDC Resource Server
+spring.security.oauth2.resourceserver.jwt.issuer-uri=${r"${OIDC_ISSUER_URI:"}${oidcIssuerUri}${r"}"}
+</#if>

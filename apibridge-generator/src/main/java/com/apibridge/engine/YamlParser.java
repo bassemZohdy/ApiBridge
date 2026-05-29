@@ -109,6 +109,13 @@ public class YamlParser {
             }
         }
 
+        if (model.getFlags() != null && model.getFlags().isEnableOidc()) {
+            if (model.getFlags().getOidcIssuerUri() == null || model.getFlags().getOidcIssuerUri().isBlank()) {
+                throw new IllegalArgumentException(
+                        "flags.oidcIssuerUri must be non-blank when flags.enableOidc is true.");
+            }
+        }
+
         Set<String> seenEndpoints = new HashSet<>();
         for (int i = 0; i < model.getEndpoints().size(); i++) {
             BridgeSchemaModel.Endpoint endpoint = model.getEndpoints().get(i);

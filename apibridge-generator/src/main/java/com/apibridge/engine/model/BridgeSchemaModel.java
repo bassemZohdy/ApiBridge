@@ -87,6 +87,8 @@ public class BridgeSchemaModel {
         private boolean enableOfflineSupport;
         /** Whether to generate an OpenAPI 3.0.3 specification from the schema. */
         private boolean enableOpenApi;
+        private boolean enableOidc;
+        private String oidcIssuerUri;
 
         public boolean isEnableRateLimiter() { return enableRateLimiter; }
         public void setEnableRateLimiter(boolean enableRateLimiter) { this.enableRateLimiter = enableRateLimiter; }
@@ -108,6 +110,11 @@ public class BridgeSchemaModel {
 
         public boolean isEnableOpenApi() { return enableOpenApi; }
         public void setEnableOpenApi(boolean enableOpenApi) { this.enableOpenApi = enableOpenApi; }
+
+        public boolean isEnableOidc() { return enableOidc; }
+        public void setEnableOidc(boolean enableOidc) { this.enableOidc = enableOidc; }
+        public String getOidcIssuerUri() { return oidcIssuerUri; }
+        public void setOidcIssuerUri(String oidcIssuerUri) { this.oidcIssuerUri = oidcIssuerUri; }
 
         public String getSecurityLevel() { return securityLevel; }
         public void setSecurityLevel(String securityLevel) { this.securityLevel = securityLevel; }
@@ -131,7 +138,7 @@ public class BridgeSchemaModel {
                     + ", enableRateLimiter=" + enableRateLimiter + ", enableTransform=" + enableTransform
                     + ", apiVersion='" + apiVersion + "', enableHealthCheck=" + enableHealthCheck
                     + ", enableSearch=" + enableSearch + ", enableOfflineSupport=" + enableOfflineSupport
-                    + ", enableOpenApi=" + enableOpenApi
+                    + ", enableOpenApi=" + enableOpenApi + ", enableOidc=" + enableOidc + ", oidcIssuerUri='" + oidcIssuerUri + "'"
                     + ", securityLevel='" + securityLevel + "', backendFlavor='" + backendFlavor
                     + "', feFlavor='" + feFlavor + "', deployTarget='" + deployTarget
                     + "', pagination=" + pagination + '}';
