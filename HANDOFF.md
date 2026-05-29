@@ -86,6 +86,11 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 32. **Search mode is per-endpoint** — `delegate` passes params; `local` filters client-side. List-only.
 33. **Dark mode is always available** — CSS variables + localStorage + prefers-color-scheme fallback.
 34. **Offline support uses stale-while-revalidate** — cache-first shell, SWR for API GETs, network-only non-GET.
+35. **searchMode requires enableSearch** — `searchMode` on any endpoint throws if `flags.enableSearch` is not true. List-only check runs before value check.
+36. **Transforms internals validated** — when `enableTransform: true`, rename map keys/values and remove list entries must be non-blank. Warning emitted when transforms present but flag off.
+37. **Pagination param names non-blank** — `pageParam`, `sizeParam`, `sortParam`, `directionParam` validated when pagination object present.
+38. **CLI overrides always re-validate** — `parser.validate(model)` called unconditionally after applying overrides, preventing invalid models from reaching the engine.
+39. **FreeMarker Configuration cached per cartridge** — `Map<String, Configuration>` avoids redundant init on multi-cartridge runs.
 
 ---
 

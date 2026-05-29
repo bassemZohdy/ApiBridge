@@ -6,6 +6,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Fixed — Pre-P7 code review (B1, V1–V5, Q2, Q3)
+
+- **B1** React List `${id}` unescaped in backtick string — FreeMarker was substituting the schema `id` at generation time instead of the JavaScript row variable. Now uses `${r"${id}"}` like Angular and Vue.
+- **V1** `searchMode` now requires `flags.enableSearch: true` — throws `IllegalArgumentException` when searchMode is set without the flag.
+- **V2** `searchMode` validation order fixed — List-component check runs before value check, so Form+badValue reports "only valid on List" instead of "Must be delegate/local".
+- **V3** Transforms internals validated when `enableTransform: true` — blank/null keys or values in rename maps and blank entries in remove lists now throw `IllegalArgumentException`.
+- **V4** Warning printed when transforms defined but `enableTransform` is false — `System.err.println` warns that transforms will be ignored.
+- **V5** Pagination param names validated for blank — `pageParam`, `sizeParam`, `sortParam`, `directionParam` must all be non-blank when pagination object is present.
+- **Q1** `buildContext()` top-level enableX flags investigated — NOT dead code; templates actively use `enableOfflineSupport`, `enableOpenApi`, etc. as top-level FreeMarker variables. Kept as-is with clarifying comment.
+- **Q2** FreeMarker `Configuration` now cached per cartridge directory — `Map<String, Configuration>` avoids redundant allocation on multi-cartridge runs.
+- **Q3** `ApiBridgeRunner` always re-validates after CLI overrides — `parser.validate(model)` called unconditionally; `applyOverride()` helper prevents future misses.
+
 ### Added
 
 - Rate limiting (`flags.enableRateLimiter`) — Resilience4j rate limiter wrapping proxy calls. 429 when exceeded. Runtime: `RATE_LIMIT_*` env vars.
