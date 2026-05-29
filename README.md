@@ -32,6 +32,39 @@ e2e-tests/                        # Integration tests — run on CI, not before 
 
 ---
 
+## Installation
+
+### Option A — Download JAR (Java 21+ required)
+Download the latest `apibridge-<version>.zip` from [GitHub Releases](https://github.com/YOUR_ORG/apibridge/releases), extract it, and run:
+
+```bash
+./bin/apibridge --schema=my-schema.yaml --cartridge=./cartridges/backend/spring-boot --output=./out
+```
+
+### Option B — Docker (no Java required)
+```bash
+docker pull ghcr.io/YOUR_ORG/apibridge:latest
+
+docker run --rm \
+  -v "$(pwd)/schema.yaml:/work/schema.yaml" \
+  -v "$(pwd)/out:/work/out" \
+  ghcr.io/YOUR_ORG/apibridge:latest \
+  --schema=/work/schema.yaml \
+  --cartridge=/apibridge/cartridges/backend/spring-boot \
+  --cartridge=/apibridge/cartridges/frontend/react \
+  --output=/work/out
+```
+
+### Option C — Build from source
+```bash
+git clone https://github.com/YOUR_ORG/apibridge.git
+cd apibridge
+mvn package -pl apibridge-generator -DskipTests
+./bin/apibridge --version
+```
+
+---
+
 ## Quick Start
 
 ```bash
