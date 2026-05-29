@@ -6,85 +6,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
-### Added — Phase 6: Model + Validation (Track 0)
+### Added
 
-- 7 new `Flags` fields: `enableRateLimiter`, `enableTransform`, `apiVersion`, `enableHealthCheck`, `enableSearch`, `enableOfflineSupport`, `enableOpenApi`.
-- New `Endpoint` fields: `transforms` (with `HeaderTransform`, `FieldTransform` inner classes), `mockResponse` (with `statusCode`, `body`, `delayMs`).
-- New `UiLayout` field: `searchMode` (`"delegate"` | `"local"`).
-- `YamlParser` validation: `apiVersion` pattern `v[0-9]+`; `searchMode` enum + List-only guard; `mockResponse.statusCode` 100–599; `mockResponse.delayMs` >= 0.
-- 7 new FreeMarker context variables in `ApiBridgeCartridgeEngine`: `enableRateLimiter`, `enableTransform`, `apiVersion`, `enableHealthCheck`, `enableSearch`, `enableOfflineSupport`, `enableOpenApi`.
-- 20 new tests (14 parser + 6 engine). Test count: 137 → 157.
-
-### Added — Rate limiting (`flags.enableRateLimiter`)
-
-- New schema flag `flags.enableRateLimiter: true` generates Resilience4j rate limiter wrapping proxy calls. Layer order: `RateLimiter → CircuitBreaker → Retry → HTTP call`.
-- Returns `429 {"error":"Too Many Requests","rateLimit":"exceeded"}` when limit exceeded.
-- Runtime ENV VARs: `RATE_LIMIT_PERMITS` (default 10), `RATE_LIMIT_PERIOD_SECONDS` (default 1), `RATE_LIMIT_TIMEOUT_MILLIS` (default 5000).
-- Both Spring Boot and Quarkus: `resilience4j-ratelimiter` dep, `RateLimiter` init from ENV VARs, `RequestNotPermitted` catch → 429.
-- `docker-compose.yml.ftl` + `configmap.yaml.ftl` gain conditional `RATE_LIMIT_*` ENV VAR blocks.
-- 8 new tests. Test count: 157 → 165.
-
-### Added — Redis distributed cache (dual cache for `flags.enableResponseCache`)
-
-- Existing `flags.enableResponseCache: true` now supports Redis as an alternative to Caffeine. Runtime `CACHE_REDIS_URL` env var presence selects Redis vs Caffeine at startup — zero breaking change.
-- Common `ResponseCache` interface with `CaffeineResponseCache` and `RedisResponseCache` implementations in both Spring Boot and Quarkus `ProxyService`.
-- Spring Boot: `spring-boot-starter-data-redis` dep when `enableResponseCache=true` OR `enableAuditLog=true`. `RedisResponseCache` uses `StringRedisTemplate` (only generated when `enableAuditLog=true` since Redis connection factory is shared).
-- Quarkus: `quarkus-redis-client` dep when `enableResponseCache=true` OR `enableAuditLog=true`. `RedisResponseCache` uses `RedisClient` (only generated when `enableAuditLog=true`).
-- `docker-compose.yml.ftl`: `CACHE_REDIS_URL` env var + conditional `redis` service when cache enabled without audit.
-- `configmap.yaml.ftl`: `CACHE_REDIS_URL` entry when cache enabled.
-- 2 new tests. Test count: 165 → 167.
-
-### Added — Debug mode (`DEBUG_MODE` runtime ENV VAR)
-
-- New `DebugLoggingFilter.java.ftl` for both Spring Boot (`OncePerRequestFilter`) and Quarkus (`ContainerRequestFilter` + `ContainerResponseFilter`).
-- Filter is always generated but inert unless `debug.mode=true` / `DEBUG_MODE=true`.
-- Logs full request/response details at DEBUG level: method, URI, headers (authorization masked), status, duration.
-- `DEBUG_MODE` env var added to `docker-compose.yml.ftl` and `configmap.yaml.ftl`.
-- 4 new tests. Test count: 167 → 171.
-
-### Added — Request/Response Transformation (`flags.enableTransform`)
-
-- New schema flag `flags.enableTransform: true` enables per-endpoint request/response header and JSON field transformation in the proxy layer.
-- `ProxyService` gains `applyHeaderTransforms()` (add, remove, rename headers) and `applyFieldTransforms()` (rename, remove JSON body keys using Jackson `ObjectMapper`) static methods in both Spring Boot and Quarkus.
-- `forward()` method signature extended with 10 transform map/list parameters (all nullable). Controller/Resource templates pass endpoint-specific transform data from schema at build time.
-- Endpoints without transforms pass `null` for all transform args — no runtime overhead.
-- `application.properties.ftl` documents transform behavior for both backends.
-- 10 new tests (2 parser + 5 Spring Boot engine + 3 Quarkus engine). Test count: 171 → 181.
-
-### Added — Dark Mode / Theme Switcher (always generated)
-
-- Dark mode CSS block (`[data-theme="dark"]`) + `@media (prefers-color-scheme: dark)` fallback added to React `index.css`, Angular `styles.css`, and Vue `App.vue` global `<style>` block.
-- Theme initialized from `localStorage.getItem('apib-theme')` on startup; falls back to `prefers-color-scheme` system preference.
-- A fixed-position `.apib-theme-toggle` button (☀/☾) always rendered in the app shell. Clicking it toggles `data-theme` on `document.documentElement` and persists to `localStorage`.
-- React: `theme` state in `App.tsx` with `useEffect` to apply to DOM; toggle button rendered as `{themeToggle}` fragment in every route return.
-- Angular: `theme` field + `initTheme()` / `toggleTheme()` methods in `AppComponent`; toggle button in `app.component.html`.
-- Vue: `theme` ref + `applyTheme()` / `toggleTheme()` in `App.vue <script setup>`; toggle button in `<template>`; dark CSS in unscoped `<style>` block.
-- Dark mode is not behind a flag — always generated. No schema changes required.
-- 3 new engine tests (one per framework). Test count: 203 → 206.
-
-### Added — Offline Support / Service Worker (`flags.enableOfflineSupport`)
-
-- New schema flag `flags.enableOfflineSupport: true` generates a Service Worker for React, Angular, and Vue frontends.
-- Service Worker uses cache-first for app shell (HTML, JS, CSS, fonts), stale-while-revalidate for API GET responses, and network-only for non-GET requests.
-- React: `useOnlineStatus()` hook + `apib-offline-banner` in `App.tsx`. SW registered in `main.tsx`.
-- Angular: `isOnline` field with online/offline event listeners in `AppComponent`. Offline banner in `app.component.html`. SW registered in `main.ts`.
-- Vue: `isOnline` ref with event listeners in `App.vue <script setup>`. Offline banner in `<template>`. SW registered in `main.ts`.
-- SW templates: `react/public/sw.js.ftl`, `angular/src/sw.js.ftl`, `vue/public/sw.js.ftl`.
-- 6 new engine tests. Test count: 206 → 212.
-
-### Added — OpenAPI 3.0 Spec Generation (`flags.enableOpenApi`)
-
-- New schema flag `flags.enableOpenApi: true` generates an OpenAPI 3.0.3 specification from the schema model.
-- New cartridge: `docs/openapi` with `openapi.yaml.ftl` template. Generates paths, operations, parameters, request bodies, response schemas, and security schemes.
-- Spring Boot: `springdoc-openapi-starter-webmvc-ui:2.5.0` dep added when flag on.
-- Quarkus: `quarkus-smallrye-openapi` dep added when flag on.
-- 6 new engine tests. Test count: 212 → 218.
+- Rate limiting (`flags.enableRateLimiter`) — Resilience4j rate limiter wrapping proxy calls. 429 when exceeded. Runtime: `RATE_LIMIT_*` env vars.
+- Redis distributed cache (`flags.enableResponseCache`) — Caffeine by default, Redis when `CACHE_REDIS_URL` set. Zero breaking change.
+- Request/response transformation (`flags.enableTransform`) — Per-endpoint header add/remove/rename + JSON field rename/remove.
+- API versioning (`flags.apiVersion`) — Global prefix on proxy routes. Pattern: `v[0-9]+`.
+- Enhanced mock mode — Per-endpoint `mockResponse` (statusCode, body, delayMs) overrides generic mock.
+- Debug mode (`DEBUG_MODE` env var) — Runtime-only. Logs full request/response as structured JSON.
+- Health check aggregation (`flags.enableHealthCheck`) — Scheduled upstream probes at `/api/bridge-health`. Runtime: `HEALTH_CHECK_*` env vars.
+- Search & filtering (`flags.enableSearch`) — Search bar + column filters on List pages. Per-endpoint `searchMode: "delegate" | "local"`.
+- Dark mode / theme switcher — Always generated. CSS variables + localStorage + prefers-color-scheme fallback.
+- Offline support (`flags.enableOfflineSupport`) — Service Worker: cache-first shell, stale-while-revalidate API, network-only non-GET.
+- OpenAPI 3.0 spec (`flags.enableOpenApi`) — New `docs/openapi` cartridge. Generates spec from schema.
+- 7 new `Flags` fields, `Transforms`/`MockResponse` model classes, `searchMode` on `UiLayout`.
+- 7 new FreeMarker context variables in `ApiBridgeCartridgeEngine`.
 
 ### Changed
 
-- Test count: 137 → 218 (81 new tests from Phase 6: Track 0 + F1–F11).
-- `YamlParserTest` (monolithic, 86 tests) split into 9 feature-named files, each extending `YamlParserTestBase`: `YamlParserFileAccessTest`, `YamlParserTopLevelTest`, `YamlParserFlagsTest`, `YamlParserFeatureFlagsTest`, `YamlParserEndpointTest`, `YamlParserUiLayoutTest`, `YamlParserPaginationTest`, `YamlParserMockResponseTest`, `YamlParserTransformsTest`. Test count unchanged (86/86).
-- `ApiBridgeCartridgeEngineTest` (monolithic, 118 tests) split into 16 feature-named classes, each extending `ApiBridgeCartridgeEngineTestBase`: `CoreCartridgeEngineTest`, `DevOpsCartridgeEngineTest`, `AuditLogEngineTest`, `CircuitBreakerEngineTest`, `ResponseCacheEngineTest`, `RateLimiterEngineTest`, `DistributedCacheEngineTest`, `DebugModeEngineTest`, `TransformEngineTest`, `HealthCheckEngineTest`, `MockModeEngineTest`, `ApiVersioningEngineTest`, `SearchFilterEngineTest`, `DarkModeEngineTest`, `OfflineSupportEngineTest`, `OpenApiEngineTest`. Test count unchanged (218/218).
+- Test count: 137 → 254 (117 new tests).
+- `YamlParserTest` split into 9 feature-named files (119 tests).
+- `ApiBridgeCartridgeEngineTest` split into 16 feature-named classes (135 tests).
+- `ApiBridgeRunnerTest` (2 tests). Grand total: 254.
 
 ---
 

@@ -274,4 +274,260 @@ public class YamlParserFeatureFlagsTest extends YamlParserTestBase {
         BridgeSchemaModel model = parser.parse(file);
         assertFalse(model.getFlags().isEnableHealthCheck(), "enableHealthCheck must default to false");
     }
+
+    // --- T.7: apiVersion: "" throws ---
+
+    @Test
+    public void testApiVersionEmptyStringThrows(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  apiVersion: ""
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("apiVersion"));
+    }
+
+    // --- T.8: apiVersion: "v" (no digits) throws ---
+
+    @Test
+    public void testApiVersionNoDigitsThrows(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  apiVersion: "v"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("apiVersion"));
+    }
+
+    // --- T.9: apiVersion: "V1" (uppercase V) throws ---
+
+    @Test
+    public void testApiVersionUppercaseVThrows(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  apiVersion: "V1"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("apiVersion"));
+    }
+
+    // --- T.10: apiVersion: "v0" valid ---
+
+    @Test
+    public void testApiVersionV0Valid(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  apiVersion: "v0"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("v0", model.getFlags().getApiVersion());
+    }
+
+    // --- T.11: apiVersion: "v123" valid ---
+
+    @Test
+    public void testApiVersionV123Valid(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  apiVersion: "v123"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("v123", model.getFlags().getApiVersion());
+    }
+
+    // --- T.12: enableTelemetry default false + explicit true ---
+
+    @Test
+    public void testEnableTelemetryDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableTelemetry());
+    }
+
+    @Test
+    public void testEnableTelemetryExplicitTrue(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableTelemetry: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    telemetryName: "span"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableTelemetry());
+    }
+
+    // --- T.13: enableSearch default false + explicit true ---
+
+    @Test
+    public void testEnableSearchDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableSearch());
+    }
+
+    @Test
+    public void testEnableSearchExplicitTrue(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableSearch: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableSearch());
+    }
+
+    // --- T.14: enableOfflineSupport default false + explicit true ---
+
+    @Test
+    public void testEnableOfflineSupportDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableOfflineSupport());
+    }
+
+    @Test
+    public void testEnableOfflineSupportExplicitTrue(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableOfflineSupport: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableOfflineSupport());
+    }
+
+    // --- T.15: enableOpenApi default false + explicit true ---
+
+    @Test
+    public void testEnableOpenApiDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableOpenApi());
+    }
+
+    @Test
+    public void testEnableOpenApiExplicitTrue(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableOpenApi: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableOpenApi());
+    }
+
+    // --- T.16: enableTransform default false + explicit true ---
+
+    @Test
+    public void testEnableTransformDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertFalse(model.getFlags().isEnableTransform());
+    }
+
+    @Test
+    public void testEnableTransformExplicitTrue(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableTransform: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertTrue(model.getFlags().isEnableTransform());
+    }
 }

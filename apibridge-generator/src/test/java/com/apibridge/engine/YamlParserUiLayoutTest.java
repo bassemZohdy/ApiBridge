@@ -401,4 +401,110 @@ public class YamlParserUiLayoutTest extends YamlParserTestBase {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
         assertTrue(ex.getMessage().contains("searchMode") && ex.getMessage().contains("List"));
     }
+
+    // --- T.1: Invalid component value throws ---
+
+    @Test
+    public void testInvalidComponentValueThrows(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "Table"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("component"));
+        assertTrue(ex.getMessage().contains("Form") || ex.getMessage().contains("List") || ex.getMessage().contains("View"));
+    }
+
+    // --- T.19: Column.sortable defaults false ---
+
+    @Test
+    public void testColumnSortableDefaultsFalse(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      columns:
+                        - field: "name"
+                          label: "Name"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        BridgeSchemaModel.Column col = model.getEndpoints().get(0).getUiLayout().getColumns().get(0);
+        assertFalse(col.isSortable());
+    }
+
+    // --- T.20: Column.label null when absent ---
+
+    @Test
+    public void testColumnLabelNullWhenAbsent(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      columns:
+                        - field: "name"
+                          sortable: true
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        BridgeSchemaModel.Column col = model.getEndpoints().get(0).getUiLayout().getColumns().get(0);
+        assertNull(col.getLabel());
+    }
+
+    // --- T.25: Second field error includes fields[1] in message ---
+
+    @Test
+    public void testSecondFieldErrorIncludesIndex(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/submit"
+                    method: "POST"
+                    backendUrl: "https://example.com/submit"
+                    uiLayout:
+                      component: "Form"
+                      fields:
+                        - name: "valid"
+                          type: "string"
+                        - type: "number"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("fields[1]"));
+    }
+
+    // --- T.26: Second column error includes columns[1] in message ---
+
+    @Test
+    public void testSecondColumnErrorIncludesIndex(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                endpoints:
+                  - path: "/items"
+                    method: "GET"
+                    backendUrl: "https://example.com/items"
+                    uiLayout:
+                      component: "List"
+                      columns:
+                        - field: "name"
+                        - label: "Email"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("columns[1]"));
+    }
 }

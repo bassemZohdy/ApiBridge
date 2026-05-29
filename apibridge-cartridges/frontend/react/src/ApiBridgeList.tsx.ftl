@@ -146,7 +146,7 @@ export function ApiBridgeList({ config, onNavigate }: ApiBridgeListProps) {
 <#if viewEndpoint != "">
   const handleRowClick = (row: Row) => {
     const id = row['id'] ?? row['_id'] ?? '';
-    onNavigate(`view/${id}`);
+    onNavigate(`view/${r"${id}"}`);
   };
 </#if>
 

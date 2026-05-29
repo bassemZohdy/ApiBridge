@@ -288,4 +288,40 @@ public class YamlParserFlagsTest extends YamlParserTestBase {
         assertNotNull(model);
         assertEquals("Docker-Compose", model.getFlags().getDeployTarget());
     }
+
+    // --- T.2: backendFlavor "quarkus" valid parse ---
+
+    @Test
+    public void testBackendFlavorQuarkusValid(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  backendFlavor: "quarkus"
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals("quarkus", model.getFlags().getBackendFlavor());
+    }
+
+    // --- T.17: backendFlavor defaults "spring-boot" when omitted ---
+
+    @Test
+    public void testBackendFlavorDefaultSpringBoot(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags: {}
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertNotNull(model.getFlags());
+        assertEquals("spring-boot", model.getFlags().getBackendFlavor());
+    }
 }

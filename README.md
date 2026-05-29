@@ -422,14 +422,11 @@ Checkstyle rules: 4-space indent, no star imports, no unused imports, braces req
 | `flags.enableOfflineSupport` | boolean | `true` generates Service Worker for offline-capable SPA |
 | `flags.enableOpenApi` | boolean | `true` generates OpenAPI 3.0.3 spec from schema |
 | `flags.apiVersion` | String | Global version prefix (e.g. `"v1"`) on proxy routes; null = no prefix |
-| `endpoint.uiLayout.searchMode` | String | `"delegate"` or `"local"` — how List search is handled (requires `enableSearch`) |
-| `endpoint.transforms` | Transforms | Per-endpoint header/field transforms (requires `enableTransform`) |
-| `endpoint.mockResponse` | MockResponse | Per-endpoint mock response for MOCK_MODE (statusCode, body, delayMs) |
 | `endpoint.uiLayout.component` | String | `Form`, `List`, or `View` |
 | `endpoint.uiLayout.columns` | List\<Column\> | Schema-defined list columns (optional; runtime fallback if absent) |
-| `endpoint.uiLayout.searchMode` | String | `"delegate"` or `"local"` — search/filter strategy for List endpoints |
+| `endpoint.uiLayout.searchMode` | String | `"delegate"` or `"local"` — search/filter strategy for List endpoints (requires `enableSearch`) |
 | `endpoint.transforms` | Transforms | Per-endpoint header/field transforms (requires `enableTransform`) |
-| `endpoint.mockResponse` | MockResponse | Per-endpoint mock definition (statusCode, body, delayMs) |
+| `endpoint.mockResponse` | MockResponse | Per-endpoint mock response for MOCK_MODE (statusCode, body, delayMs) |
 | `field.label` | String | Optional display label for form/view fields |
 
 **Filtering form endpoints in templates**: use `endpoints?filter(ep -> ep.method?upper_case != "GET")` to get only mutation endpoints. All Form templates already do this internally via the `formEndpoints` assignment.

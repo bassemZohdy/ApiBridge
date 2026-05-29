@@ -160,12 +160,16 @@ public class YamlParser {
                     }
                 }
                 if (layout.getSearchMode() != null) {
+                    if (!comp.equals("list")) {
+                        throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: searchMode is only valid on List components.");
+                    }
+                    boolean searchEnabled = model.getFlags() != null && model.getFlags().isEnableSearch();
+                    if (!searchEnabled) {
+                        throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: searchMode requires flags.enableSearch to be true.");
+                    }
                     String sm = layout.getSearchMode().toLowerCase();
                     if (!sm.equals("delegate") && !sm.equals("local")) {
                         throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: Must be 'delegate' or 'local'. Got '" + layout.getSearchMode() + "'.");
-                    }
-                    if (!comp.equals("list")) {
-                        throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: searchMode is only valid on List components.");
                     }
                 }
             }
