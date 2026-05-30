@@ -59,61 +59,36 @@ public class YamlParser {
             throw new IllegalArgumentException("Schema validation error: Configuration must define at least one endpoint under 'endpoints'.");
         }
 
-        if (model.getFlags() != null) {
-            if (model.getFlags().getBackendFlavor() != null) {
-                String flavor = model.getFlags().getBackendFlavor().toLowerCase();
-                if (!flavor.equals("spring-boot") && !flavor.equals("quarkus")) {
-                    throw new IllegalArgumentException("Schema validation error: Invalid flags.backendFlavor value '" + flavor + "'. Must be 'spring-boot' or 'quarkus'.");
+        BridgeSchemaModel.Flags flags = model.getFlags();
+
+        if (flags != null) {
+            validateEnum(flags.getBackendFlavor(), "flags.backendFlavor", "spring-boot", "quarkus");
+            validateEnum(flags.getFeFlavor(), "flags.feFlavor", "angular", "react", "vue");
+            validateEnum(flags.getDeployTarget(), "flags.deployTarget", "docker-compose", "kubernetes", "openshift");
+            validateEnum(flags.getSecurityLevel(), "flags.securityLevel", "bearer-token", "apiKey");
+
+            // Pagination is auto-initialized (never null when flags is non-null), so this guard
+            // checks whether the user explicitly set pagination values. Defaults pass validation.
+            if (flags.getPagination() != null) {
+                BridgeSchemaModel.Pagination p = flags.getPagination();
+                if (p.getDefaultPageSize() <= 0) {
+                    throw new IllegalArgumentException("Schema validation error: flags.pagination.defaultPageSize must be a positive integer.");
+                }
+                validatePaginationParam(p.getPageParam(), "pageParam");
+                validatePaginationParam(p.getSizeParam(), "sizeParam");
+                validatePaginationParam(p.getSortParam(), "sortParam");
+                validatePaginationParam(p.getDirectionParam(), "directionParam");
+            }
+
+            if (flags.getApiVersion() != null) {
+                String version = flags.getApiVersion().trim();
+                if (!version.matches("v[0-9]+")) {
+                    throw new IllegalArgumentException("Schema validation error: flags.apiVersion must match pattern v[0-9]+ (e.g. 'v1', 'v2'). Got '" + version + "'.");
                 }
             }
-        }
 
-        if (model.getFlags() != null && model.getFlags().getFeFlavor() != null) {
-            String flavor = model.getFlags().getFeFlavor().toLowerCase();
-            if (!flavor.equals("angular") && !flavor.equals("react") && !flavor.equals("vue")) {
-                throw new IllegalArgumentException("Schema validation error: Invalid flags.feFlavor value '" + flavor + "'. Must be 'angular', 'react', or 'vue'.");
-            }
-        }
-
-        if (model.getFlags() != null && model.getFlags().getDeployTarget() != null) {
-            String target = model.getFlags().getDeployTarget().toLowerCase();
-            if (!target.equals("docker-compose") && !target.equals("kubernetes") && !target.equals("openshift")) {
-                throw new IllegalArgumentException("Schema validation error: Invalid flags.deployTarget value '" + target + "'. Must be 'docker-compose', 'kubernetes', or 'openshift'.");
-            }
-        }
-
-        if (model.getFlags() != null && model.getFlags().getSecurityLevel() != null) {
-            String level = model.getFlags().getSecurityLevel().toLowerCase();
-            if (!level.equals("bearer-token") && !level.equals("apikey")) {
-                throw new IllegalArgumentException("Schema validation error: Invalid flags.securityLevel value '" + level + "'. Must be 'bearer-token' or 'apiKey'.");
-            }
-        }
-
-        // Pagination is auto-initialized (never null when flags is non-null), so this guard
-        // checks whether the user explicitly set pagination values. Defaults pass validation.
-        if (model.getFlags() != null && model.getFlags().getPagination() != null) {
-            BridgeSchemaModel.Pagination p = model.getFlags().getPagination();
-            if (p.getDefaultPageSize() <= 0) {
-                throw new IllegalArgumentException("Schema validation error: flags.pagination.defaultPageSize must be a positive integer.");
-            }
-            validatePaginationParam(p.getPageParam(), "pageParam");
-            validatePaginationParam(p.getSizeParam(), "sizeParam");
-            validatePaginationParam(p.getSortParam(), "sortParam");
-            validatePaginationParam(p.getDirectionParam(), "directionParam");
-        }
-
-        if (model.getFlags() != null && model.getFlags().getApiVersion() != null) {
-            String version = model.getFlags().getApiVersion().trim();
-            if (!version.matches("v[0-9]+")) {
-                throw new IllegalArgumentException("Schema validation error: flags.apiVersion must match pattern v[0-9]+ (e.g. 'v1', 'v2'). Got '" + version + "'.");
-            }
-        }
-
-        if (model.getFlags() != null && model.getFlags().isEnableOidc()) {
-            if (model.getFlags().getOidcIssuerUri() == null || model.getFlags().getOidcIssuerUri().isBlank()) {
-                throw new IllegalArgumentException(
-                        "flags.oidcIssuerUri must be non-blank when flags.enableOidc is true.");
-            }
+            requireNonBlankIf(flags.isEnableOidc(), flags.getOidcIssuerUri(),
+                    "flags.oidcIssuerUri must be non-blank when flags.enableOidc is true.");
         }
 
         Set<String> seenEndpoints = new HashSet<>();
@@ -140,11 +115,8 @@ public class YamlParser {
                 throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty 'backendUrl'.");
             }
 
-            if (model.getFlags() != null && model.getFlags().isEnableTelemetry()) {
-                if (endpoint.getTelemetryName() == null || endpoint.getTelemetryName().isBlank()) {
-                    throw new IllegalArgumentException("Schema validation error at " + location + ": 'telemetryName' is mandatory when flags.enableTelemetry is active.");
-                }
-            }
+            requireNonBlankIf(flags != null && flags.isEnableTelemetry(), endpoint.getTelemetryName(),
+                    "Schema validation error at " + location + ": 'telemetryName' is mandatory when flags.enableTelemetry is active.");
 
             if (endpoint.getUiLayout() != null) {
                 BridgeSchemaModel.UiLayout layout = endpoint.getUiLayout();
@@ -180,10 +152,9 @@ public class YamlParser {
                     if (!comp.equals("list")) {
                         throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: searchMode is only valid on List components.");
                     }
-                    boolean searchEnabled = model.getFlags() != null && model.getFlags().isEnableSearch();
-                    if (!searchEnabled) {
-                        throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: searchMode requires flags.enableSearch to be true.");
-                    }
+                    requireFlagForField(layout.getSearchMode(),
+                            flags != null && flags.isEnableSearch(),
+                            location + ".uiLayout.searchMode", "flags.enableSearch");
                     String sm = layout.getSearchMode().toLowerCase();
                     if (!sm.equals("delegate") && !sm.equals("local")) {
                         throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: Must be 'delegate' or 'local'. Got '" + layout.getSearchMode() + "'.");
@@ -202,7 +173,7 @@ public class YamlParser {
             }
 
             if (endpoint.getTransforms() != null) {
-                boolean transformEnabled = model.getFlags() != null && model.getFlags().isEnableTransform();
+                boolean transformEnabled = flags != null && flags.isEnableTransform();
                 if (!transformEnabled) {
                     transformWarningEndpoints.add(endpoint.getPath());
                 } else {
@@ -217,6 +188,49 @@ public class YamlParser {
         if (!transformWarningEndpoints.isEmpty()) {
             System.err.println("Warning: transforms defined on endpoint(s) " + transformWarningEndpoints
                     + " but flags.enableTransform is not true — transforms will be ignored.");
+        }
+    }
+
+    private void validateEnum(String value, String fieldPath, String... validValues) {
+        if (value == null) {
+            return;
+        }
+        String lower = value.toLowerCase();
+        for (String valid : validValues) {
+            if (lower.equals(valid.toLowerCase())) {
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Schema validation error: Invalid " + fieldPath
+                + " value '" + value + "'. Must be " + formatEnumValues(validValues) + ".");
+    }
+
+    private static String formatEnumValues(String... values) {
+        if (values.length == 1) {
+            return "'" + values[0] + "'";
+        }
+        if (values.length == 2) {
+            return "'" + values[0] + "' or '" + values[1] + "'";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) {
+                sb.append(i == values.length - 1 ? ", or " : ", ");
+            }
+            sb.append("'").append(values[i]).append("'");
+        }
+        return sb.toString();
+    }
+
+    private void requireNonBlankIf(boolean condition, String value, String message) {
+        if (condition && (value == null || value.isBlank())) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private void requireFlagForField(String fieldValue, boolean flagEnabled, String fieldPath, String flagPath) {
+        if (fieldValue != null && !flagEnabled) {
+            throw new IllegalArgumentException("Schema validation error at " + fieldPath + " requires " + flagPath + " to be true.");
         }
     }
 
