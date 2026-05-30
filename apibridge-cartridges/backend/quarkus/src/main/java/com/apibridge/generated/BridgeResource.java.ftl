@@ -27,7 +27,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.List;
 import java.util.Map;
 </#if>
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
@@ -92,7 +92,7 @@ public class BridgeResource {
     @Inject
     ProxyService proxyService;
 
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
     @Inject
     OpenTelemetry openTelemetry;
 
@@ -152,7 +152,7 @@ public class BridgeResource {
         if (query != null && !query.isBlank()) {
             resolvedUrl = resolvedUrl + (resolvedUrl.contains("?") ? "&" : "?") + query;
         }
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
         Span span${endpoint?index} = getTracer().spanBuilder("${(endpoint.telemetryName!methodName)}")
                 .setAttribute("http.method", "${endpoint.method?upper_case}")
                 .setAttribute("http.url", resolvedUrl)

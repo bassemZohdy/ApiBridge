@@ -120,7 +120,7 @@ export class BridgeListComponent implements OnInit {
       queryStr += `${r"${queryStr ? '&' : ''}"}${r"${this.searchParam}"}=${r"${encodeURIComponent(this.searchTerm)}"}`;
     }
 </#if>
-    const url = `${'$'}{r"${basePath}"}${listEndpoint.path}${r"${queryStr ? '?' + queryStr : ''}"}`;
+    const url = `${basePath}${listEndpoint.path}${r"${queryStr ? '?' + queryStr : ''}"}`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 <#if (flags.securityLevel!"") != "">
     Object.assign(headers, this.apiService.getAuthHeaders());

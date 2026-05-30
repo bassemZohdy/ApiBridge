@@ -1,5 +1,28 @@
 # ApiBridge — Active Work
 
+## Anti-Pattern Fix Cycle (post-P7 review)
+
+Critical and high-priority fixes from the full anti-pattern review. All P7 work is done; this is a cleanup pass.
+
+| # | Fix | Severity | Status |
+|---|-----|----------|--------|
+| H1 | Remove duplicate component code (lines 160–251) in `react/ApiBridgeView.tsx.ftl` — generates invalid TS with duplicate exports | CRITICAL | [x] Done |
+| H2 | Fix broken JS template literal in `angular/bridge-list.component.ts.ftl:123` — `${'$'}{r"${basePath}"}` produces undefined `r` at runtime | CRITICAL | [x] Done |
+| H3 | Replace `HashMap` with `ConcurrentHashMap` + `computeIfAbsent` in `ApiBridgeCartridgeEngine.CONFIGURATION_CACHE` — thread safety | HIGH | [x] Done |
+| H4 | Add null guard on `model` in `YamlParser.validate()` | HIGH | [x] Done |
+| H5 | Add null guard on `cartridgeArg` in `CartridgeResolver.resolve()` | HIGH | [x] Done |
+| H6 | Add null guards on `url`/`targetDir` in `CartridgeDownloader.downloadAndExtract()` | HIGH | [x] Done |
+| H7 | Convert `TemplateEntry` to record in `ApiBridgeCartridgeEngine` | MEDIUM | [x] Done |
+| H8 | Make `validateEnum()` static in `YamlParser` | MEDIUM | [x] Done |
+| H9 | Deduplicate `resolvedBeFlavor`/`resolvedFeFlavor`/`resolvedDeployTarget` to use `resolvedString()` | MEDIUM | [x] Done |
+| H10 | Remove `java.util.Set` fully-qualified refs in `ApiBridgeCartridgeEngine` — use import | MEDIUM | [x] Done |
+| H11 | Normalize 17 bare `<#if flags.enableTelemetry>` → `<#if (flags.enableTelemetry)!false>` across 10 templates for consistency | MEDIUM | [x] Done |
+| H12 | Run `mvn verify` → commit all fixes | HIGH | [x] Done |
+
+### Completed before this cycle
+- A1: Extract `validateEnum()` / `formatEnumValues()` / `requireNonBlankIf()` / `requireFlagForField()` helpers in `YamlParser.java`
+- A2: Generalized cross-field validation via `requireNonBlankIf()` and `requireFlagForField()`
+
 ## Phase 7 Complete
 
 All P7 sub-phases have been implemented and committed:

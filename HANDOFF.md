@@ -110,7 +110,11 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 48. **Helm ingress disabled by default** — `values.yaml` sets `ingress.enabled: false`; user enables at install time.
 49. **Cartridge cache keyed by SHA-256** — `~/.apibridge/cartridges/<sha256>/` directory; deterministic hash of reference string; cache hit = no re-download.
 50. **ZIP extraction has zip-slip protection** — `CartridgeDownloader.extractZip()` validates canonical paths before writing.
-51. **GitHub shorthand resolves to archive ZIP** — `github:owner/repo[/subpath][@ref]` → `https://github.com/owner/repo/archive/refs/heads/<ref>.zip`; default ref is `main`.
+  51. **GitHub shorthand resolves to archive ZIP** — `github:owner/repo[/subpath][@ref]` → `https://github.com/owner/repo/archive/refs/heads/<ref>.zip`; default ref is `main`.
+  52. **Configuration cache is thread-safe** — `ConcurrentHashMap` in `ApiBridgeCartridgeEngine`; atomic get-then-put for multi-cartridge concurrent generation.
+  53. **Public API methods have null guards** — `YamlParser.validate()`, `CartridgeResolver.resolve()`, `CartridgeDownloader.downloadAndExtract()` reject null/blank inputs with `IllegalArgumentException`.
+  54. **Template flag guards are consistent** — all boolean flags use `(flags.enableX)!false` pattern in `<#if>` directives across all templates.
+  55. **Validation helpers are reusable** — `validateEnum()`, `requireNonBlankIf()`, `requireFlagForField()` in `YamlParser` centralize cross-field and enum checks.
 
 ---
 

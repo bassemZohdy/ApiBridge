@@ -35,7 +35,7 @@ quarkus.http.cors.methods=GET,POST,PUT,DELETE,PATCH,OPTIONS
 quarkus.http.cors.headers=*
 quarkus.http.cors.exposed-headers=*
 quarkus.http.cors.access-control-max-age=3600
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
 
 # Distributed tracing — OTLP exporter
 # Override QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT to point at your collector
@@ -94,7 +94,7 @@ quarkus.otel.service.name=${id}
 <#if (flags.securityLevel!"") == "bearer-token">
 #   AUTH_SERVER_URL=                  URL of JWT introspection endpoint; empty = pass-through (non-empty header check only)
 </#if>
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
 #   QUARKUS_OTEL_ENABLED=true
 #   QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://<collector>:4317
 #   QUARKUS_OTEL_SERVICE_NAME=${id}

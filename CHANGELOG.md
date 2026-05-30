@@ -60,6 +60,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - `ApiBridgeRunner` updated: multi-schema via `SchemaComposer`, cartridge resolution via `CartridgeResolver`, `InterruptedException` handling.
 - FreeMarker context gains `enableOidc` (boolean) and `oidcIssuerUri` (String) variables.
 
+### Fixed — Post-P7 anti-pattern review (H1–H11)
+
+- **H1** Removed 91-line duplicate component definition in `react/ApiBridgeView.tsx.ftl` (lines 160–251 were dead copy of lines 1–158) — generated invalid TypeScript with duplicate exports.
+- **H2** Fixed broken JS template literal in `angular/bridge-list.component.ts.ftl` — `${'$'}{r"${basePath}"}` produced undefined `r` at runtime; now uses `${basePath}` (FreeMarker inlines the value).
+- **H3** Replaced `HashMap` with `ConcurrentHashMap` in `ApiBridgeCartridgeEngine.CONFIGURATION_CACHE` — thread-safe for concurrent `generate()` calls.
+- **H4** Added null guard on `model` parameter in `YamlParser.validate()`.
+- **H5** Added null/blank guard on `cartridgeArg` in `CartridgeResolver.resolve()`.
+- **H6** Added null guards on `url`/`targetDir` in `CartridgeDownloader.downloadAndExtract()`.
+- **H7** Converted `TemplateEntry` inner class to record in `ApiBridgeCartridgeEngine`.
+- **H8** Made `validateEnum()` static in `YamlParser` — has no instance dependency.
+- **H9** Deduplicated `resolvedBeFlavor`/`resolvedFeFlavor`/`resolvedDeployTarget` to reuse `resolvedString()` helper.
+- **H10** Replaced fully-qualified `java.util.Set` refs in `ApiBridgeCartridgeEngine` with proper import.
+- **H11** Normalized 17 bare `<#if flags.enableTelemetry>` → `<#if (flags.enableTelemetry)!false>` across 10 templates for consistency with all other boolean flag guards.
+- **A1** Extracted `validateEnum()`, `formatEnumValues()`, `requireNonBlankIf()`, `requireFlagForField()` helpers in `YamlParser.java` — replaced 4 repeated flag-level enum validation blocks.
+- **A2** Generalized cross-field validation: `requireNonBlankIf()` for OIDC/telemetry, `requireFlagForField()` for searchMode/enableSearch.
+
 ### Fixed — Pre-P7 code review round 2 (V6, V7, Q4–Q7)
 
 - **V6** Transform `add` map now validates blank header values — mirrors the `rename` map validation that already checked both keys and values.

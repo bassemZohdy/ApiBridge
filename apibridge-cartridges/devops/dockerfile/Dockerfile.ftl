@@ -114,7 +114,7 @@ ENV \
     PAGINATION_SORT_PARAM=sort \
     PAGINATION_DIRECTION_PARAM=dir \
     CUSTOM_CSS_PATH= \
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
 <#if backendFlavor == "spring-boot">
     # Distributed tracing — OTLP exporter (Spring Boot)
     MANAGEMENT_TRACING_ENABLED=true \

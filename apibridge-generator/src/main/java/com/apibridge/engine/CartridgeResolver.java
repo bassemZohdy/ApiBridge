@@ -20,6 +20,9 @@ public class CartridgeResolver {
     }
 
     public File resolve(String cartridgeArg) throws IOException, InterruptedException {
+        if (cartridgeArg == null || cartridgeArg.isBlank()) {
+            throw new IllegalArgumentException("Cartridge reference cannot be null or blank.");
+        }
         if (cartridgeArg.startsWith("github:")) {
             return resolveGitHub(cartridgeArg.substring("github:".length()));
         }

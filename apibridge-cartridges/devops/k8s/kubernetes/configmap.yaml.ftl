@@ -40,7 +40,7 @@ data:
   QUARKUS_LOG_LEVEL: "INFO"
 </#if>
   # ── Distributed tracing ──────────────────────────────────────────────────────
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
 <#if backendFlavor == "spring-boot">
   MANAGEMENT_TRACING_ENABLED: "true"
   MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"

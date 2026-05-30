@@ -16,15 +16,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public class ApiBridgeCartridgeEngine {
 
-    private static final Map<String, Configuration> CONFIGURATION_CACHE = new HashMap<>();
+    private static final Map<String, Configuration> CONFIGURATION_CACHE = new ConcurrentHashMap<>();
 
-    // Cartridges nested under one of these category dirs auto-prefix their output with that dir name.
-    private static final java.util.Set<String> OUTPUT_PREFIX_CATEGORIES =
-            java.util.Set.of("backend", "frontend", "k8s");
+    private static final Set<String> OUTPUT_PREFIX_CATEGORIES =
+            Set.of("backend", "frontend", "k8s");
 
     public void generate(BridgeSchemaModel model, File cartridgeDir, File outputDir)
             throws IOException, TemplateException {
@@ -149,24 +150,18 @@ public class ApiBridgeCartridgeEngine {
     }
 
     private String resolvedBeFlavor(BridgeSchemaModel model) {
-        if (model.getFlags() != null && model.getFlags().getBackendFlavor() != null) {
-            return model.getFlags().getBackendFlavor().toLowerCase();
-        }
-        return "spring-boot";
+        String val = resolvedString(model, f -> f.getBackendFlavor());
+        return val.isEmpty() ? "spring-boot" : val.toLowerCase();
     }
 
     private String resolvedFeFlavor(BridgeSchemaModel model) {
-        if (model.getFlags() != null && model.getFlags().getFeFlavor() != null) {
-            return model.getFlags().getFeFlavor().toLowerCase();
-        }
-        return "";
+        String val = resolvedString(model, f -> f.getFeFlavor());
+        return val.isEmpty() ? "" : val.toLowerCase();
     }
 
     private String resolvedDeployTarget(BridgeSchemaModel model) {
-        if (model.getFlags() != null && model.getFlags().getDeployTarget() != null) {
-            return model.getFlags().getDeployTarget().toLowerCase();
-        }
-        return "";
+        String val = resolvedString(model, f -> f.getDeployTarget());
+        return val.isEmpty() ? "" : val.toLowerCase();
     }
 
     private boolean resolvedFlag(BridgeSchemaModel model, Function<BridgeSchemaModel.Flags, Boolean> getter) {
@@ -184,13 +179,5 @@ public class ApiBridgeCartridgeEngine {
         return "";
     }
 
-    private static final class TemplateEntry {
-        final String templateName;
-        final File outputFile;
-
-        TemplateEntry(String templateName, File outputFile) {
-            this.templateName = templateName;
-            this.outputFile = outputFile;
-        }
-    }
+    private record TemplateEntry(String templateName, File outputFile) {}
 }

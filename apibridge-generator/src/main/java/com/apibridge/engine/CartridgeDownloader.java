@@ -24,6 +24,12 @@ public class CartridgeDownloader {
     }
 
     public void downloadAndExtract(String url, File targetDir) throws IOException, InterruptedException {
+        if (url == null || url.isBlank()) {
+            throw new IllegalArgumentException("Download URL cannot be null or blank.");
+        }
+        if (targetDir == null) {
+            throw new IllegalArgumentException("Target directory cannot be null.");
+        }
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .GET()

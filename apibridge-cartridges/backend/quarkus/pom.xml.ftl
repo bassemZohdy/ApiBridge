@@ -41,7 +41,7 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-opentelemetry</artifactId>

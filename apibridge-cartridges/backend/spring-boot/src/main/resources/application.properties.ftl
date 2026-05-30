@@ -29,7 +29,7 @@ management.endpoint.health.show-details=never
 
 # Structured JSON logging for container log aggregators (EFK/Loki/CloudWatch)
 logging.structured.format.console=ecs
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
 
 # Distributed tracing — OTLP exporter
 # Override MANAGEMENT_OTLP_TRACING_ENDPOINT to point at your collector
@@ -99,7 +99,7 @@ management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
 <#if (flags.securityLevel!"") == "bearer-token">
 #   AUTH_SERVER_URL=              URL of JWT introspection endpoint; empty = pass-through (non-empty header check only)
 </#if>
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
 #   MANAGEMENT_TRACING_ENABLED=true
 #   MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
 #   MANAGEMENT_OTLP_TRACING_ENDPOINT=http://<collector>:4318/v1/traces

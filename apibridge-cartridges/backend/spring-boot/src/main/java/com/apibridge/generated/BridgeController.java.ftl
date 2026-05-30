@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
@@ -81,13 +81,13 @@ public class BridgeController {
 </#list>
 
     private final ProxyService proxyService;
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
     private final Tracer otelTracer;
 </#if>
 
-    public BridgeController(ProxyService proxyService<#if flags.enableTelemetry>, OpenTelemetry openTelemetry</#if>) {
+    public BridgeController(ProxyService proxyService<#if (flags.enableTelemetry)!false>, OpenTelemetry openTelemetry</#if>) {
         this.proxyService = proxyService;
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
         this.otelTracer = openTelemetry.getTracer("apibridge", "1.0.0");
 </#if>
     }
@@ -151,7 +151,7 @@ public class BridgeController {
         }
 </#if>
         String resolvedUrl = ${urlFieldName}<#list pathParams as param>.replace("{${param}}", ${param})</#list>;
-<#if flags.enableTelemetry>
+<#if (flags.enableTelemetry)!false>
         Span span${endpoint?index} = otelTracer.spanBuilder("${(endpoint.telemetryName!methodName)}")
                 .setAttribute("http.method", "${endpoint.method?upper_case}")
                 .setAttribute("http.url", resolvedUrl)

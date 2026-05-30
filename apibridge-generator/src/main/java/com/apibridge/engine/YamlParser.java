@@ -48,6 +48,9 @@ public class YamlParser {
     }
 
     public void validate(BridgeSchemaModel model) {
+        if (model == null) {
+            throw new IllegalArgumentException("Schema model cannot be null.");
+        }
         List<String> transformWarningEndpoints = new ArrayList<>();
         if (model.getId() == null || model.getId().isBlank()) {
             throw new IllegalArgumentException("Schema validation error: Missing or empty 'id' parameter.");
@@ -191,7 +194,7 @@ public class YamlParser {
         }
     }
 
-    private void validateEnum(String value, String fieldPath, String... validValues) {
+    private static void validateEnum(String value, String fieldPath, String... validValues) {
         if (value == null) {
             return;
         }
