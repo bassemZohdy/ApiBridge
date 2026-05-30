@@ -4,8 +4,11 @@
 
 - Java 21 (JDK 21 required — `maven.compiler.release=21`).
 - Single Maven module: `apibridge-generator/`. Cartridges under `apibridge-cartridges/` are **not** Maven modules — they are plain directories of `.ftl` FreeMarker templates.
+- Web schema builder: `apibridge-web-builder/` — separate Vite+React+TypeScript module (not a Maven module).
 - Fat JAR via `maven-shade-plugin`; main class: `com.apibridge.engine.ApiBridgeRunner`.
 - Output JAR: `apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar`.
+- Shell wrappers: `bin/apibridge` (Unix) and `bin/apibridge.bat` (Windows) delegate to `java -jar`.
+- Generator Docker image: `Dockerfile.generator` — multi-stage build with bundled cartridges.
 
 ```bash
 mvn clean package            # build fat JAR (skips tests)
@@ -32,8 +35,10 @@ Config: `apibridge-generator/checkstyle.xml`. Key rules:
 
 ## Architecture
 
-- **Engine entry point**: `ApiBridgeRunner.main()` — CLI arg parser, calls `YamlParser.parse()` then `ApiBridgeCartridgeEngine.generate()` per cartridge.
+- **Engine entry point**: `ApiBridgeRunner.main()` — CLI arg parser, parses schemas via `YamlParser.parse()`, composes multiple schemas via `SchemaComposer`, resolves cartridge references via `CartridgeResolver`, then calls `ApiBridgeCartridgeEngine.generate()` per cartridge.
 - **Model**: `BridgeSchemaModel` (in `.model` subpackage) — Jackson-deserialized from YAML. Contains `Flags` (with defaults: `backendFlavor="spring-boot"`), `Pagination`, `Endpoint`, `UiLayout`, `Field`, `Column`. Full Javadoc on all classes and fields.
+- **Schema composition**: `SchemaComposer` merges multiple `BridgeSchemaModel` instances — `id`/`basePath`/`flags` from primary schema, `endpoints` concatenated in order, cross-schema duplicates rejected.
+- **Cartridge resolution**: `CartridgeResolver` handles three reference formats (local path, URL, `github:` shorthand). Downloads are cached at `~/.apibridge/cartridges/<sha256>/` via `CartridgeCache`. ZIP extraction uses `CartridgeDownloader` with zip-slip protection.
 - **Template engine**: FreeMarker 2.3.32. Cartridge dir = template root. `.ftl` suffix stripped for output filenames.
 - **Output prefixing**: cartridges nested under `backend/`, `frontend/`, or `k8s/` auto-prefix their output with that directory name (e.g. `backend/spring-boot/BridgeController.java.ftl` → `<output>/backend/BridgeController.java`). Other cartridges (e.g. `devops/dockerfile`) emit directly to output root.
 - **Empty template output**: if a template renders to blank, it is skipped (no file written). Use this for conditional files.
@@ -49,11 +54,13 @@ Available variables in all `.ftl` templates:
 |---|---|---|
 | `id` | String | Service identifier |
 | `basePath` | String | REST base path |
-| `flags` | Flags | May be `null` — always null-check |
+| `flags` | Flags | Always non-null — `ApiBridgeRunner` synthesises `new Flags()` when absent. Use field-level guards (`flags.securityLevel??`), not `flags??`. |
 | `endpoints` | List\<Endpoint\> | All endpoint definitions |
 | `backendFlavor` | String | `spring-boot` or `quarkus` (never null, defaults to `spring-boot`) |
 | `feFlavor` | String | `react`, `angular`, `vue`, or `""` if unset |
 | `deployTarget` | String | `docker-compose`, `kubernetes`, `openshift`, or `""` |
+| `enableOidc` | boolean | `false` when flag off. Gates `SecurityConfig.java` generation. |
+| `oidcIssuerUri` | String | OIDC issuer URL. Only meaningful when `enableOidc` is true. |
 
 Gate FE-specific content with: `(feFlavor!"") != ""`.
 
@@ -61,11 +68,15 @@ Gate FE-specific content with: `(feFlavor!"") != ""`.
 
 ```bash
 java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
-  --schema=sample-schema.yaml \
+  --schema=users-service.yaml \
+  --schema=orders-service.yaml \
   --cartridge=apibridge-cartridges/backend/spring-boot \
   --cartridge=apibridge-cartridges/frontend/react \
+  --cartridge=github:my-org/custom-cartridges/backend/spring-boot@v1 \
   --output=output/my-app
 ```
+
+`--schema=` is repeatable — schemas are merged by `SchemaComposer` (id/basePath/flags from first schema, endpoints concatenated, cross-schema duplicates rejected).
 
 CLI overrides take precedence over schema `flags`: `--be-flavor=`, `--fe-flavor=`, `--deploy-target=`, `--security-level=`.
 
@@ -73,6 +84,15 @@ CLI overrides take precedence over schema `flags`: `--be-flavor=`, `--fe-flavor=
 - Local path: `./my-cartridge` or `/abs/path` — passed directly to engine
 - URL: `https://host/file.zip` — downloaded, extracted, cached at `~/.apibridge/cartridges/<sha256>/`
 - GitHub shorthand: `github:owner/repo[/subpath][@ref]` — downloads GitHub archive ZIP, default ref is `main`
+
+## Web Schema Builder
+
+Browser-based GUI at `apibridge-web-builder/` for building `schema.yaml` without writing YAML. Vite + React 18 + TypeScript + js-yaml. Live YAML preview, download button, flag toggles, endpoint editor. 15 tests (Vitest).
+
+```bash
+cd apibridge-web-builder && npm install && npm run dev   # http://localhost:5173
+cd apibridge-web-builder && npm test                      # 15 Vitest tests
+```
 
 ## E2E tests
 
@@ -86,7 +106,7 @@ CLI overrides take precedence over schema `flags`: `--be-flavor=`, `--fe-flavor=
 
 1. Create a directory under `apibridge-cartridges/`. Its path is the `--cartridge=` value.
 2. Add `.ftl` files. Directory tree mirrors 1:1 to output; `.ftl` suffix is stripped.
-3. Add unit tests in `ApiBridgeCartridgeEngineTest` to verify generation.
+3. Add unit tests in an engine test class to verify generation.
 4. Add an E2E suite under `e2e-tests/` and wire it into `run-all-e2e.sh` and `.github/workflows/ci.yml`.
 
 ## Schema quick reference
@@ -98,6 +118,8 @@ Valid `flags` enums:
 - `feFlavor`: `angular` | `react` | `vue`
 - `securityLevel`: `bearer-token` | `apiKey`
 - `deployTarget`: `docker-compose` | `kubernetes` | `openshift`
+- `enableOidc`: `true` | `false` (default `false`) — requires `oidcIssuerUri`
+- `oidcIssuerUri`: any URI string — required when `enableOidc: true`, overrideable at runtime via `OIDC_ISSUER_URI`
 - `endpoints[].uiLayout.component`: `Form` | `List` | `View` (case-insensitive)
 - `endpoints[].uiLayout.fields[].type` (for Form components): `string` | `number` | `integer` | `boolean` | `email` | `date` | `url` | `password` — maps to HTML input types; `email` adds pattern validation
 
@@ -108,6 +130,8 @@ Full reference: `docs/schema-reference.md`.
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `e2e-compile` (compile checks + K8s/OpenShift manifest validation + React prod build) → `e2e-docker` (fullstack Docker build + runtime) → `e2e-json-server` (live API integration). Triggers on push to `main`/`feature/**`/`bugfix**` and PRs to `main`.
+
+Release workflow (`.github/workflows/release.yml`): triggers on `v*` tag push — builds fat JAR, creates GitHub Release with ZIP archive, builds and pushes Docker image to GHCR.
 
 ## Git
 

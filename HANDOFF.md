@@ -27,7 +27,7 @@ mvn verify → 300/300 PASS, 0 Checkstyle violations
 
 | Test class | Count | Covers |
 |---|---|---|
-| `YamlParser*` (9 files) | 119 | Schema validation: HTTP methods, duplicates, feature flags, apiVersion, mockResponse, transforms, uiLayout, pagination |
+| `YamlParser*` (9 files) | 112 | Schema validation: HTTP methods, duplicates, feature flags, apiVersion, mockResponse, transforms, uiLayout, pagination, OIDC |
 | `CoreCartridgeEngineTest` | 33 | Cartridge generation, composability, FreeMarker context, method names, security |
 | `DevOpsCartridgeEngineTest` | 17 | Dockerfile, Docker Compose, k8s ConfigMap |
 | `TransformEngineTest` | 20 | Header + field transforms, controller args, pass-through |
@@ -44,10 +44,15 @@ mvn verify → 300/300 PASS, 0 Checkstyle violations
 | `DebugModeEngineTest` | 4 | DebugLoggingFilter (Spring + Quarkus) |
 | `DarkModeEngineTest` | 3 | Theme toggle (React/Angular/Vue) |
 | `MockModeEngineTest` | 2 | Schema-defined mock body/status |
-| `ApiBridgeRunnerTest` | 4 | CLI argument handling, version, local cartridge resolve |
+| `OidcEngineTest` | 7 | OIDC SecurityConfig, Spring Boot + Quarkus deps + props |
+| `HelmCartridgeEngineTest` | 8 | Helm Chart.yaml, values.yaml, deployment, service, configmap, ingress |
+| `SchemaComposerTest` | 8 | Multi-schema merge: id/basePath from primary, endpoint concat, cross-schema duplicates |
 | `CartridgeCacheTest` | 7 | Cache miss/hit, SHA-256 hashing, directory allocation |
 | `CartridgeDownloaderTest` | 4 | HTTP download, ZIP extraction, zip-slip security |
 | `CartridgeResolverTest` | 6 | Local path, URL, GitHub shorthand, cache hit |
+| `ApiBridgeRunnerTest` | 4 | CLI argument handling, version, local cartridge resolve |
+
+Web builder tests (Vitest): 15 tests in `apibridge-web-builder/`.
 
 E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
 
@@ -98,6 +103,14 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 41. **Transform warning deduplicated** — printed once per `validate()` call, listing all affected endpoints.
 42. **`flags` is always non-null in FreeMarker context** — `ApiBridgeRunner` synthesises `new Flags()` when absent. Templates should use field-level guards (`flags.securityLevel??`), not `flags??`.
 43. **`Pagination` is auto-initialized** — never null when flags is non-null. The null guard documents intent.
+44. **OIDC is schema-defined, runtime-overridable** — `flags.enableOidc: true` + `flags.oidcIssuerUri` generates Spring Security OAuth2 resource server (Spring Boot) or Quarkus OIDC config. Runtime override via `OIDC_ISSUER_URI` env var.
+45. **OIDC health/config endpoints unauthenticated** — `/api/bridge-config` and `/api/bridge-health` remain accessible without JWT.
+46. **Multi-schema composition merges endpoints** — `SchemaComposer` takes `id`/`basePath`/`flags` from primary schema, concatenates endpoints in order, rejects cross-schema duplicates (same path + method).
+47. **Helm expressions survive FreeMarker** — `${r"{{ ... }}"}` raw string pattern prevents Helm `{{ }}` from being interpreted by FreeMarker.
+48. **Helm ingress disabled by default** — `values.yaml` sets `ingress.enabled: false`; user enables at install time.
+49. **Cartridge cache keyed by SHA-256** — `~/.apibridge/cartridges/<sha256>/` directory; deterministic hash of reference string; cache hit = no re-download.
+50. **ZIP extraction has zip-slip protection** — `CartridgeDownloader.extractZip()` validates canonical paths before writing.
+51. **GitHub shorthand resolves to archive ZIP** — `github:owner/repo[/subpath][@ref]` → `https://github.com/owner/repo/archive/refs/heads/<ref>.zip`; default ref is `main`.
 
 ---
 
@@ -113,6 +126,7 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 | `HEALTH_CHECK_INTERVAL_SECONDS` | `30` | Health Check | Per-instance |
 | `HEALTH_CHECK_TIMEOUT_MS` | `3000` | Health Check | Per-instance |
 | `SEARCH_PARAM` | `q` | Search & Filtering | Per-instance |
+| `OIDC_ISSUER_URI` | _(empty)_ | OIDC Authentication | Per-instance |
 
 Legacy ENV VARs (see AGENTS.md for full list): `CB_*`, `CACHE_TTL_SECONDS`, `CACHE_MAX_SIZE`, `MOCK_MODE`, `BLOCK_TRAFFIC`, `AUTH_SERVER_URL`, `PAGINATION_*`, `CUSTOM_CSS_PATH`, `AUDIT_*`, `PROXY_*`.
 
@@ -129,6 +143,8 @@ Legacy ENV VARs (see AGENTS.md for full list): `CB_*`, `CACHE_TTL_SECONDS`, `CAC
 | `enableSearch` | boolean | `false` | Search & Filtering |
 | `enableOfflineSupport` | boolean | `false` | Offline Support |
 | `enableOpenApi` | boolean | `false` | OpenAPI |
+| `enableOidc` | boolean | `false` | OIDC Authentication |
+| `oidcIssuerUri` | String | `""` | OIDC Authentication |
 
 Access pattern: `(flags.enableRateLimiter)!false`, `(flags.apiVersion)!""`.
 
@@ -151,6 +167,8 @@ BridgeSchemaModel.Flags:
   boolean enableSearch
   boolean enableOfflineSupport
   boolean enableOpenApi
+  boolean enableOidc
+  String  oidcIssuerUri
   String  backendFlavor         // default "spring-boot"
   String  feFlavor
   String  securityLevel

@@ -24,7 +24,11 @@ apibridge-cartridges/             # Pluggable cartridge directories (not Maven m
 │   ├── docker-compose/           # docker-compose.yml
 │   └── k8s/
 │       ├── kubernetes/           # K8s Deployment + Service + ConfigMap + Kustomization
-│       └── openshift/            # Extends kubernetes with TLS Route
+│       ├── openshift/            # Extends kubernetes with TLS Route
+│       └── helm/                 # Helm 3 chart (Chart.yaml, values.yaml, templates/)
+├── docs/
+│   └── openapi/                  # OpenAPI 3.0.3 spec (output: openapi.yaml)
+apibridge-web-builder/            # Browser-based schema builder (Vite + React + TypeScript)
 docs/                             # Reference documentation
 sample-schema.yaml                # Working example PIM schema
 e2e-tests/                        # Integration tests — run on CI, not before every commit
@@ -101,8 +105,11 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
 
 ```
 java -jar apibridge-generator.jar \
-  --schema=<path>           Path to the YAML PIM schema
-  --cartridge=<path>        Cartridge to apply (repeatable; applied in order)
+  --schema=<path>           Path to a YAML schema (repeatable; schemas are merged in order)
+  --cartridge=<ref>         Cartridge to apply (repeatable; applied in order). Formats:
+                               ./local/path           Local filesystem path
+                               https://host/file.zip  URL to a ZIP archive (cached)
+                               github:owner/repo[/subpath][@ref]  GitHub archive
   --output=<path>           Destination directory for generated files
   [--be-flavor=<val>]       Override backend: spring-boot | quarkus
   [--fe-flavor=<val>]       Override frontend: angular | react | vue
@@ -112,7 +119,9 @@ java -jar apibridge-generator.jar \
   [-h | --help]             Show help
 ```
 
-`--cartridge` is repeatable. Each cartridge's output merges into the same `--output` directory in the order specified.
+`--schema` is repeatable. Multiple schemas are merged: `id`/`basePath`/`flags` from the first schema, endpoints concatenated in order. Duplicate endpoints (same path + method across schemas) are rejected.
+
+`--cartridge` is repeatable. Each cartridge's output merges into the same `--output` directory in the order specified. Accepts local paths, URLs (cached at `~/.apibridge/cartridges/`), or `github:owner/repo` shorthand.
 
 ---
 
@@ -174,6 +183,14 @@ Periodically probes each endpoint's `backendUrl` and exposes aggregated health a
 | `HEALTH_CHECK_INTERVAL_SECONDS` | `30` | Probe interval |
 | `HEALTH_CHECK_TIMEOUT_MS` | `3000` | Per-probe timeout |
 
+#### OIDC Authentication (`enableOidc`)
+
+Generates a production-ready OIDC resource server in both Spring Boot and Quarkus backends. JWT validation against a configurable issuer; `401` for missing/invalid tokens. Bridge health and config endpoints remain unauthenticated.
+
+| ENV VAR | Default | Purpose |
+|---|---|---|
+| `OIDC_ISSUER_URI` | — | OIDC issuer URL (overrides schema `oidcIssuerUri` at runtime) |
+
 ### Frontend cartridges
 
 | Cartridge | Output |
@@ -209,6 +226,7 @@ Generates a Service Worker with cache-first for the app shell and stale-while-re
 | `devops/docker-compose` | `docker-compose.yml` — local dev with healthcheck and resource limits |
 | `devops/k8s/kubernetes` | `k8s/` — Deployment + Service + ConfigMap + Kustomization |
 | `devops/k8s/openshift` | `k8s/route.yaml` + updated `k8s/kustomization.yaml` — apply on top of kubernetes |
+| `devops/k8s/helm` | Helm 3 chart — `Chart.yaml`, `values.yaml`, `templates/` (deployment, service, configmap, ingress) |
 
 The `devops/dockerfile` FE build stage is automatically omitted when no `feFlavor` is set (BE-only output).
 

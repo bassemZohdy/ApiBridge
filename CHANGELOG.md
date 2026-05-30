@@ -6,6 +6,60 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 
 ## [Unreleased]
 
+### Added — Phase 7: CLI Packaging & Distribution (P7a)
+
+- Shell wrapper scripts: `bin/apibridge` (Unix) and `bin/apibridge.bat` (Windows) — delegate to `java -jar`.
+- Generator Docker image: `Dockerfile.generator` — multi-stage build with bundled cartridges. Supports `VERSION` build-arg.
+- GitHub Actions CI workflow (`.github/workflows/ci.yml`) — `mvn verify` on every push/PR.
+- GitHub Actions release workflow (`.github/workflows/release.yml`) — builds fat JAR, creates GitHub Release with ZIP archive, pushes Docker image to GHCR on `v*` tag push.
+- Version smoke test in `ApiBridgeRunnerTest` — asserts `getVersion()` never returns blank.
+
+### Added — Phase 7: Multi-Schema Composition (P7b)
+
+- `--schema=` is now repeatable — multiple YAML files are merged into one generation run.
+- `SchemaComposer` class: merges `BridgeSchemaModel` instances — `id`/`basePath`/`flags` from primary, `endpoints` concatenated, cross-schema duplicates rejected.
+- 8 tests in `SchemaComposerTest`: passthrough, id/basePath from primary, endpoint merge order, duplicate detection, same-path-different-methods allowed, empty/null list validation.
+
+### Added — Phase 7: Helm Chart Cartridge (P7c)
+
+- New cartridge `devops/k8s/helm` — generates a complete Helm 3 chart: `Chart.yaml`, `values.yaml`, `templates/deployment.yaml`, `templates/service.yaml`, `templates/configmap.yaml`, `templates/ingress.yaml`, `templates/_helpers.tpl`.
+- Helm `{{ }}` expressions survive FreeMarker via `${r"..."}` raw string pattern.
+- `values.yaml` conditionally includes ENV VARs for rate limiter, cache, circuit breaker, health check, search based on flags.
+- Ingress disabled by default in `values.yaml`; enabled at install time.
+- 8 tests in `HelmCartridgeEngineTest`: chart metadata, values, deployment, service, configmap, ingress, flag-gated env vars, Helm expression integrity.
+
+### Added — Phase 7: OIDC Authentication Cartridge (P7d)
+
+- `flags.enableOidc` (boolean, default `false`) + `flags.oidcIssuerUri` (string) — generates JWT resource server config.
+- Spring Boot: `SecurityConfig.java` with `SecurityFilterChain` (stateless sessions, OAuth2 resource server, bridge-config/health permitAll). `spring-boot-starter-oauth2-resource-server` dep. `spring.security.oauth2.resourceserver.jwt.issuer-uri` in application.properties.
+- Quarkus: `quarkus-oidc` dep. `quarkus.oidc.*` properties in application.properties.
+- Runtime override via `OIDC_ISSUER_URI` env var.
+- `YamlParser` validates `oidcIssuerUri` non-blank when `enableOidc: true`.
+- 7 tests in `OidcEngineTest` + 4 parser tests.
+
+### Added — Phase 7: Web-Based Schema Builder (P7e)
+
+- Browser-based GUI at `apibridge-web-builder/` — Vite + React 18 + TypeScript + js-yaml.
+- Three-column layout: flags panel (all toggles + selectors), endpoint list/editor, live YAML preview.
+- Download button generates `schema.yaml` via `Blob` download.
+- 15 Vitest tests: serializer (8), FlagsPanel (4), EndpointList (3).
+- TailwindCSS dark theme.
+
+### Added — Phase 7: Plugin/External Cartridge Registry (P7f)
+
+- `--cartridge=` now accepts three formats: local path, URL (`http://`/`https://`), GitHub shorthand (`github:owner/repo[/subpath][@ref]`).
+- `CartridgeCache`: manages `~/.apibridge/cartridges/<sha256>/` — deterministic SHA-256 keying, cache hit = no re-download.
+- `CartridgeDownloader`: `java.net.http.HttpClient` fetch, zip-slip-safe extraction via canonical path validation.
+- `CartridgeResolver`: parses three reference formats, routes to downloader+cache for remote refs, passes local paths through.
+- `ApiBridgeRunner` routes every `--cartridge=` through `CartridgeResolver`.
+- 7 tests in `CartridgeCacheTest`, 4 in `CartridgeDownloaderTest`, 6 in `CartridgeResolverTest`.
+
+### Changed
+
+- Test count: 254 → 300 (46 new tests across P7 sub-phases).
+- `ApiBridgeRunner` updated: multi-schema via `SchemaComposer`, cartridge resolution via `CartridgeResolver`, `InterruptedException` handling.
+- FreeMarker context gains `enableOidc` (boolean) and `oidcIssuerUri` (String) variables.
+
 ### Fixed — Pre-P7 code review round 2 (V6, V7, Q4–Q7)
 
 - **V6** Transform `add` map now validates blank header values — mirrors the `rename` map validation that already checked both keys and values.

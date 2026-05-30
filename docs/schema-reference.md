@@ -15,6 +15,26 @@ The ApiBridge schema is a YAML Platform-Independent Model (PIM) that drives all 
 
 ---
 
+## Multi-schema composition
+
+You can pass `--schema=` multiple times on the CLI to merge schemas before generation:
+
+```bash
+java -jar apibridge-generator.jar \
+  --schema=users-service.yaml \
+  --schema=orders-service.yaml \
+  --cartridge=apibridge-cartridges/backend/spring-boot \
+  --output=./out
+```
+
+**Merge rules:**
+- `id` and `basePath` come from the **first** (primary) schema.
+- `flags` come from the primary schema; flags in secondary schemas are ignored (a warning is printed).
+- `endpoints` are concatenated in declaration order.
+- Duplicate endpoints (same `path` + `method` across any two schemas) cause an immediate error.
+
+---
+
 ## `flags`
 
 | Field | Type | Default | Valid values | Description |
@@ -34,6 +54,8 @@ The ApiBridge schema is a YAML Platform-Independent Model (PIM) that drives all 
 | `feFlavor` | string | — | `angular` \| `react` \| `vue` | Selects frontend framework for subdirectory-routed cartridges. No default — absence means BE-only output. |
 | `securityLevel` | string | — | `bearer-token` \| `apiKey` | Controls Authorization header injection in frontend templates. |
 | `deployTarget` | string | — | `docker-compose` \| `kubernetes` \| `openshift` | When set, generates deployment configuration files alongside the project code. |
+| `enableOidc` | boolean | `false` | `true` \| `false` | When `true`, generates Spring Security OAuth2 Resource Server config (Spring Boot) or Quarkus OIDC config. Requires `oidcIssuerUri`. All endpoints except `/api/bridge-config` and `/api/bridge-health` require a valid JWT. Runtime override: `OIDC_ISSUER_URI`. |
+| `oidcIssuerUri` | string | — | Any URI | Required when `enableOidc: true`. OIDC issuer base URL (e.g. `https://keycloak.example.com/realms/myrealm`). Overrideable at runtime via `OIDC_ISSUER_URI` ENV VAR. |
 | `pagination` | object | — | — | Configures paging/sorting parameter names dynamically passed to backends. |
 
 ---
@@ -366,4 +388,5 @@ The engine (`YamlParser`) enforces these rules at parse time and throws `Illegal
 - `uiLayout.searchMode` must be `delegate` or `local` if defined; only valid on `List` components; requires `flags.enableSearch: true`
 - `mockResponse.statusCode` must be 100–599 if defined
 - `mockResponse.delayMs` must be >= 0 if defined
+- `flags.oidcIssuerUri` must be non-blank when `enableOidc: true`
 - `transforms` is ignored at runtime if `flags.enableTransform` is not `true` (warning logged, not an error)

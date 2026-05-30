@@ -9,8 +9,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 mvn clean package
 
 # Run generator — apply one or more cartridges to same output dir
+# --schema= is repeatable — schemas are merged (id/basePath/flags from first, endpoints concatenated)
 java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
-  --schema=<path-to-schema.yaml> \
+  --schema=users-service.yaml \
+  --schema=orders-service.yaml \
   --cartridge=apibridge-cartridges/backend/spring-boot \
   --cartridge=apibridge-cartridges/frontend/react \
   --cartridge=apibridge-cartridges/devops/dockerfile \
@@ -23,6 +25,11 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --deploy-target=docker-compose # docker-compose | kubernetes | openshift
   --security-level=bearer-token  # bearer-token | apiKey
 ```
+
+**Cartridge reference formats** (`--cartridge=` accepts three forms):
+- Local path: `./my-cartridge` or `/abs/path` — passed directly to engine
+- URL: `https://host/file.zip` — downloaded, extracted, cached at `~/.apibridge/cartridges/<sha256>/`
+- GitHub shorthand: `github:owner/repo[/subpath][@ref]` — downloads GitHub archive ZIP, default ref is `main`
 
 ## Testing & Linting
 
@@ -49,6 +56,7 @@ Cartridges are **independent, composable directories of `.ftl` FreeMarker templa
   - `devops/docker-compose` — `docker-compose.yml`
   - `devops/k8s/kubernetes` — kustomization + deployment + service + configmap under `k8s/`
   - `devops/k8s/openshift` — adds `route.yaml` and overrides `kustomization.yaml` (apply on top of `k8s/kubernetes`)
+  - `devops/k8s/helm` — Helm 3 chart (Chart.yaml, values.yaml, templates/deployment.yaml, service.yaml, configmap.yaml, ingress.yaml)
   - `frontend/ui-schema` — generates `UiLayoutSchema.json` for UI-driven forms
 - **Single deployable JAR**: the generated project is one unit. FE source lives in `frontend/`, BE in `backend/`, but the multi-stage Dockerfile compiles FE and copies the dist into the BE `static/` resources directory before the Maven build, producing a single runnable JAR.
 
@@ -63,6 +71,8 @@ Valid enum values:
 - `flags.feFlavor`: `angular` | `react` | `vue`
 - `flags.securityLevel`: `bearer-token` | `apiKey`
 - `flags.deployTarget`: `docker-compose` | `kubernetes` | `openshift` (absent = no deployment config generated)
+- `flags.enableOidc`: `true` | `false` (default `false`) — generates OAuth2 JWT resource server; `oidcIssuerUri` required; runtime override `OIDC_ISSUER_URI`
+- `flags.oidcIssuerUri`: any URI string — required when `enableOidc: true`
 - `flags.enableAuditLog`: `true` | `false` (default `false`) — generates Redis Streams + MongoDB audit log for all proxy calls
 - `flags.enableCircuitBreaker`: `true` | `false` (default `false`) — wraps all proxy calls with Resilience4j CB + retry; configurable via `CB_*` ENV VARs
 - `flags.enableResponseCache`: `true` | `false` (default `false`) — Caffeine in-process GET cache; configurable via `CACHE_TTL_SECONDS` / `CACHE_MAX_SIZE` ENV VARs
@@ -79,9 +89,18 @@ Valid enum values:
 - **Auth helper**: all 3 frameworks now export `getAuthHeaders()`. React/Vue export from `bridgeApi.ts`; Angular exposes `getAuthHeaders()` on `BridgeApiService`. New components must use these instead of building headers inline.
 - **Backend method naming**: generated Java method names include the HTTP method prefix (`getMethod()`, `postMethod()`) to avoid collision when endpoints share a path with different verbs.
 - **ProxyService forwarding**: both backends forward all request headers (excluding hop-by-hop set) and all response headers. Query parameters are appended to the upstream URL. Do not regress to the old allow-list approach.
-- **Null-safe flags**: all templates must handle missing `flags:` section. Use `(flags!"")` or `<#if flags??>` guards.
+- **Null-safe flags**: all templates must handle missing `flags:` section. Use `(flags!"")` or `<#if flags??>` guards. In practice, `ApiBridgeRunner` synthesises `new Flags()` when absent, so `flags` is always non-null in the FreeMarker context — use field-level guards (`flags.securityLevel??`), not `flags??`.
 - **Audit log guard**: all audit templates are wrapped in `<#if (flags.enableAuditLog)!false>`. Files render as empty when the flag is off; the engine skips empty output. Spring Boot `Application.java.ftl` adds `@EnableAsync` only when `enableAuditLog` is true.
 
 ## Git Workflow
 
 Branch naming: `feature/<name>` or `bugfix/<name>` → PR to `main`.
+
+## Web Schema Builder
+
+Browser-based GUI at `apibridge-web-builder/` for building `schema.yaml` without writing YAML. Vite + React 18 + TypeScript + js-yaml. Live YAML preview, download button, flag toggles, endpoint editor. 15 Vitest tests.
+
+```bash
+cd apibridge-web-builder && npm install && npm run dev   # http://localhost:5173
+cd apibridge-web-builder && npm test                      # 15 tests
+```
