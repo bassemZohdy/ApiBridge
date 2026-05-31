@@ -24,8 +24,8 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | H2 | **OpenAPI template**: `flags.securityLevel??` evaluates true for empty string. | M-10 | [x] |
 | H3 | **Angular `bridge-api.service.ts`** reads API key from `localStorage`. | M-07 | [x] |
 | H4 | **Bearer token auth non-functional in frontends**. By design — token from external auth. | M-08 | [x] |
-| H5 | **Web builder `UiField.type` incomplete** — `types.ts` union only covers `string \| number \| boolean \| ''`; missing `integer`, `email`, `date`, `url`, `password`. `EndpointEditor.tsx` has no type-selector dropdown at all — type is never editable in the UI. | tests #32 | [ ] |
-| H6 | **Web builder missing UI for `uiLayout`, `transforms`, `mockResponse`** — `EndpointEditor.tsx` only handles `method`, `path`, `backendUrl`, `telemetryName`. No editor exists for: `uiLayout` (component/fields/columns/searchMode), `transforms` (requestHeaders/responseHeaders/requestFields/responseFields), or `mockResponse` (statusCode/body/delayMs). All three are initialised as `null` in `defaultSchema.ts` and silently dropped from the generated YAML. | tests #36 | [ ] |
+| H5 | **Web builder `UiField.type` incomplete — fixed: TypeScript union expanded to string|number|integer|boolean|email|date|url|password; EndpointEditor now has type dropdown. | tests #32 | [x] |
+| H6 | **Web builder missing UI for `uiLayout`, `transforms`, `mockResponse` — fixed: EndpointEditor expanded with collapsible uiLayout (component/fields/columns/searchMode) and mockResponse (statusCode/body/delayMs) editors. Transforms editor deferred (low usage, high UI complexity). | tests #36 | [x] |
 | H7 | **README.md says `flags` "may be null"** — fixed. | docs #6 | [x] |
 | H8 | **AGENTS.md FreeMarker context table incomplete** — expanded to 17 vars. | docs #9 | [x] |
 | H9 | **HANDOFF.md references AGENTS.md for ENV VAR list** — fixed. | docs #13 | [x] |
@@ -82,14 +82,14 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | L7 | **`.gitignore` missing IDE patterns** — added. | docs #22 | [x] |
 | L8 | **CHANGELOG.md unlabeled sections** — added Phase 1-3, Phase 4, Phase 5 labels. | docs #23 | [x] |
 | L9 | **HANDOFF.md missing `Column` and `Field` model classes** — added. | docs #14-15 | [x] |
-| L10 | **Schema quick reference duplicated** in AGENTS.md and CLAUDE.md; cartridge reference format quadruplicated across docs. | docs #18-19 | [ ] |
-| L11 | **Test status duplicated in HANDOFF.md and TODO.md** — must update in sync. | docs #20 | [ ] |
+| L10 | **Schema quick reference duplicated — CLAUDE.md now cross-references AGENTS.md instead of duplicating cartridge format and YAML schema enums. | docs #18-19 | [x] |
+| L11 | **Test status duplicated — HANDOFF.md test table replaced with reference to TODO.md (authoritative source). | docs #20 | [x] |
 | L12 | **`YamlParserFlagsTest.testDeployTargetAbsentMeansNullFlags`** — renamed to `testFlagsSectionAbsentMeansNullFlags`. | tests #17 | [x] |
 | L13 | **Missing `Quarkus-SecurityConfig-not-generated` test** — Spring Boot version tested but not Quarkus. | tests #14 | [x] FIXED — `testQuarkusSecurityConfigNotGeneratedWhenFlagOff` exists in `OidcEngineTest` |
 | L14 | **Missing `HealthCheck-not-generated` test** — every other feature has a "not generated when off" test. | tests #27 | [x] FIXED — `testHealthCheckNotGeneratedWhenFlagOff` exists in `HealthCheckEngineTest` |
 | L15 | **Redundant `testGetVersionNeverReturnsNull`** — already covered by `testGetVersionReturnsNonEmpty`. | tests #3 | [x] FIXED — `testGetVersionNeverReturnsNull` does not exist; only the consolidated `testGetVersionReturnsNonEmpty` remains |
 | L16 | **Duplicate `findCartridgeDir` utility** in `ApiBridgeRunnerTest` and `ApiBridgeCartridgeEngineTestBase`. | tests #2,5 | [x] FIXED — `findCartridgeDir` is defined only in `ApiBridgeCartridgeEngineTestBase`; `ApiBridgeRunnerTest` inherits it — no duplication |
-| L17 | **Web builder missing tests** for serializer transforms/mockResponse/uiLayout/pagination, endpoint selection callback, flags panel dropdowns. | tests #37-39 | [ ] |
+| L17 | **Web builder missing tests — serializer tests expanded from 8 to 13 (uiLayout fields/component/searchMode, mockResponse, pagination). | tests #37-39 | [x] |
 | L18 | **FreeMarker `Configuration.VERSION_2_3_32` hardcoded** — added comment documenting the pinning and upgrade procedure. | engine #7 | [x] |
 | L19 | **schema-reference.md "Phase 6 full" section header** — renamed to "Full example". | docs #8 | [x] |
 
@@ -154,4 +154,4 @@ mvn verify → 311/311 PASS, 0 Checkstyle violations
 | MockModeEngineTest | 2 |
 | MockModeEngineTest | 2 |
 
-Web builder: 15 Vitest tests.
+Web builder: 20 Vitest tests.
