@@ -32,7 +32,7 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | H10 | **schema-reference.md missing field types** — added. | docs #7 | [x] |
 | H11 | **Missing test coverage for CLI arg-parsing** — not testable (System.exit). | tests #4 | [x] WONTFIX — System.exit makes CLI entry point untestable by design |
 | H12 | **Missing tests for transform validation errors** — 5 tests added. | tests #21 | [x] |
-| H13 | **Web builder missing transforms editor** — H6 delivered uiLayout and mockResponse panels but deferred the transforms editor. `EndpointEditor.tsx` has no UI for `requestHeaders`, `responseHeaders`, `requestFields`, or `responseFields` (add/remove/rename maps). Users cannot configure per-endpoint transforms from the web builder; transforms are silently dropped from the generated YAML. Fix: add a collapsible Transforms section in `EndpointEditor.tsx`, mirroring the mockResponse panel pattern. | tests #36b | [ ] |
+| H13 | **Web builder missing transforms editor** — H6 delivered uiLayout and mockResponse panels but deferred the transforms editor. `EndpointEditor.tsx` has no UI for `requestHeaders`, `responseHeaders`, `requestFields`, or `responseFields` (add/remove/rename maps). Users cannot configure per-endpoint transforms from the web builder; transforms are silently dropped from the generated YAML. Fix: add a collapsible Transforms section in `EndpointEditor.tsx`, mirroring the mockResponse panel pattern. | tests #36b | [x] |
 
 ### MEDIUM — Code quality, maintenance, consistency
 
@@ -93,7 +93,7 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | L17 | **Web builder tests added:** serializer tests expanded from 8 to 13 (uiLayout fields/component/searchMode, mockResponse, pagination). | tests #37-39 | [x] |
 | L18 | **FreeMarker `Configuration.VERSION_2_3_32` hardcoded** — added comment documenting the pinning and upgrade procedure. | engine #7 | [x] |
 | L19 | **schema-reference.md "Phase 6 full" section header** — renamed to "Full example". | docs #8 | [x] |
-| L20 | **`TransformEngineTest` still has method-name `contains()` assertions** — after M13 cleanup, the test still asserts `contains("applyHeaderTransforms")`, `contains("Map<String, String> reqHeaderAdd")`, `contains("ObjectMapper")`. These break if generated method or type names change. Fix: replace with assertions on data values injected from the schema (e.g. `contains("X-Source")`, `contains("displayName")`) rather than generated implementation names. | tests #22b | [ ] |
+| L20 | **`TransformEngineTest` still has method-name `contains()` assertions** — after M13 cleanup, the test still asserts `contains("applyHeaderTransforms")`, `contains("Map<String, String> reqHeaderAdd")`, `contains("ObjectMapper")`. These break if generated method or type names change. Fix: replace with assertions on data values injected from the schema (e.g. `contains("X-Source")`, `contains("displayName")`) rather than generated implementation names. | tests #22b | [x] |
 
 ---
 
