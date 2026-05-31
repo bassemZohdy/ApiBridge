@@ -103,6 +103,9 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 |-------|-------------|
 | Anti-pattern fix cycle (H1–H12) | Critical bugs, thread safety, null guards, template consistency |
 | P7a–P7f | CLI packaging, multi-schema, Helm, OIDC, web builder, cartridge registry |
+| **Cleanup Review Cycle** | **69/69 items resolved** — critical bugs (5), security/correctness (13), code quality (31), polish (20) |
+
+All items in the CRITICAL, HIGH, MEDIUM, and LOW sections above are resolved.
 
 ---
 
