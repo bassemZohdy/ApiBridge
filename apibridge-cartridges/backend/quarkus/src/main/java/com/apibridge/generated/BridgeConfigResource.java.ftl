@@ -14,6 +14,9 @@ import java.util.Map;
 @ApplicationScoped
 public class BridgeConfigResource {
 
+    // BridgeConfig intentionally exposes only frontend-relevant flags.
+    // Server-only behavior flags are not visible to the client API.
+
     @ConfigProperty(name = "PAGINATION_PAGE_PARAM", defaultValue = "<#if (flags.pagination.pageParam)??>${flags.pagination.pageParam}<#else>page</#if>")
     String pageParam;
 

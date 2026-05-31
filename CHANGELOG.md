@@ -100,7 +100,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - **Q2** FreeMarker `Configuration` now cached per cartridge directory — `Map<String, Configuration>` avoids redundant allocation on multi-cartridge runs.
 - **Q3** `ApiBridgeRunner` always re-validates after CLI overrides — `parser.validate(model)` called unconditionally; `applyOverride()` helper prevents future misses.
 
-### Added
+### Added — Phase 5
 
 - Rate limiting (`flags.enableRateLimiter`) — Resilience4j rate limiter wrapping proxy calls. 429 when exceeded. Runtime: `RATE_LIMIT_*` env vars.
 - Redis distributed cache (`flags.enableResponseCache`) — Caffeine by default, Redis when `CACHE_REDIS_URL` set. Zero breaking change.
@@ -116,7 +116,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - 7 new `Flags` fields, `Transforms`/`MockResponse` model classes, `searchMode` on `UiLayout`.
 - 7 new FreeMarker context variables in `ApiBridgeCartridgeEngine`.
 
-### Changed
+### Changed — Phase 5
 
 - Test count: 137 → 254 (117 new tests).
 - `YamlParserTest` split into 9 feature-named files (126 tests).
@@ -162,7 +162,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - 4 new `ApiBridgeCartridgeEngineTest` cases (Spring Boot with/without audit, Quarkus with audit, docker-compose with audit).
 - Test count: 91 → 98 (7 new).
 
-### Added
+### Added — Phase 4
 
 - Form field validation driven by schema `field.type` across React, Angular, and Vue Form templates:
   - `email` maps to `<input type="email">` with HTML5 pattern validation; Angular adds `Validators.email`.
@@ -177,12 +177,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - CI expanded from 6 to 9 compile-check steps (added Kubernetes, OpenShift, React prod build).
 - E2E master suite expanded from 8 to 11 suites.
 
-### Changed
+### Changed — Phase 4
 
 - Test count: 80 → 137 unit tests (Phase 5 added 18 tests on top of the 80→91→119→137 progression).
 - `HANDOFF.md` test counts updated to reflect current state.
 
-### Added
+### Added — Phase 1–3
 
 - **Engine**: `ApiBridgeRunner` (CLI with repeatable `--cartridge=`, `--be-flavor=`, `--fe-flavor=`, `--deploy-target=`, `--security-level=` overrides), `ApiBridgeCartridgeEngine` (1:1 directory-tree rendering with auto-prefix for `backend/`, `frontend/`, `k8s/` categories), `YamlParser` (YAML → `BridgeSchemaModel` with validation), `BridgeSchemaModel` (full Javadoc on all classes/fields).
 - **Backend cartridges**:

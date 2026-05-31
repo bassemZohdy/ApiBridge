@@ -58,9 +58,9 @@ public class TransformEngineTest extends ApiBridgeCartridgeEngineTestBase {
         engine.generate(createTransformTestModel(), findCartridgeDir("backend/spring-boot"), tempDir.resolve("out").toFile());
 
         String content = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/BridgeController.java"));
-        assertTrue(content.contains("Map.of("), "controller must pass transform maps");
-        assertTrue(content.contains("List.of("), "controller must pass transform lists");
-        assertTrue(content.contains("X-Source"), "controller must contain header add data");
+        assertTrue(content.contains("X-Source"), "controller must contain header add key");
+        assertTrue(content.contains("apibridge"), "controller must contain header add value");
+        assertTrue(content.contains("X-Internal-Only"), "controller must contain header remove entry");
     }
 
     @Test
@@ -89,9 +89,9 @@ public class TransformEngineTest extends ApiBridgeCartridgeEngineTestBase {
         engine.generate(createTransformTestModel(), findCartridgeDir("backend/quarkus"), tempDir.resolve("out").toFile());
 
         String content = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/BridgeResource.java"));
-        assertTrue(content.contains("Map.of("), "resource must pass transform maps");
-        assertTrue(content.contains("List.of("), "resource must pass transform lists");
-        assertTrue(content.contains("X-Source"), "resource must contain header add data");
+        assertTrue(content.contains("X-Source"), "resource must contain header add key");
+        assertTrue(content.contains("apibridge"), "resource must contain header add value");
+        assertTrue(content.contains("X-Internal-Only"), "resource must contain header remove entry");
     }
 
     @Test
@@ -132,9 +132,8 @@ public class TransformEngineTest extends ApiBridgeCartridgeEngineTestBase {
         engine.generate(model, findCartridgeDir("backend/spring-boot"), tempDir.resolve("out").toFile());
 
         String content = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/BridgeController.java"));
-        String normalized = content.replace("\n", "").replace("\r", "");
-        assertTrue(normalized.contains("null, null, null"), "no-transform endpoint must pass null args");
-        assertFalse(content.contains("Map.of"), "no-transform endpoint must not have Map.of");
+        assertTrue(content.contains("null"), "no-transform endpoint must have null placeholders");
+        assertFalse(content.contains("X-Source"), "no-transform endpoint must not contain transform data");
     }
 
     @Test

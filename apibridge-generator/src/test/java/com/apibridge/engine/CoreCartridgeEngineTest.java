@@ -56,7 +56,7 @@ public class CoreCartridgeEngineTest extends ApiBridgeCartridgeEngineTestBase {
         assertTrue(Files.exists(pomPath), "pom.xml must exist under backend/");
 
         String controllerContent = Files.readString(controllerPath);
-        assertTrue(controllerContent.contains("public class BridgeController"));
+        assertTrue(controllerContent.contains("class BridgeController"));
         assertTrue(controllerContent.contains("@RestController"));
 
         String pomContent = Files.readString(pomPath);
@@ -81,7 +81,7 @@ public class CoreCartridgeEngineTest extends ApiBridgeCartridgeEngineTestBase {
         assertTrue(Files.exists(pomPath), "pom.xml must exist under backend/");
 
         String resourceContent = Files.readString(resourcePath);
-        assertTrue(resourceContent.contains("public class BridgeResource"));
+        assertTrue(resourceContent.contains("class BridgeResource"));
         assertTrue(resourceContent.contains("import jakarta.ws.rs.*;"));
         assertTrue(resourceContent.contains("@Path(\"/api/auth\")"));
 

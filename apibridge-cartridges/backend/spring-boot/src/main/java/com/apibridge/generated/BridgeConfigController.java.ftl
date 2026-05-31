@@ -13,6 +13,10 @@ import java.util.Map;
 @RequestMapping("/api")
 public class BridgeConfigController {
 
+    // BridgeConfig intentionally exposes only frontend-relevant flags.
+    // Server-only behavior flags (circuit breaker, rate limiter, cache,
+    // audit log, transforms, OIDC) are not visible to the client API.
+
     @Value("${r"${PAGINATION_PAGE_PARAM:"}<#if (flags.pagination.pageParam)??>${flags.pagination.pageParam}<#else>page</#if>${r"}"}")
     private String pageParam;
 
