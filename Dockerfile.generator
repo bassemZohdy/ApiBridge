@@ -8,7 +8,7 @@ RUN mvn versions:set -DnewVersion="${VERSION}" --no-transfer-progress --batch-mo
 
 FROM eclipse-temurin:21-jre-alpine
 ARG VERSION=0.1.0-SNAPSHOT
-LABEL org.opencontainers.image.source="https://github.com/YOUR_ORG/apibridge"
+LABEL org.opencontainers.image.source="https://github.com/apibridge/apibridge"
 LABEL org.opencontainers.image.description="ApiBridge Pluggable MDA Code Generator"
 LABEL org.opencontainers.image.version="${VERSION}"
 

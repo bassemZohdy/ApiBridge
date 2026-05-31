@@ -7,14 +7,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * CLI entry point for the ApiBridge code generator. Parses command-line arguments,
+ * loads and composes schema files, resolves cartridges, and invokes the template engine.
+ *
+ * <p>Usage: {@code java -jar apibridge-generator.jar --schema=schema.yaml
+ * --cartridge=./cartridges/backend/spring-boot --output=./out}</p>
+ */
 public class ApiBridgeRunner {
+
+    private static final String BANNER_LINE = "==================================================";
 
     public static void main(String[] args) {
         long startTime = System.nanoTime();
         
-        System.out.println("==================================================");
+        System.out.println(BANNER_LINE);
         System.out.println("  ApiBridge Pluggable MDA Code Generator Engine");
-        System.out.println("==================================================");
+        System.out.println(BANNER_LINE);
 
         List<String> schemaPaths = new ArrayList<>();
         List<String> cartridgePaths = new ArrayList<>();
@@ -104,25 +113,25 @@ public class ApiBridgeRunner {
             long durationNs = System.nanoTime() - startTime;
             double durationMs = durationNs / 1_000_000.0;
             
-            System.out.println("==================================================");
+            System.out.println(BANNER_LINE);
             System.out.println("✓ Cartridge Compilation and Projecting SUCCESSFUL!");
             System.out.printf("  Execution Time: %.2f ms\n", durationMs);
-            System.out.println("==================================================");
+            System.out.println(BANNER_LINE);
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.err.println("==================================================");
+            System.err.println(BANNER_LINE);
             System.err.println("❌ CARTRIDGE GENERATION INTERRUPTED.");
-            System.err.println("==================================================");
+            System.err.println(BANNER_LINE);
             System.exit(2);
         } catch (Exception e) {
-            System.err.println("==================================================");
+            System.err.println(BANNER_LINE);
             System.err.println("❌ CARTRIDGE GENERATION FAILED due to a critical exception:");
             System.err.println("  " + e.getMessage());
             if (e.getCause() != null) {
                 System.err.println("  Context: " + e.getCause().getMessage());
             }
-            System.err.println("==================================================");
+            System.err.println(BANNER_LINE);
             System.exit(2);
         }
     }

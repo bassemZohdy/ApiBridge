@@ -11,6 +11,10 @@ import java.net.http.HttpResponse;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * Downloads a cartridge ZIP archive from a URL and extracts it to a local directory,
+ * with zip-slip protection on every entry.
+ */
 public class CartridgeDownloader {
 
     private final HttpClient httpClient;

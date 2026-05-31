@@ -13,7 +13,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Parses and validates ApiBridge YAML schema files into {@link BridgeSchemaModel} instances.
+ *
+ * <p>Usage: {@code new YamlParser().parse(schemaFile)} — parses the YAML, then runs
+ * full structural validation (required fields, enum values, endpoint uniqueness,
+ * UI layout rules, transform rules, etc.).</p>
+ */
 public class YamlParser {
+
+    private static final Set<String> VALID_HTTP_METHODS = Set.of("GET", "POST", "PUT", "DELETE", "PATCH");
+    private static final Set<String> VALID_COMPONENT_TYPES = Set.of("form", "list", "view");
+    private static final Set<String> VALID_SEARCH_MODES = Set.of("delegate", "local");
 
     private final ObjectMapper mapper;
 
@@ -47,11 +58,28 @@ public class YamlParser {
         return model;
     }
 
+    /**
+     * Validates a fully-populated schema model. Called automatically by {@link #parse(File)},
+     * but can also be called directly on a programmatically constructed model.
+     *
+     * @param model the schema model to validate (must not be null)
+     * @throws IllegalArgumentException on any validation failure
+     */
     public void validate(BridgeSchemaModel model) {
         if (model == null) {
             throw new IllegalArgumentException("Schema model cannot be null.");
         }
-        List<String> transformWarningEndpoints = new ArrayList<>();
+        validateTopLevel(model);
+        validateFlagsSection(model);
+
+        List<String> warnings = validateEndpoints(model);
+        if (!warnings.isEmpty()) {
+            System.err.println("Warning: transforms defined on endpoint(s) " + warnings
+                    + " but flags.enableTransform is not true — transforms will be ignored.");
+        }
+    }
+
+    private void validateTopLevel(BridgeSchemaModel model) {
         if (model.getId() == null || model.getId().isBlank()) {
             throw new IllegalArgumentException("Schema validation error: Missing or empty 'id' parameter.");
         }
@@ -61,137 +89,180 @@ public class YamlParser {
         if (model.getEndpoints() == null || model.getEndpoints().isEmpty()) {
             throw new IllegalArgumentException("Schema validation error: Configuration must define at least one endpoint under 'endpoints'.");
         }
+    }
 
+    private void validateFlagsSection(BridgeSchemaModel model) {
         BridgeSchemaModel.Flags flags = model.getFlags();
-
-        if (flags != null) {
-            validateEnum(flags.getBackendFlavor(), "flags.backendFlavor", "spring-boot", "quarkus");
-            validateEnum(flags.getFeFlavor(), "flags.feFlavor", "angular", "react", "vue");
-            validateEnum(flags.getDeployTarget(), "flags.deployTarget", "docker-compose", "kubernetes", "openshift");
-            validateEnum(flags.getSecurityLevel(), "flags.securityLevel", "bearer-token", "apiKey");
-
-            // Pagination is auto-initialized (never null when flags is non-null), so this guard
-            // checks whether the user explicitly set pagination values. Defaults pass validation.
-            if (flags.getPagination() != null) {
-                BridgeSchemaModel.Pagination p = flags.getPagination();
-                if (p.getDefaultPageSize() <= 0) {
-                    throw new IllegalArgumentException("Schema validation error: flags.pagination.defaultPageSize must be a positive integer.");
-                }
-                validatePaginationParam(p.getPageParam(), "pageParam");
-                validatePaginationParam(p.getSizeParam(), "sizeParam");
-                validatePaginationParam(p.getSortParam(), "sortParam");
-                validatePaginationParam(p.getDirectionParam(), "directionParam");
-            }
-
-            if (flags.getApiVersion() != null) {
-                String version = flags.getApiVersion().trim();
-                if (!version.matches("v[0-9]+")) {
-                    throw new IllegalArgumentException("Schema validation error: flags.apiVersion must match pattern v[0-9]+ (e.g. 'v1', 'v2'). Got '" + version + "'.");
-                }
-            }
-
-            requireNonBlankIf(flags.isEnableOidc(), flags.getOidcIssuerUri(),
-                    "flags.oidcIssuerUri must be non-blank when flags.enableOidc is true.");
+        if (flags == null) {
+            return;
         }
 
+        validateEnum(flags.getBackendFlavor(), "flags.backendFlavor", "spring-boot", "quarkus");
+        validateEnum(flags.getFeFlavor(), "flags.feFlavor", "angular", "react", "vue");
+        validateEnum(flags.getDeployTarget(), "flags.deployTarget", "docker-compose", "kubernetes", "openshift");
+        validateEnum(flags.getSecurityLevel(), "flags.securityLevel", "bearer-token", "apiKey");
+
+        validatePagination(flags.getPagination());
+        validateApiVersion(flags);
+
+        requireNonBlankIf(flags.isEnableOidc(), flags.getOidcIssuerUri(),
+                "flags.oidcIssuerUri must be non-blank when flags.enableOidc is true.");
+    }
+
+    private void validatePagination(BridgeSchemaModel.Pagination p) {
+        if (p == null) {
+            return;
+        }
+        if (p.getDefaultPageSize() <= 0) {
+            throw new IllegalArgumentException("Schema validation error: flags.pagination.defaultPageSize must be a positive integer.");
+        }
+        validatePaginationParam(p.getPageParam(), "pageParam");
+        validatePaginationParam(p.getSizeParam(), "sizeParam");
+        validatePaginationParam(p.getSortParam(), "sortParam");
+        validatePaginationParam(p.getDirectionParam(), "directionParam");
+    }
+
+    private void validateApiVersion(BridgeSchemaModel.Flags flags) {
+        if (flags.getApiVersion() == null) {
+            return;
+        }
+        String version = flags.getApiVersion().trim();
+        if (!version.matches("v[0-9]+")) {
+            throw new IllegalArgumentException("Schema validation error: flags.apiVersion must match pattern v[0-9]+ (e.g. 'v1', 'v2'). Got '" + version + "'.");
+        }
+    }
+
+    private List<String> validateEndpoints(BridgeSchemaModel model) {
+        BridgeSchemaModel.Flags flags = model.getFlags();
         Set<String> seenEndpoints = new HashSet<>();
+        List<String> transformWarningEndpoints = new ArrayList<>();
+
         for (int i = 0; i < model.getEndpoints().size(); i++) {
-            BridgeSchemaModel.Endpoint endpoint = model.getEndpoints().get(i);
-            String location = "endpoints[" + i + "]";
+            validateEndpoint(model.getEndpoints().get(i), i, flags, seenEndpoints, transformWarningEndpoints);
+        }
+        return transformWarningEndpoints;
+    }
 
-            if (endpoint.getPath() == null || endpoint.getPath().isBlank()) {
-                throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty 'path'.");
-            }
-            if (endpoint.getMethod() == null || endpoint.getMethod().isBlank()) {
-                throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty HTTP 'method'.");
-            }
-            String methodUpper = endpoint.getMethod().toUpperCase();
-            if (!methodUpper.equals("GET") && !methodUpper.equals("POST") && !methodUpper.equals("PUT")
-                    && !methodUpper.equals("DELETE") && !methodUpper.equals("PATCH")) {
-                throw new IllegalArgumentException("Schema validation error at " + location + ": Invalid HTTP method '" + endpoint.getMethod() + "'. Must be GET, POST, PUT, DELETE, or PATCH.");
-            }
-            String endpointKey = endpoint.getMethod().toUpperCase() + " " + endpoint.getPath();
-            if (!seenEndpoints.add(endpointKey)) {
-                throw new IllegalArgumentException("Schema validation error at " + location + ": Duplicate endpoint " + endpointKey + ".");
-            }
-            if (endpoint.getBackendUrl() == null || endpoint.getBackendUrl().isBlank()) {
-                throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty 'backendUrl'.");
-            }
+    private void validateEndpoint(BridgeSchemaModel.Endpoint endpoint, int index,
+                                  BridgeSchemaModel.Flags flags, Set<String> seenEndpoints,
+                                  List<String> transformWarnings) {
+        String location = "endpoints[" + index + "]";
 
-            requireNonBlankIf(flags != null && flags.isEnableTelemetry(), endpoint.getTelemetryName(),
-                    "Schema validation error at " + location + ": 'telemetryName' is mandatory when flags.enableTelemetry is active.");
-
-            if (endpoint.getUiLayout() != null) {
-                BridgeSchemaModel.UiLayout layout = endpoint.getUiLayout();
-                if (layout.getComponent() == null || layout.getComponent().isBlank()) {
-                    throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout: Missing or empty layout 'component' type.");
-                }
-                String comp = layout.getComponent().toLowerCase();
-                if (!comp.equals("form") && !comp.equals("list") && !comp.equals("view")) {
-                    throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.component: Must be 'Form', 'List', or 'View'.");
-                }
-                if (layout.getFields() != null) {
-                    for (int j = 0; j < layout.getFields().size(); j++) {
-                        BridgeSchemaModel.Field field = layout.getFields().get(j);
-                        String fieldLocation = location + ".uiLayout.fields[" + j + "]";
-                        if (field.getName() == null || field.getName().isBlank()) {
-                            throw new IllegalArgumentException("Schema validation error at " + fieldLocation + ": Missing or empty field 'name'.");
-                        }
-                        if (comp.equals("form") && (field.getType() == null || field.getType().isBlank())) {
-                            throw new IllegalArgumentException("Schema validation error at " + fieldLocation + ": Missing or empty field 'type'.");
-                        }
-                    }
-                }
-                if (layout.getColumns() != null) {
-                    for (int j = 0; j < layout.getColumns().size(); j++) {
-                        BridgeSchemaModel.Column col = layout.getColumns().get(j);
-                        String colLocation = location + ".uiLayout.columns[" + j + "]";
-                        if (col.getField() == null || col.getField().isBlank()) {
-                            throw new IllegalArgumentException("Schema validation error at " + colLocation + ": Missing or empty column 'field'.");
-                        }
-                    }
-                }
-                if (layout.getSearchMode() != null) {
-                    if (!comp.equals("list")) {
-                        throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: searchMode is only valid on List components.");
-                    }
-                    requireFlagForField(layout.getSearchMode(),
-                            flags != null && flags.isEnableSearch(),
-                            location + ".uiLayout.searchMode", "flags.enableSearch");
-                    String sm = layout.getSearchMode().toLowerCase();
-                    if (!sm.equals("delegate") && !sm.equals("local")) {
-                        throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: Must be 'delegate' or 'local'. Got '" + layout.getSearchMode() + "'.");
-                    }
-                }
-            }
-
-            if (endpoint.getMockResponse() != null) {
-                BridgeSchemaModel.MockResponse mock = endpoint.getMockResponse();
-                if (mock.getStatusCode() < 100 || mock.getStatusCode() > 599) {
-                    throw new IllegalArgumentException("Schema validation error at " + location + ".mockResponse.statusCode: Must be 100–599. Got " + mock.getStatusCode() + ".");
-                }
-                if (mock.getDelayMs() < 0) {
-                    throw new IllegalArgumentException("Schema validation error at " + location + ".mockResponse.delayMs: Must be >= 0. Got " + mock.getDelayMs() + ".");
-                }
-            }
-
-            if (endpoint.getTransforms() != null) {
-                boolean transformEnabled = flags != null && flags.isEnableTransform();
-                if (!transformEnabled) {
-                    transformWarningEndpoints.add(endpoint.getPath());
-                } else {
-                    validateTransformSubObject(endpoint.getTransforms().getRequestHeaders(), location, "requestHeaders");
-                    validateTransformSubObject(endpoint.getTransforms().getResponseHeaders(), location, "responseHeaders");
-                    validateFieldTransform(endpoint.getTransforms().getRequestFields(), location, "requestFields");
-                    validateFieldTransform(endpoint.getTransforms().getResponseFields(), location, "responseFields");
-                }
-            }
+        if (endpoint.getPath() == null || endpoint.getPath().isBlank()) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty 'path'.");
+        }
+        if (endpoint.getMethod() == null || endpoint.getMethod().isBlank()) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty HTTP 'method'.");
+        }
+        String methodUpper = endpoint.getMethod().toUpperCase();
+        if (!VALID_HTTP_METHODS.contains(methodUpper)) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ": Invalid HTTP method '" + endpoint.getMethod() + "'. Must be GET, POST, PUT, DELETE, or PATCH.");
+        }
+        String endpointKey = methodUpper + " " + endpoint.getPath();
+        if (!seenEndpoints.add(endpointKey)) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ": Duplicate endpoint " + endpointKey + ".");
+        }
+        if (endpoint.getBackendUrl() == null || endpoint.getBackendUrl().isBlank()) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ": Missing or empty 'backendUrl'.");
         }
 
-        if (!transformWarningEndpoints.isEmpty()) {
-            System.err.println("Warning: transforms defined on endpoint(s) " + transformWarningEndpoints
-                    + " but flags.enableTransform is not true — transforms will be ignored.");
+        requireNonBlankIf(flags != null && flags.isEnableTelemetry(), endpoint.getTelemetryName(),
+                "Schema validation error at " + location + ": 'telemetryName' is mandatory when flags.enableTelemetry is active.");
+
+        validateUiLayout(endpoint.getUiLayout(), location, flags);
+        validateMockResponse(endpoint.getMockResponse(), location);
+        validateTransforms(endpoint, location, flags, transformWarnings);
+    }
+
+    private void validateUiLayout(BridgeSchemaModel.UiLayout layout, String location,
+                                  BridgeSchemaModel.Flags flags) {
+        if (layout == null) {
+            return;
         }
+        if (layout.getComponent() == null || layout.getComponent().isBlank()) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout: Missing or empty layout 'component' type.");
+        }
+        String comp = layout.getComponent().toLowerCase();
+        if (!VALID_COMPONENT_TYPES.contains(comp)) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.component: Must be 'Form', 'List', or 'View'.");
+        }
+        validateFields(layout, comp, location);
+        validateColumns(layout, location);
+        validateSearchMode(layout, comp, location, flags);
+    }
+
+    private void validateFields(BridgeSchemaModel.UiLayout layout, String comp, String location) {
+        if (layout.getFields() == null) {
+            return;
+        }
+        for (int j = 0; j < layout.getFields().size(); j++) {
+            BridgeSchemaModel.Field field = layout.getFields().get(j);
+            String fieldLocation = location + ".uiLayout.fields[" + j + "]";
+            if (field.getName() == null || field.getName().isBlank()) {
+                throw new IllegalArgumentException("Schema validation error at " + fieldLocation + ": Missing or empty field 'name'.");
+            }
+            if (comp.equals("form") && (field.getType() == null || field.getType().isBlank())) {
+                throw new IllegalArgumentException("Schema validation error at " + fieldLocation + ": Missing or empty field 'type'.");
+            }
+        }
+    }
+
+    private void validateColumns(BridgeSchemaModel.UiLayout layout, String location) {
+        if (layout.getColumns() == null) {
+            return;
+        }
+        for (int j = 0; j < layout.getColumns().size(); j++) {
+            BridgeSchemaModel.Column col = layout.getColumns().get(j);
+            String colLocation = location + ".uiLayout.columns[" + j + "]";
+            if (col.getField() == null || col.getField().isBlank()) {
+                throw new IllegalArgumentException("Schema validation error at " + colLocation + ": Missing or empty column 'field'.");
+            }
+        }
+    }
+
+    private void validateSearchMode(BridgeSchemaModel.UiLayout layout, String comp,
+                                    String location, BridgeSchemaModel.Flags flags) {
+        if (layout.getSearchMode() == null) {
+            return;
+        }
+        if (!comp.equals("list")) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: searchMode is only valid on List components.");
+        }
+        requireFlagForField(layout.getSearchMode(),
+                flags != null && flags.isEnableSearch(),
+                location + ".uiLayout.searchMode", "flags.enableSearch");
+        String sm = layout.getSearchMode().toLowerCase();
+        if (!VALID_SEARCH_MODES.contains(sm)) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ".uiLayout.searchMode: Must be 'delegate' or 'local'. Got '" + layout.getSearchMode() + "'.");
+        }
+    }
+
+    private void validateMockResponse(BridgeSchemaModel.MockResponse mock, String location) {
+        if (mock == null) {
+            return;
+        }
+        if (mock.getStatusCode() < 100 || mock.getStatusCode() > 599) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ".mockResponse.statusCode: Must be 100–599. Got " + mock.getStatusCode() + ".");
+        }
+        if (mock.getDelayMs() < 0) {
+            throw new IllegalArgumentException("Schema validation error at " + location + ".mockResponse.delayMs: Must be >= 0. Got " + mock.getDelayMs() + ".");
+        }
+    }
+
+    private void validateTransforms(BridgeSchemaModel.Endpoint endpoint, String location,
+                                    BridgeSchemaModel.Flags flags, List<String> warnings) {
+        if (endpoint.getTransforms() == null) {
+            return;
+        }
+        boolean transformEnabled = flags != null && flags.isEnableTransform();
+        if (!transformEnabled) {
+            warnings.add(endpoint.getPath());
+            return;
+        }
+        validateTransformSubObject(endpoint.getTransforms().getRequestHeaders(), location, "requestHeaders");
+        validateTransformSubObject(endpoint.getTransforms().getResponseHeaders(), location, "responseHeaders");
+        validateFieldTransform(endpoint.getTransforms().getRequestFields(), location, "requestFields");
+        validateFieldTransform(endpoint.getTransforms().getResponseFields(), location, "responseFields");
     }
 
     private static void validateEnum(String value, String fieldPath, String... validValues) {

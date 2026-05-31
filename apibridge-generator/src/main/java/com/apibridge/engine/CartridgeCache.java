@@ -5,6 +5,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Content-addressable cache for downloaded cartridge archives. Each cartridge URL is
+ * hashed (SHA-256) and stored under {@code ~/.apibridge/cartridges/<hash>/}.
+ */
 public class CartridgeCache {
 
     private final File cacheRoot;

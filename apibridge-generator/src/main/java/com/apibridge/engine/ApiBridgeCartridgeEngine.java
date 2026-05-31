@@ -20,7 +20,19 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+/**
+ * Core template engine that applies a FreeMarker cartridge against a {@link BridgeSchemaModel}
+ * to generate source files. Each cartridge directory is scanned for {@code .ftl} templates;
+ * rendered output is written to the target directory, stripping the {@code .ftl} suffix.
+ *
+ * <p>Cartridges nested under {@code backend/}, {@code frontend/}, or {@code k8s/} directories
+ * are automatically prefixed in the output (e.g. {@code backend/spring-boot/Controller.java.ftl}
+ * becomes {@code <output>/backend/Controller.java}).</p>
+ */
 public class ApiBridgeCartridgeEngine {
+
+    private static final String FTL_SUFFIX = ".ftl";
+    private static final String DEFAULT_BE_FLAVOR = "spring-boot";
 
     private static final Map<String, Configuration> CONFIGURATION_CACHE = new ConcurrentHashMap<>();
 
@@ -94,9 +106,9 @@ public class ApiBridgeCartridgeEngine {
         for (File child : children) {
             if (child.isDirectory()) {
                 collectTemplates(cartridgeRoot, child, new File(outputBase, child.getName()), entries);
-            } else if (child.getName().endsWith(".ftl")) {
+            } else if (child.getName().endsWith(FTL_SUFFIX)) {
                 String templateName = cartridgeRoot.toURI().relativize(child.toURI()).getPath();
-                String outputFilename = child.getName().substring(0, child.getName().length() - ".ftl".length());
+                String outputFilename = child.getName().substring(0, child.getName().length() - FTL_SUFFIX.length());
                 entries.add(new TemplateEntry(templateName, new File(outputBase, outputFilename)));
             }
         }
@@ -151,7 +163,7 @@ public class ApiBridgeCartridgeEngine {
 
     private String resolvedBeFlavor(BridgeSchemaModel model) {
         String val = resolvedString(model, f -> f.getBackendFlavor());
-        return val.isEmpty() ? "spring-boot" : val.toLowerCase();
+        return val.isEmpty() ? DEFAULT_BE_FLAVOR : val.toLowerCase();
     }
 
     private String resolvedFeFlavor(BridgeSchemaModel model) {

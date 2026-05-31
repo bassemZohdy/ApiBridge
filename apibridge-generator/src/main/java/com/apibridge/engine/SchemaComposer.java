@@ -7,6 +7,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Merges multiple {@link BridgeSchemaModel} instances into a single model for unified code
+ * generation. The primary (first) schema provides {@code id}, {@code basePath}, and {@code flags};
+ * endpoints are concatenated in order, with cross-schema duplicates rejected.
+ */
 public class SchemaComposer {
 
     public BridgeSchemaModel compose(List<BridgeSchemaModel> schemas) {
@@ -36,7 +41,7 @@ public class SchemaComposer {
                 String key = method.toUpperCase() + " " + path;
                 if (!seen.add(key)) {
                     throw new IllegalArgumentException(
-                            "Composition error: duplicate endpoint " + key
+                            "Schema composition error: duplicate endpoint " + key
                             + " found across merged schemas.");
                 }
                 allEndpoints.add(ep);

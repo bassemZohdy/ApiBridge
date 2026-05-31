@@ -3,7 +3,19 @@ package com.apibridge.engine;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Resolves cartridge references to local directories. Supports three formats:
+ * <ul>
+ *   <li>Local path: {@code ./my-cartridge} or {@code /abs/path}</li>
+ *   <li>URL: {@code https://host/file.zip} — downloaded, extracted, and cached</li>
+ *   <li>GitHub shorthand: {@code github:owner/repo[/subpath][@ref]}</li>
+ * </ul>
+ * Downloaded cartridges are cached at {@code ~/.apibridge/cartridges/<sha256>/}.
+ */
 public class CartridgeResolver {
+
+    private static final String GITHUB_PREFIX = "github:";
+    private static final String DEFAULT_REF = "main";
 
     private final CartridgeCache cache;
     private final CartridgeDownloader downloader;
@@ -23,8 +35,8 @@ public class CartridgeResolver {
         if (cartridgeArg == null || cartridgeArg.isBlank()) {
             throw new IllegalArgumentException("Cartridge reference cannot be null or blank.");
         }
-        if (cartridgeArg.startsWith("github:")) {
-            return resolveGitHub(cartridgeArg.substring("github:".length()));
+        if (cartridgeArg.startsWith(GITHUB_PREFIX)) {
+            return resolveGitHub(cartridgeArg.substring(GITHUB_PREFIX.length()));
         }
         if (cartridgeArg.startsWith("https://") || cartridgeArg.startsWith("http://")) {
             return resolveUrl(cartridgeArg);
@@ -42,7 +54,7 @@ public class CartridgeResolver {
     }
 
     private File resolveGitHub(String spec) throws IOException, InterruptedException {
-        String ref = "main";
+        String ref = DEFAULT_REF;
         String path = spec;
         if (spec.contains("@")) {
             int atIdx = spec.lastIndexOf('@');
