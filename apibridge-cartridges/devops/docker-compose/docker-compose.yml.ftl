@@ -101,6 +101,10 @@ services:
       HEALTH_CHECK_INTERVAL_SECONDS: "30"
       HEALTH_CHECK_TIMEOUT_MS: "3000"
 </#if>
+<#if (flags.enableOidc)!false>
+      # ── OIDC ───────────────────────────────────────────────────────────────────
+      OIDC_ISSUER_URI: "${oidcIssuerUri}"
+</#if>
 <#if (flags.enableAuditLog)!false>
       # ── Audit log ──────────────────────────────────────────────────────────
 <#if backendFlavor == "spring-boot">

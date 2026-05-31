@@ -47,3 +47,6 @@ env:
 <#if (flags.enableSearch)!false>
   SEARCH_PARAM: "q"
 </#if>
+<#if (flags.enableOidc)!false>
+  OIDC_ISSUER_URI: "${oidcIssuerUri}"
+</#if>

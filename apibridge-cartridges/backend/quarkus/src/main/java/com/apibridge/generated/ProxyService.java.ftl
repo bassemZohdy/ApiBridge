@@ -43,13 +43,14 @@ import com.github.ben-manes.caffeine.cache.Caffeine;
 import java.util.concurrent.TimeUnit;
 <#if (flags.enableAuditLog)!false>
 import io.quarkus.redis.client.RedisClient;
-import io.quarkus.redis.client.reactive.ReactiveRedisDataSource;
 import io.vertx.redis.client.Response;
 </#if>
 </#if>
 
 import java.util.Set;
+<#if !(flags.enableResponseCache)!false>
 import java.util.concurrent.TimeUnit;
+</#if>
 <#if (flags.enableTransform)!false>
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -74,15 +75,13 @@ public class ProxyService {
 
     private Client client;
 <#if (flags.enableAuditLog)!false>
-
+    @Inject Event<ProxySendEvent> sendEvent;
+    @Inject Event<ProxySuccessEvent> successEvent;
+    @Inject Event<ProxyFailEvent> failEvent;
+</#if>
+<#if (flags.enableResponseCache)!false && (flags.enableAuditLog)!false>
     @Inject
-    Event<ProxySendEvent> sendEvent;
-
-    @Inject
-    Event<ProxySuccessEvent> successEvent;
-
-    @Inject
-    Event<ProxyFailEvent> failEvent;
+    RedisClient redisClient;
 </#if>
 <#if (flags.enableCircuitBreaker)!false>
     private CircuitBreaker circuitBreaker;
@@ -360,13 +359,8 @@ public class ProxyService {
             }
 <#if (flags.enableTransform)!false>
             if (resHeaderAdd != null) resHeaderAdd.forEach((k, v) -> builder.header(k, v));
-            if (resHeaderRemove != null) {
-                MultivaluedMap<String, Object> filtered = new jakarta.ws.rs.core.MultivaluedHashMap<>();
-                upstreamHeaders.forEach((name, values) -> {
-                    if (!resHeaderRemove.contains(name)) {
-                        filtered.put(name, values);
-                    }
-                });
+            if (resHeaderRemove != null && !resHeaderRemove.isEmpty()) {
+                resHeaderRemove.forEach(name -> builder.getHeaders().remove(name));
             }
             if (resHeaderRename != null) {
                 resHeaderRename.forEach((oldName, newName) -> {

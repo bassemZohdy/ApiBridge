@@ -341,8 +341,8 @@ public class ProxyService {
             String transformedResponseBody = applyFieldTransforms(upstream.getBody(), resFieldRename, resFieldRemove);
 </#if>
 <#if (flags.enableResponseCache)!false>
-            if ("GET".equalsIgnoreCase(method) && upstream.getBody() != null) {
-                responseCache.put(urlWithQuery, upstream.getBody());
+            if ("GET".equalsIgnoreCase(method)<#if (flags.enableTransform)!false> && transformedResponseBody != null<#else> && upstream.getBody() != null</#if>) {
+                responseCache.put(urlWithQuery, <#if (flags.enableTransform)!false>transformedResponseBody<#else>upstream.getBody()</#if>);
             }
 </#if>
 <#if (flags.enableAuditLog)!false>

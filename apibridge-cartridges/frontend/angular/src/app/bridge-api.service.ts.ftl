@@ -18,8 +18,8 @@ export class BridgeApiService {
 <#if securityLevel == "bearer-token">
     return { Authorization: 'Bearer ' + token };
 <#elseif securityLevel == "apiKey">
-    const key = localStorage.getItem('apiKey') ?? '';
-    return { 'X-API-Key': key };
+    const apiKey = (window as Window & { __APIBRIDGE_API_KEY?: string }).__APIBRIDGE_API_KEY ?? '';
+    return { 'X-API-Key': apiKey };
 <#else>
     return {};
 </#if>

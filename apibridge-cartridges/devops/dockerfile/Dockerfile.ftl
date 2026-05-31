@@ -135,6 +135,10 @@ ENV \
     # JWT introspection URL — empty = pass-through (non-empty header check only)
     AUTH_SERVER_URL="" \
 </#if>
+<#if (flags.enableOidc)!false>
+    # OIDC issuer URI — required for JWT resource server validation
+    OIDC_ISSUER_URI="${oidcIssuerUri}" \
+</#if>
     # Per-endpoint backend URLs — default to schema-defined values
 <#list endpoints as endpoint>
 <#if endpoint?has_next>

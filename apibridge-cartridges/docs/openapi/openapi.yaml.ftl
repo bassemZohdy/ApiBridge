@@ -7,10 +7,7 @@ info:
 servers:
   - url: "http://localhost:8080<#if apiVersion?has_content>/${apiVersion}</#if>${basePath}"
     description: "Local development server"
-<#assign securitySchemesNeeded = false />
-<#if flags.securityLevel??>
-<#assign securitySchemesNeeded = true />
-</#if>
+<#assign securitySchemesNeeded = (flags.securityLevel!"") != "" />
 <#if securitySchemesNeeded>
 security:
   <#if flags.securityLevel == "bearer-token">

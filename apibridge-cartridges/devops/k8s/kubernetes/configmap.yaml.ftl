@@ -101,3 +101,8 @@ data:
 </#if>
   AUDIT_LOG_TTL_DAYS: "30"
 </#if>
+<#if (flags.enableOidc)!false>
+  # ── OIDC ──────────────────────────────────────────────────────────────────────
+  # Note: for production, store OIDC_ISSUER_URI in a Secret rather than a ConfigMap
+  OIDC_ISSUER_URI: "${oidcIssuerUri}"
+</#if>
