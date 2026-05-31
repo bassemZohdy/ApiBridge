@@ -70,11 +70,6 @@ services:
       - $(pwd)/data:/data
     expose:
       - "3000"
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/customers', function(r){ process.exit(r.statusCode===200 ? 0 : 1); })"]
-      interval: 5s
-      retries: 5
-      start_period: 2s
 
   app:
     image: $image_tag
@@ -90,8 +85,7 @@ services:
     volumes:
       - $(pwd)/brand.css:/config/brand.css:ro
     depends_on:
-      json-server:
-        condition: service_healthy
+      - json-server
 EOF
 
   log "Starting services..."

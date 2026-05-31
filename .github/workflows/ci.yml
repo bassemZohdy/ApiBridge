@@ -324,8 +324,6 @@ jobs:
             steps.ui_schema.outcome == 'failure' ||
             steps.oidc.outcome == 'failure' ||
             steps.apikey.outcome == 'failure' ||
-            steps.vue_prod.outcome == 'failure' ||
-            steps.angular_prod.outcome == 'failure' ||
             steps.multi_schema.outcome == 'failure'
           )
         run: |
