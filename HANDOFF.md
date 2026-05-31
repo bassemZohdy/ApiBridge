@@ -27,7 +27,7 @@ For the authoritative, up-to-date test inventory see **TODO.md** — `mvn verify
 mvn verify → 311/311 PASS, 0 Checkstyle violations
 ```
 
-Web builder tests (Vitest): 15 tests in `apibridge-web-builder/`.
+Web builder tests (Vitest): 20 tests in `apibridge-web-builder/`.
 
 E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
 

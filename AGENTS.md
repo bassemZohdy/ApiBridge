@@ -94,11 +94,11 @@ CLI overrides take precedence over schema `flags`: `--be-flavor=`, `--fe-flavor=
 
 ## Web Schema Builder
 
-Browser-based GUI at `apibridge-web-builder/` for building `schema.yaml` without writing YAML. Vite + React 18 + TypeScript + js-yaml. Live YAML preview, download button, flag toggles, endpoint editor. 15 tests (Vitest).
+Browser-based GUI at `apibridge-web-builder/` for building `schema.yaml` without writing YAML. Vite + React 18 + TypeScript + js-yaml. Live YAML preview, download button, flag toggles, endpoint editor. 20 tests (Vitest).
 
 ```bash
 cd apibridge-web-builder && npm install && npm run dev   # http://localhost:5173
-cd apibridge-web-builder && npm test                      # 15 Vitest tests
+cd apibridge-web-builder && npm test                      # 20 Vitest tests
 ```
 
 ## E2E tests
