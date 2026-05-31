@@ -28,8 +28,10 @@ _All known issues have been addressed. New tasks added here as they arise._
 - [x] **Fix Quarkus `ProxyService.java.ftl` — `TimeUnit` import conditional**
 - [x] **Remove `logging.structured.format.console=ecs` from Spring Boot config** (requires 3.4.x)
 - [x] **Add `quarkus-logging-json` dependency to Quarkus pom**
-- [x] **Pin `typicode/json-server` Docker image to v0.17 in E2E compose**
+- [x] **Pin `typicode/json-server` Docker image to v0.17.4 in E2E compose** — `0.17` floating minor tag does not exist on Docker Hub; docker pull fails silently, test times out at 90s wait
+- [x] **Fix `set -e` + `((PASSED++))` arithmetic zero exit bug in `run-e2e.sh`** — bash `(( ))` returns exit code 1 when expression evaluates to 0 (post-increment of 0); `set -euo pipefail` killed the script after the very first `pass()` call, before Docker build even started; fixed with `PASSED=$((PASSED + 1))`
 - [x] **Add json-server `healthcheck` and `condition: service_healthy` to E2E compose**
+- [x] **Add `docker/setup-buildx-action` and `timeout-minutes: 30` to `e2e-json-server` CI job** — sister job `e2e-docker` had both; json-server job was missing both (cold npm+Maven builds, no hung-build guard)
 
 ### CI Pipeline & E2E Coverage (all completed in prior session)
 

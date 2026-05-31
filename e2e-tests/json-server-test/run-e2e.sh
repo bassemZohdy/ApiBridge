@@ -12,8 +12,8 @@ FAILED=0
 # ─── helpers ──────────────────────────────────────────────────────────────────
 
 log()  { echo "[json-server-e2e] $*"; }
-pass() { log "PASS: $*"; ((PASSED++)); }
-fail() { log "FAIL: $*"; ((FAILED++)); }
+pass() { log "PASS: $*"; PASSED=$((PASSED + 1)); }
+fail() { log "FAIL: $*"; FAILED=$((FAILED + 1)); }
 
 wait_for_http() {
   local url="$1" timeout="${2:-60}" interval=2 elapsed=0
@@ -64,7 +64,7 @@ run_combination() {
   cat > "$compose_file" <<EOF
 services:
   json-server:
-    image: typicode/json-server:0.17.4
+    image: typicode/json-server:0.17
     command: "--watch /data/db.json --host 0.0.0.0"
     volumes:
       - $(pwd)/data:/data

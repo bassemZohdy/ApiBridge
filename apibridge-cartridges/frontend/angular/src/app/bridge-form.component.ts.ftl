@@ -51,7 +51,7 @@ export class BridgeFormComponent implements OnChanges {
 </#list>
     [
 <#list epPathParams as param>
-      { key: '${param}', label: '${param?upper_case}', inputType: 'text', required: true },
+      { key: '${param}', label: '${param?upper_case}', inputType: 'text', required: true, fieldType: 'text' },
 </#list>
 <#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>

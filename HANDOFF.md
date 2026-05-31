@@ -4,6 +4,28 @@ For architecture, schema reference, cartridge inventory, CLI usage, and E2E pipe
 
 ---
 
+## Session summary — json-server E2E fixes (2026-05-31)
+
+The `e2e-tests/json-server-test/` suite (Spring Boot+React and Quarkus+Vue against a live json-server mock) was debugged and fixed. All changes are in the working tree, untracked/uncommitted.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `e2e-tests/json-server-test/run-e2e.sh` | 1) `typicode/json-server:0.17` → `0.17.4` (floating minor tag does not exist on Docker Hub — docker pull fails silently); 2) `((PASSED++))` / `((FAILED++))` → `PASSED=$((PASSED+1))` / `FAILED=$((FAILED+1))` (`set -euo pipefail` + bash arithmetic command returning 0 when counter starts at 0 caused immediate script exit after first `pass()` call); 3) Added `healthcheck` on json-server service + `condition: service_healthy` on app's `depends_on` |
+| `.github/workflows/ci.yml` | Added `docker/setup-buildx-action@v3` step and `timeout-minutes: 30` to `e2e-json-server` job (was missing both; sister job `e2e-docker` had both) |
+| `apibridge-cartridges/backend/quarkus/src/main/java/com/apibridge/generated/ProxyService.java.ftl` | Removed conditional wrapping `import java.util.concurrent.TimeUnit` — was missing when `enableResponseCache=true` |
+| `apibridge-cartridges/backend/spring-boot/src/main/resources/application.properties.ftl` | Removed `logging.structured.format.console=ecs` (Spring Boot 3.4+ only; pom pins 3.2.5) |
+| `apibridge-cartridges/backend/quarkus/pom.xml.ftl` | Added `quarkus-logging-json` dependency |
+
+### Root cause of the always-failing test
+`set -euo pipefail` + `((PASSED++))` when `PASSED=0`: bash `(( ))` exits 1 when the arithmetic expression evaluates to zero (post-increment of 0 returns the old value 0). Fixed with simple assignment form `PASSED=$((PASSED + 1))`.
+
+### Next step
+Commit and push all changes, then observe the `e2e-json-server` CI job pass.
+
+---
+
 ## Generated backend endpoints
 
 Every generated backend exposes these built-in endpoints regardless of schema:
