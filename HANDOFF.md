@@ -21,36 +21,11 @@ All error responses use `Content-Type: application/json`.
 
 ## Test status
 
-```
-mvn verify → 305/305 PASS, 0 Checkstyle violations
-```
+For the authoritative, up-to-date test inventory see **TODO.md** — `mvn verify` summary and per-class counts.
 
-| Test class | Count | Covers |
-|---|---|---|
-| `YamlParser*` (9 files) | 126 | Schema validation: HTTP methods, duplicates, feature flags, apiVersion, mockResponse, transforms, uiLayout, pagination, OIDC |
-| `CoreCartridgeEngineTest` | 33 | Cartridge generation, composability, FreeMarker context, method names, security |
-| `DevOpsCartridgeEngineTest` | 17 | Dockerfile, Docker Compose, k8s ConfigMap |
-| `TransformEngineTest` | 10 | Header + field transforms, controller args, pass-through |
-| `DistributedCacheEngineTest` | 10 | Redis dual-cache, CACHE_REDIS_URL switching |
-| `SearchFilterEngineTest` | 6 | Search bar (React/Angular/Vue), delegate vs local |
-| `AuditLogEngineTest` | 4 | Redis Streams + MongoDB audit trail |
-| `CircuitBreakerEngineTest` | 6 | Resilience4j CB + retry |
-| `ResponseCacheEngineTest` | 6 | Caffeine cache |
-| `RateLimiterEngineTest` | 6 | Resilience4j rate limiter |
-| `HealthCheckEngineTest` | 7 | HealthCheckService + endpoint + env vars |
-| `OfflineSupportEngineTest` | 6 | Service Worker (React/Angular/Vue) |
-| `OpenApiEngineTest` | 6 | openapi.yaml generation + pom deps |
-| `ApiVersioningEngineTest` | 4 | API version prefix in routes |
-| `DebugModeEngineTest` | 4 | DebugLoggingFilter (Spring + Quarkus) |
-| `DarkModeEngineTest` | 3 | Theme toggle (React/Angular/Vue) |
-| `MockModeEngineTest` | 2 | Schema-defined mock body/status |
-| `OidcEngineTest` | 7 | OIDC SecurityConfig, Spring Boot + Quarkus deps + props |
-| `HelmCartridgeEngineTest` | 8 | Helm Chart.yaml, values.yaml, deployment, service, configmap, ingress |
-| `SchemaComposerTest` | 8 | Multi-schema merge: id/basePath from primary, endpoint concat, cross-schema duplicates |
-| `CartridgeCacheTest` | 7 | Cache miss/hit, SHA-256 hashing, directory allocation |
-| `CartridgeDownloaderTest` | 4 | HTTP download, ZIP extraction, zip-slip security |
-| `CartridgeResolverTest` | 6 | Local path, URL, GitHub shorthand, cache hit |
-| `ApiBridgeRunnerTest` | 4 | CLI argument handling, version, local cartridge resolve |
+```
+mvn verify → 311/311 PASS, 0 Checkstyle violations
+```
 
 Web builder tests (Vitest): 15 tests in `apibridge-web-builder/`.
 

@@ -26,10 +26,7 @@ java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
   --security-level=bearer-token  # bearer-token | apiKey
 ```
 
-**Cartridge reference formats** (`--cartridge=` accepts three forms):
-- Local path: `./my-cartridge` or `/abs/path` — passed directly to engine
-- URL: `https://host/file.zip` — downloaded, extracted, cached at `~/.apibridge/cartridges/<sha256>/`
-- GitHub shorthand: `github:owner/repo[/subpath][@ref]` — downloads GitHub archive ZIP, default ref is `main`
+**Cartridge reference formats**: see **AGENTS.md** (local path, URL, GitHub shorthand).
 
 ## Testing & Linting
 
@@ -66,19 +63,7 @@ Full reference: @docs/schema-reference.md
 
 Required fields (validated by `YamlParser`): `id` (non-empty), `basePath` (non-empty), `endpoints` (non-empty list). HTTP method must be GET/POST/PUT/DELETE/PATCH. Duplicate endpoints (same path + method) are rejected.
 
-Valid enum values:
-- `flags.backendFlavor`: `spring-boot` | `quarkus`
-- `flags.feFlavor`: `angular` | `react` | `vue`
-- `flags.securityLevel`: `bearer-token` | `apiKey`
-- `flags.deployTarget`: `docker-compose` | `kubernetes` | `openshift` (absent = no deployment config generated)
-- `flags.enableOidc`: `true` | `false` (default `false`) — generates OAuth2 JWT resource server; `oidcIssuerUri` required; runtime override `OIDC_ISSUER_URI`
-- `flags.oidcIssuerUri`: any URI string — required when `enableOidc: true`
-- `flags.enableAuditLog`: `true` | `false` (default `false`) — generates Redis Streams + MongoDB audit log for all proxy calls
-- `flags.enableCircuitBreaker`: `true` | `false` (default `false`) — wraps all proxy calls with Resilience4j CB + retry; configurable via `CB_*` ENV VARs
-- `flags.enableResponseCache`: `true` | `false` (default `false`) — Caffeine in-process GET cache; configurable via `CACHE_TTL_SECONDS` / `CACHE_MAX_SIZE` ENV VARs
-- `uiLayout.component`: `Form` | `List` | `View` (case-insensitive)
-
-`flags.pagination` sub-fields: `pageParam` (default `page`), `sizeParam` (default `size`), `defaultPageSize` (default `20`), `sortParam` (default `sort`), `directionParam` (default `dir`). All overrideable at runtime via `PAGINATION_*` ENV VARs via `/api/bridge-config`.
+Valid enum values and all flag defaults are documented in **AGENTS.md** and @docs/schema-reference.md.
 
 ## FreeMarker template conventions
 
