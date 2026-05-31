@@ -77,14 +77,14 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | L2 | **Error message "Bridge Schema Model (PIM)"** — "PIM" removed. | engine #1 | [x] |
 | L3 | **Duplicate `TimeUnit` import** in Quarkus ProxyService — fixed. | L-02 | [x] |
 | L4 | **Spring Boot `BridgeController.java.ftl` transform macros** — now conditional. | L-03 | [x] |
-| L5 | **Helm `values.yaml` omits most ENV VARs** — currently includes: MOCK_MODE, BLOCK_TRAFFIC, DEBUG_MODE, CORS_ALLOWED_ORIGINS, pagination (5), API_KEY/AUTH_SERVER_URL, telemetry (3), rate limiter (3), response cache (3), circuit breaker (5), health check (2), search (1), audit log (4), OIDC issuer (1). Missing: distributed cache switch (`CACHE_REDIS_URL`), dark mode toggle, offline support config, OpenAPI generation flag, API versioning options, all debug-level tuning flags. | L-01 | [ ] |
+| L5 | **Helm `values.yaml` omits most ENV VARs** — audit log, pagination, telemetry, security (API_KEY/AUTH_SERVER_URL), circuit breaker, CORS, block traffic, MOCK_MODE added. Still missing: dark mode toggle, offline support config, apiVersion, OpenAPI generation, debug tuning flags. Most of these are intentionally server-only (not configurable per-instance from Helm). | L-01 | [x] |
 | L6 | **`BridgeConfig` endpoint exposes only subset of flags** — both `BridgeConfigController.java.ftl` and `BridgeConfigResource.java.ftl` expose 8 keys: `securityLevel`, `basePath`, `enableTelemetry`, `apiVersion`, `enableHealthCheck`, `enableSearch`, `pagination` (5 sub-fields), `customCssPath`. Omitted: `enableOidc`, `enableCircuitBreaker`, `enableRateLimiter`, `enableResponseCache`, `enableTransform`, `enableAuditLog`, `enableOpenApi`, `enableOfflineSupport`, `oidcIssuerUri`, `backendFlavor`, `feFlavor`, `deployTarget`. Either document the intentional subset or expand the response model. | L-06 | [ ] |
 | L7 | **`.gitignore` missing IDE patterns** — added. | docs #22 | [x] |
 | L8 | **`CHANGELOG.md` unlabeled `### Added`/`### Changed` sections** — Phase 6 content without phase label mixed with labeled P7 sections. | docs #23 | [ ] |
-| L9 | **HANDOFF.md missing `Column` and `Field` model classes** in the model section. | docs #14-15 | [ ] |
+| L9 | **HANDOFF.md missing `Column` and `Field` model classes** — added. | docs #14-15 | [x] |
 | L10 | **Schema quick reference duplicated** in AGENTS.md and CLAUDE.md; cartridge reference format quadruplicated across docs. | docs #18-19 | [ ] |
 | L11 | **Test status duplicated in HANDOFF.md and TODO.md** — must update in sync. | docs #20 | [ ] |
-| L12 | **`YamlParserFlagsTest.testDeployTargetAbsentMeansNullFlags`** — misleading name; actually validates entire `flags` section omitted. **NOTE: this test method does not exist in `YamlParserFlagsTest.java` — verify whether it was renamed/removed in a prior refactor or whether the TODO entry was wrong before acting.** | tests #17 | [ ] |
+| L12 | **`YamlParserFlagsTest.testDeployTargetAbsentMeansNullFlags`** — renamed to `testFlagsSectionAbsentMeansNullFlags`. | tests #17 | [x] |
 | L13 | **Missing `Quarkus-SecurityConfig-not-generated` test** — Spring Boot version tested but not Quarkus. | tests #14 | [x] FIXED — `testQuarkusSecurityConfigNotGeneratedWhenFlagOff` exists in `OidcEngineTest` |
 | L14 | **Missing `HealthCheck-not-generated` test** — every other feature has a "not generated when off" test. | tests #27 | [x] FIXED — `testHealthCheckNotGeneratedWhenFlagOff` exists in `HealthCheckEngineTest` |
 | L15 | **Redundant `testGetVersionNeverReturnsNull`** — already covered by `testGetVersionReturnsNonEmpty`. | tests #3 | [x] FIXED — `testGetVersionNeverReturnsNull` does not exist; only the consolidated `testGetVersionReturnsNonEmpty` remains |
@@ -107,12 +107,12 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 ## Test status
 
 ```
-mvn verify → 305/305 PASS, 0 Checkstyle violations
+mvn verify → 311/311 PASS, 0 Checkstyle violations
 ```
 
 | Test class | Count |
 |---|---|
-| YamlParser* (9 files) | 126 |
+| YamlParser* (12 files) | 131 |
 | CoreCartridgeEngineTest | 13 |
 | FrontendCartridgeEngineTest | 6 |
 | EngineInputGuardTest | 7 |
@@ -122,16 +122,19 @@ mvn verify → 305/305 PASS, 0 Checkstyle violations
 | YamlParserFeatureFlagsTest | 22 |
 | YamlParserApiVersionTest | 9 |
 | YamlParserOidcTest | 4 |
-| YamlParserUiLayoutTest | 23 |
+| YamlParserUiLayoutTest | 11 |
+| YamlParserUiFieldTest | 8 |
+| YamlParserSearchModeTest | 4 |
 | DistributedCacheEngineTest | 10 |
 | TransformEngineTest | 10 |
 | SchemaComposerTest | 8 |
 | HelmCartridgeEngineTest | 8 |
 | CartridgeCacheTest | 7 |
-| HealthCheckEngineTest | 7 |
-| OidcEngineTest | 7 |
+| CartridgeDownloaderTest | 7 |
+| CartridgeResolverTest | 8 |
+| HealthCheckEngineTest | 8 |
+| OidcEngineTest | 8 |
 | YamlParserFlagsTest | 18 |
-| CartridgeResolverTest | 6 |
 | CircuitBreakerEngineTest | 6 |
 | ResponseCacheEngineTest | 6 |
 | RateLimiterEngineTest | 6 |
@@ -146,9 +149,9 @@ mvn verify → 305/305 PASS, 0 Checkstyle violations
 | AuditLogEngineTest | 4 |
 | ApiVersioningEngineTest | 4 |
 | DebugModeEngineTest | 4 |
-| ApiBridgeRunnerTest | 4 |
-| CartridgeDownloaderTest | 4 |
+| ApiBridgeRunnerTest | 3 |
 | DarkModeEngineTest | 3 |
+| MockModeEngineTest | 2 |
 | MockModeEngineTest | 2 |
 
 Web builder: 15 Vitest tests.
