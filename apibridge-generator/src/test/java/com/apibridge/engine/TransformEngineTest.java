@@ -48,8 +48,8 @@ public class TransformEngineTest extends ApiBridgeCartridgeEngineTestBase {
         engine.generate(createTransformTestModel(), findCartridgeDir("backend/spring-boot"), tempDir.resolve("out").toFile());
 
         String content = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/ProxyService.java"));
-        assertTrue(content.contains("applyHeaderTransforms"), "must contain applyHeaderTransforms");
-        assertTrue(content.contains("applyFieldTransforms"), "must contain applyFieldTransforms");
+        assertTrue(content.contains("reqHeaderAdd"), "ProxyService must accept reqHeaderAdd param");
+        assertTrue(content.contains("resFieldRename"), "ProxyService must accept resFieldRename param");
         assertTrue(content.length() > 2000, "ProxyService must have substantial transform method bodies");
     }
 
@@ -71,7 +71,7 @@ public class TransformEngineTest extends ApiBridgeCartridgeEngineTestBase {
         engine.generate(model, findCartridgeDir("backend/spring-boot"), tempDir.resolve("out").toFile());
 
         String proxy = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/ProxyService.java"));
-        assertFalse(proxy.contains("applyHeaderTransforms"), "no transform code when flag off");
+        assertFalse(proxy.contains("reqHeaderAdd"), "no transform param when flag off");
         assertTrue(proxy.length() < 5000, "ProxyService smaller without transform code");
     }
 
@@ -80,8 +80,8 @@ public class TransformEngineTest extends ApiBridgeCartridgeEngineTestBase {
         engine.generate(createTransformTestModel(), findCartridgeDir("backend/quarkus"), tempDir.resolve("out").toFile());
 
         String content = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/ProxyService.java"));
-        assertTrue(content.contains("applyHeaderTransforms"), "must contain applyHeaderTransforms");
-        assertTrue(content.contains("applyFieldTransforms"), "must contain applyFieldTransforms");
+        assertTrue(content.contains("reqHeaderAdd"), "ProxyService must accept reqHeaderAdd param");
+        assertTrue(content.contains("resFieldRename"), "ProxyService must accept resFieldRename param");
     }
 
     @Test
@@ -102,7 +102,7 @@ public class TransformEngineTest extends ApiBridgeCartridgeEngineTestBase {
         engine.generate(model, findCartridgeDir("backend/quarkus"), tempDir.resolve("out").toFile());
 
         String proxy = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/ProxyService.java"));
-        assertFalse(proxy.contains("applyHeaderTransforms"), "no transform code when flag off");
+        assertFalse(proxy.contains("reqHeaderAdd"), "no transform param when flag off");
         assertTrue(proxy.length() < 5000, "ProxyService smaller without transform code");
     }
 
