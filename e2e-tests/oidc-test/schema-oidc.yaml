@@ -1,0 +1,14 @@
+id: "oidc-test-service"
+basePath: "/api/v1/secure"
+flags:
+  enableOidc: true
+  oidcIssuerUri: "https://auth.example.com/realms/test"
+  securityLevel: "bearer-token"
+  backendFlavor: "spring-boot"
+endpoints:
+  - path: "/items"
+    method: "GET"
+    backendUrl: "https://internal-mesh.local/items"
+  - path: "/items"
+    method: "POST"
+    backendUrl: "https://internal-mesh.local/items"

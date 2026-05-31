@@ -21,56 +21,7 @@ All error responses use `Content-Type: application/json`.
 
 ## Test status
 
-```
-mvn verify → 311/311 PASS, 0 Checkstyle violations
-```
-
-| Test class | Count |
-|---|---|
-| YamlParser* (13 files) | 131 |
-| CoreCartridgeEngineTest | 13 |
-| FrontendCartridgeEngineTest | 6 |
-| EngineInputGuardTest | 7 |
-| MethodNameEngineTest | 7 |
-| DevOpsCartridgeEngineTest | 17 |
-| YamlParserEndpointTest | 20 |
-| YamlParserFeatureFlagsTest | 22 |
-| YamlParserApiVersionTest | 9 |
-| YamlParserOidcTest | 4 |
-| YamlParserUiLayoutTest | 11 |
-| YamlParserUiFieldTest | 8 |
-| YamlParserSearchModeTest | 4 |
-| DistributedCacheEngineTest | 10 |
-| TransformEngineTest | 10 |
-| SchemaComposerTest | 8 |
-| HelmCartridgeEngineTest | 8 |
-| CartridgeCacheTest | 7 |
-| CartridgeDownloaderTest | 7 |
-| CartridgeResolverTest | 8 |
-| HealthCheckEngineTest | 8 |
-| OidcEngineTest | 8 |
-| YamlParserFlagsTest | 18 |
-| CircuitBreakerEngineTest | 6 |
-| ResponseCacheEngineTest | 6 |
-| RateLimiterEngineTest | 6 |
-| OfflineSupportEngineTest | 6 |
-| OpenApiEngineTest | 6 |
-| SearchFilterEngineTest | 6 |
-| YamlParserTopLevelTest | 6 |
-| YamlParserMockResponseTest | 9 |
-| YamlParserPaginationTest | 5 |
-| YamlParserFileAccessTest | 5 |
-| YamlParserTransformsTest | 10 |
-| AuditLogEngineTest | 4 |
-| ApiVersioningEngineTest | 4 |
-| DebugModeEngineTest | 4 |
-| ApiBridgeRunnerTest | 3 |
-| DarkModeEngineTest | 3 |
-| MockModeEngineTest | 2 |
-
-Vitest (web builder): 20 tests.
-
-E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
+See [docs/test-coverage.md](docs/test-coverage.md) for current test counts and E2E suite inventory.
 
 ---
 
@@ -80,13 +31,13 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 2. **FreeMarker `${...}` in JSX/TS template literals** must be escaped as `${r"${...}"}`.
 3. **Form templates filter GET endpoints** — `formEndpoints` filters non-GET at template top.
 4. **Custom CSS loads after the Vite bundle** — injected dynamically so brand overrides win.
-5. **`Pagination` is auto-initialized** — `getPagination()` never null when flags present.
+5. **`Pagination` is auto-initialized** — `getPagination()` never null when flags present. The null guard in templates documents intent, not null-safety.
 6. **Method names are collision-free** — HTTP prefix + path segments + "By" suffix.
 7. **ProxyService forwards headers and query params** — all non-hop-by-hop headers; query params appended.
 8. **All 3 frontends export `getAuthHeaders()`** — React/Vue from `bridgeApi.ts`, Angular on `BridgeApiService`.
 9. **View components support DELETE** — delete button rendered when DELETE endpoint exists for same path.
 10. **Form components support edit pre-population** — `editId` fetches View GET to fill form state.
-11. **Bearer-token security via `AUTH_SERVER_URL`** — validates JWT if set; pass-through otherwise.
+11. **Bearer-token security requires `AUTH_SERVER_URL`** — validates JWT via upstream; rejects with 401 when `AUTH_SERVER_URL` is blank (fail-closed).
 12. **Telemetry spans** — OTel spans with `http.method`, `http.url`, `StatusCode.ERROR` on exceptions.
 13. **CORS `exposedHeaders("*")` + `maxAge(3600)`** — upstream headers visible to frontend JS.
 14. **All `flags` accesses null-safe** — `(flags.field)!default` pattern in all templates.
@@ -110,7 +61,7 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 32. **Search mode is per-endpoint** — `delegate` passes params; `local` filters client-side. List-only.
 33. **Dark mode is always available** — CSS variables + localStorage + prefers-color-scheme fallback.
 34. **Offline support uses stale-while-revalidate** — cache-first shell, SWR for API GETs, network-only non-GET.
-35. **searchMode requires enableSearch** — `searchMode` on any endpoint throws if `flags.enableSearch` is not true. List-only check runs before value check.
+35. **`searchMode` requires `enableSearch`** — `searchMode` on any endpoint throws if `flags.enableSearch` is not true. List-only check runs before value check.
 36. **Transforms internals validated** — when `enableTransform: true`, rename map keys/values and remove list entries must be non-blank. Warning emitted when transforms present but flag off.
 37. **Pagination param names non-blank** — `pageParam`, `sizeParam`, `sortParam`, `directionParam` validated when pagination object present.
 38. **CLI overrides always re-validate** — `parser.validate(model)` called unconditionally after applying overrides, preventing invalid models from reaching the engine.
@@ -118,19 +69,18 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 40. **Transform `add` map values validated** — blank header values rejected, matching `rename` validation.
 41. **Transform warning deduplicated** — printed once per `validate()` call, listing all affected endpoints.
 42. **`flags` is always non-null in FreeMarker context** — `ApiBridgeRunner` synthesises `new Flags()` when absent. Templates should use field-level guards (`flags.securityLevel??`), not `flags??`.
-43. **`Pagination` is auto-initialized** — never null when flags is non-null. The null guard documents intent.
-44. **OIDC is schema-defined, runtime-overridable** — `flags.enableOidc: true` + `flags.oidcIssuerUri` generates Spring Security OAuth2 resource server (Spring Boot) or Quarkus OIDC config. Runtime override via `OIDC_ISSUER_URI` env var.
-45. **OIDC health/config endpoints unauthenticated** — `/api/bridge-config` and `/api/bridge-health` remain accessible without JWT.
-46. **Multi-schema composition merges endpoints** — `SchemaComposer` takes `id`/`basePath`/`flags` from primary schema, concatenates endpoints in order, rejects cross-schema duplicates (same path + method).
-47. **Helm expressions survive FreeMarker** — `${r"{{ ... }}"}` raw string pattern prevents Helm `{{ }}` from being interpreted by FreeMarker.
-48. **Helm ingress disabled by default** — `values.yaml` sets `ingress.enabled: false`; user enables at install time.
-49. **Cartridge cache keyed by SHA-256** — `~/.apibridge/cartridges/<sha256>/` directory; deterministic hash of reference string; cache hit = no re-download.
-50. **ZIP extraction has zip-slip protection** — `CartridgeDownloader.extractZip()` validates canonical paths before writing.
-  51. **GitHub shorthand resolves to archive ZIP** — `github:owner/repo[/subpath][@ref]` → `https://github.com/owner/repo/archive/refs/heads/<ref>.zip`; default ref is `main`.
-  52. **Configuration cache is thread-safe** — `ConcurrentHashMap` in `ApiBridgeCartridgeEngine`; atomic get-then-put for multi-cartridge concurrent generation.
-  53. **Public API methods have null guards** — `YamlParser.validate()`, `CartridgeResolver.resolve()`, `CartridgeDownloader.downloadAndExtract()` reject null/blank inputs with `IllegalArgumentException`.
-  54. **Template flag guards are consistent** — all boolean flags use `(flags.enableX)!false` pattern in `<#if>` directives across all templates.
-  55. **Validation helpers are reusable** — `validateEnum()`, `requireNonBlankIf()`, `requireFlagForField()` in `YamlParser` centralize cross-field and enum checks.
+43. **OIDC is schema-defined, runtime-overridable** — `flags.enableOidc: true` + `flags.oidcIssuerUri` generates Spring Security OAuth2 resource server (Spring Boot) or Quarkus OIDC config. Runtime override via `OIDC_ISSUER_URI` env var.
+44. **OIDC health/config endpoints unauthenticated** — `/api/bridge-config` and `/api/bridge-health` remain accessible without JWT.
+45. **Multi-schema composition merges endpoints** — `SchemaComposer` takes `id`/`basePath`/`flags` from primary schema, concatenates endpoints in order, rejects cross-schema duplicates (same path + method).
+46. **Helm expressions survive FreeMarker** — `${r"{{ ... }}"}` raw string pattern prevents Helm `{{ }}` from being interpreted by FreeMarker.
+47. **Helm ingress disabled by default** — `values.yaml` sets `ingress.enabled: false`; user enables at install time.
+48. **Cartridge cache keyed by SHA-256** — `~/.apibridge/cartridges/<sha256>/` directory; deterministic hash of reference string; cache hit = no re-download.
+49. **ZIP extraction has zip-slip protection** — `CartridgeDownloader.extractZip()` validates canonical paths before writing.
+50. **GitHub shorthand resolves to archive ZIP** — `github:owner/repo[/subpath][@ref]` → `https://github.com/owner/repo/archive/refs/heads/<ref>.zip`; default ref is `main`.
+51. **Configuration cache is thread-safe** — `ConcurrentHashMap` in `ApiBridgeCartridgeEngine`; atomic get-then-put for multi-cartridge concurrent generation.
+52. **Public API methods have null guards** — `YamlParser.validate()`, `CartridgeResolver.resolve()`, `CartridgeDownloader.downloadAndExtract()` reject null/blank inputs with `IllegalArgumentException`.
+53. **Template flag guards are consistent** — all boolean flags use `(flags.enableX)!false` pattern in `<#if>` directives across all templates.
+54. **Validation helpers are reusable** — `validateEnum()`, `requireNonBlankIf()`, `requireFlagForField()` in `YamlParser` centralize cross-field and enum checks.
 
 ---
 
@@ -264,5 +214,5 @@ BridgeSchemaModel.Pagination:
 | `devops/docker-compose/**/*.ftl` | `devops/docker-compose` | docker-compose.yml |
 | `devops/k8s/kubernetes/**/*.ftl` | `devops/k8s/kubernetes` | K8s Deployment + Service + ConfigMap |
 | `devops/k8s/openshift/**/*.ftl` | `devops/k8s/openshift` | OpenShift Route |
-| `docs/openapi/**/*.ftl` | `docs/openapi` | OpenAPI 3.0.3 spec |
 | `devops/k8s/helm/**/*.ftl` | `devops/k8s/helm` | Helm 3 chart (Chart.yaml, values.yaml, templates/) |
+| `docs/openapi/**/*.ftl` | `docs/openapi` | OpenAPI 3.0.3 spec |

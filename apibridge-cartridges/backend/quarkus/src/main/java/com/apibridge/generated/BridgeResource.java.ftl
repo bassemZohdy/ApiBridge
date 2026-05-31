@@ -67,18 +67,18 @@ public class BridgeResource {
         if (token.isBlank()) {
             return false;
         }
-        if (authServerUrl != null && !authServerUrl.isBlank()) {
-            try (var client = jakarta.ws.rs.client.ClientBuilder.newClient()) {
-                var response = client.target(authServerUrl)
-                        .request()
-                        .header("Authorization", "Bearer " + token)
-                        .get();
-                return response.getStatusInfo().getFamily() == jakarta.ws.rs.core.Response.Status.Family.SUCCESSFUL;
-            } catch (Exception e) {
-                return false;
-            }
+        if (authServerUrl == null || authServerUrl.isBlank()) {
+            return false;
         }
-        return true;
+        try (var client = jakarta.ws.rs.client.ClientBuilder.newClient()) {
+            var response = client.target(authServerUrl)
+                    .request()
+                    .header("Authorization", "Bearer " + token)
+                    .get();
+            return response.getStatusInfo().getFamily() == jakarta.ws.rs.core.Response.Status.Family.SUCCESSFUL;
+        } catch (Exception e) {
+            return false;
+        }
     }
 </#if>
 

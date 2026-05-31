@@ -38,7 +38,7 @@ public class SchemaComposer {
                 if (method == null || path == null) {
                     continue;
                 }
-                String key = method.toUpperCase() + " " + path;
+                String key = method.toUpperCase() + " " + path.replaceAll("\\{[^}]+}", "{*}");
                 if (!seen.add(key)) {
                     throw new IllegalArgumentException(
                             "Schema composition error: duplicate endpoint " + key

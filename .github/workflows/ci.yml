@@ -10,6 +10,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   checks: write
   contents: read
@@ -93,7 +97,41 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ─────────────────────────────────────────────────────────────────
-  # Job 2: Fast E2E — compile verification for all cartridges
+  # Job 2: Web Builder — typecheck + tests
+  # ─────────────────────────────────────────────────────────────────
+  web-builder:
+    name: Web Builder — Lint, Typecheck & Tests
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apibridge-web-builder/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apibridge-web-builder
+
+      - name: Lint
+        run: npm run lint
+        working-directory: apibridge-web-builder
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+        working-directory: apibridge-web-builder
+
+      - name: Run tests
+        run: npm test
+        working-directory: apibridge-web-builder
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 3: Fast E2E — compile verification for all cartridges
   # ─────────────────────────────────────────────────────────────────
   e2e-compile:
     name: E2E — Compile Checks
@@ -114,62 +152,114 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'apibridge-web-builder/package-lock.json'
 
       - name: Build fat JAR
         run: mvn clean package -pl apibridge-generator -DskipTests -B -q
 
-      - name: '[1/9] Spring Boot — generate + Maven compile'
+      - name: '[1/17] Spring Boot — generate + Maven compile'
         id: spring_boot
         continue-on-error: true
         env:
           SKIP_GENERATOR_BUILD: 'true'
         run: ./e2e-tests/maven-spring-boot-test/run-e2e.sh
 
-      - name: '[2/9] Quarkus — generate + Maven compile'
+      - name: '[2/17] Quarkus — generate + Maven compile'
         id: quarkus
         continue-on-error: true
         env:
           SKIP_GENERATOR_BUILD: 'true'
         run: ./e2e-tests/maven-quarkus-test/run-e2e.sh
 
-      - name: '[3/9] Angular — generate + strict TypeScript compile'
+      - name: '[3/17] Angular — generate + strict TypeScript compile'
         id: angular
         continue-on-error: true
         run: ./e2e-tests/typescript-angular-test/run-e2e.sh
 
-      - name: '[4/9] React — generate + strict TypeScript compile'
+      - name: '[4/17] React — generate + strict TypeScript compile'
         id: react
         continue-on-error: true
         run: ./e2e-tests/typescript-react-test/run-e2e.sh
 
-      - name: '[5/9] Vue — generate + strict TypeScript compile'
+      - name: '[5/17] Vue — generate + strict TypeScript compile'
         id: vue
         continue-on-error: true
         run: ./e2e-tests/typescript-vue-test/run-e2e.sh
 
-      - name: '[6/9] Backend-frontend contract symmetry'
+      - name: '[6/17] Backend-frontend contract symmetry'
         id: contract
         continue-on-error: true
         run: ./e2e-tests/verify-contract-symmetry.sh
 
-      - name: '[7/9] Kubernetes — manifest validation'
+      - name: '[7/17] Kubernetes — manifest validation'
         id: kubernetes
         continue-on-error: true
         env:
           SKIP_GENERATOR_BUILD: 'true'
         run: ./e2e-tests/kubernetes-test/run-e2e.sh
 
-      - name: '[8/9] OpenShift — manifest validation'
+      - name: '[8/17] OpenShift — manifest validation'
         id: openshift
         continue-on-error: true
         env:
           SKIP_GENERATOR_BUILD: 'true'
         run: ./e2e-tests/openshift-test/run-e2e.sh
 
-      - name: '[9/9] React — production build'
+      - name: '[9/17] React — production build'
         id: react_prod
         continue-on-error: true
         run: ./e2e-tests/react-prod-build-test/run-e2e.sh
+
+      - name: '[10/17] OpenAPI — spec validation'
+        id: openapi
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/openapi-test/run-e2e.sh
+
+      - name: '[11/17] Helm — chart validation'
+        id: helm
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/helm-test/run-e2e.sh
+
+      - name: '[12/17] UI Schema — validation'
+        id: ui_schema
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/ui-schema-test/run-e2e.sh
+
+      - name: '[13/17] OIDC / SecurityConfig — generate + compile'
+        id: oidc
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/oidc-test/run-e2e.sh
+
+      - name: '[14/17] apiKey security — generate + validate'
+        id: apikey
+        continue-on-error: true
+        env:
+          SKIP_GENERATOR_BUILD: 'true'
+        run: ./e2e-tests/apikey-test/run-e2e.sh
+
+      - name: '[15/17] Vue — production build'
+        id: vue_prod
+        continue-on-error: true
+        run: ./e2e-tests/vue-prod-build-test/run-e2e.sh
+
+      - name: '[16/17] Angular — production build'
+        id: angular_prod
+        continue-on-error: true
+        run: ./e2e-tests/angular-prod-build-test/run-e2e.sh
+
+      - name: '[17/17] Multi-Schema Composition'
+        id: multi_schema
+        continue-on-error: true
+        run: ./e2e-tests/multi-schema-test/run-e2e.sh
 
       - name: Write E2E compile summary
         if: always()
@@ -183,6 +273,14 @@ jobs:
           R_K8S:      ${{ steps.kubernetes.outcome }}
           R_OCP:      ${{ steps.openshift.outcome }}
           R_REACT_PR: ${{ steps.react_prod.outcome }}
+          R_OPENAPI:  ${{ steps.openapi.outcome }}
+          R_HELM:     ${{ steps.helm.outcome }}
+          R_UI_SCHEMA: ${{ steps.ui_schema.outcome }}
+          R_OIDC:     ${{ steps.oidc.outcome }}
+          R_APIKEY:   ${{ steps.apikey.outcome }}
+          R_VUE_PR:   ${{ steps.vue_prod.outcome }}
+          R_ANG_PR:   ${{ steps.angular_prod.outcome }}
+          R_MULTI:    ${{ steps.multi_schema.outcome }}
         run: |
           icon() { [ "$1" = "success" ] && echo "✅" || echo "❌"; }
           {
@@ -199,6 +297,14 @@ jobs:
             echo "| 7 | Kubernetes manifest validation | $(icon "$R_K8S") \`$R_K8S\` |"
             echo "| 8 | OpenShift manifest validation | $(icon "$R_OCP") \`$R_OCP\` |"
             echo "| 9 | React production build | $(icon "$R_REACT_PR") \`$R_REACT_PR\` |"
+            echo "| 10 | OpenAPI spec validation | $(icon "$R_OPENAPI") \`$R_OPENAPI\` |"
+            echo "| 11 | Helm chart validation | $(icon "$R_HELM") \`$R_HELM\` |"
+            echo "| 12 | UI Schema validation | $(icon "$R_UI_SCHEMA") \`$R_UI_SCHEMA\` |"
+            echo "| 13 | OIDC / SecurityConfig (generate + compile) | $(icon "$R_OIDC") \`$R_OIDC\` |"
+            echo "| 14 | apiKey security validation | $(icon "$R_APIKEY") \`$R_APIKEY\` |"
+            echo "| 15 | Vue production build | $(icon "$R_VUE_PR") \`$R_VUE_PR\` |"
+            echo "| 16 | Angular production build | $(icon "$R_ANG_PR") \`$R_ANG_PR\` |"
+            echo "| 17 | Multi-Schema Composition | $(icon "$R_MULTI") \`$R_MULTI\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail if any compile check failed
@@ -212,14 +318,22 @@ jobs:
             steps.contract.outcome  == 'failure' ||
             steps.kubernetes.outcome == 'failure' ||
             steps.openshift.outcome == 'failure' ||
-            steps.react_prod.outcome == 'failure'
+            steps.react_prod.outcome == 'failure' ||
+            steps.openapi.outcome == 'failure' ||
+            steps.helm.outcome == 'failure' ||
+            steps.ui_schema.outcome == 'failure' ||
+            steps.oidc.outcome == 'failure' ||
+            steps.apikey.outcome == 'failure' ||
+            steps.vue_prod.outcome == 'failure' ||
+            steps.angular_prod.outcome == 'failure' ||
+            steps.multi_schema.outcome == 'failure'
           )
         run: |
           echo "One or more E2E compile checks failed — see summary above."
           exit 1
 
   # ─────────────────────────────────────────────────────────────────
-  # Job 3: E2E — json-server integration
+  # Job 4: E2E — json-server integration
   # ─────────────────────────────────────────────────────────────────
   e2e-json-server:
     name: E2E — json-server
@@ -240,6 +354,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'apibridge-web-builder/package-lock.json'
 
       - name: Build fat JAR
         run: mvn clean package -pl apibridge-generator -DskipTests -B -q
@@ -272,7 +388,7 @@ jobs:
           exit 1
 
   # ─────────────────────────────────────────────────────────────────
-  # Job 4: Slow E2E — fullstack Docker generate + build + runtime
+  # Job 5: Slow E2E — fullstack Docker generate + build + runtime
   # ─────────────────────────────────────────────────────────────────
   e2e-docker:
     name: E2E — Fullstack Docker
@@ -293,6 +409,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'apibridge-web-builder/package-lock.json'
 
       - name: Build fat JAR
         run: mvn clean package -pl apibridge-generator -DskipTests -B -q

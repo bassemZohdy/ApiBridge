@@ -38,10 +38,11 @@ public class CartridgeDownloader {
                 .uri(URI.create(url))
                 .GET()
                 .build();
-        byte[] zipBytes = httpClient
-                .send(request, HttpResponse.BodyHandlers.ofByteArray())
-                .body();
-        extractZip(zipBytes, targetDir);
+        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("HTTP " + response.statusCode() + " from " + url);
+        }
+        extractZip(response.body(), targetDir);
     }
 
     static void extractZip(byte[] zipBytes, File targetDir) throws IOException {

@@ -76,7 +76,7 @@ mvn package -pl apibridge-generator -DskipTests
 mvn clean package
 
 # 2. Spring Boot + React, Docker Compose deployment
-java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
+java -jar apibridge-generator/target/apibridge-generator-0.1.0.jar \
   --schema=sample-schema.yaml \
   --cartridge=apibridge-cartridges/backend/spring-boot \
   --cartridge=apibridge-cartridges/frontend/react \
@@ -92,11 +92,12 @@ docker compose up --build
 docker compose run --rm -e MOCK_MODE=true my-app
 
 # 5. Backend-only (no FE cartridge)
-java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
+java -jar apibridge-generator/target/apibridge-generator-0.1.0.jar \
   --schema=sample-schema.yaml \
   --cartridge=apibridge-cartridges/backend/quarkus \
   --cartridge=apibridge-cartridges/devops/dockerfile \
   --output=output/quarkus-only
+
 ```
 
 ---
@@ -401,7 +402,7 @@ When `enableAuditLog` is set, `docker-compose.yml` automatically includes `redis
 ## Common combinations
 
 ```bash
-JAR="apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar"
+JAR="apibridge-generator/target/apibridge-generator-0.1.0.jar"
 
 # Quarkus + Angular, Kubernetes deployment
 java -jar "$JAR" \

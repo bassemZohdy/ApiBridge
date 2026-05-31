@@ -316,6 +316,49 @@ public class YamlParserEndpointTest extends YamlParserTestBase {
         assertTrue(ex.getMessage().contains("Duplicate"));
     }
 
+    // --- Route-shape duplicate detection ---
+
+    @Test
+    public void testRouteShapeDuplicateDetected(@TempDir Path tempDir) throws IOException {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/users/{id}"
+                    method: "GET"
+                    backendUrl: "https://example.com/users/1"
+                  - path: "/users/{userId}"
+                    method: "GET"
+                    backendUrl: "https://example.com/users/2"
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("Duplicate"));
+    }
+
+    @Test
+    public void testRouteShapeDifferentMethodsAllowed(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "svc"
+                basePath: "/api"
+                endpoints:
+                  - path: "/users/{id}"
+                    method: "GET"
+                    backendUrl: "https://example.com/users/1"
+                  - path: "/users/{id}"
+                    method: "DELETE"
+                    backendUrl: "https://example.com/users/1"
+                """);
+        BridgeSchemaModel model = parser.parse(file);
+        assertEquals(2, model.getEndpoints().size());
+    }
+
+    @Test
+    public void testRouteShapeNormalizePathShape() {
+        assertEquals("/users/{*}", YamlParser.normalizePathShape("/users/{id}"));
+        assertEquals("/users/{*}/posts/{*}", YamlParser.normalizePathShape("/users/{userId}/posts/{postId}"));
+        assertEquals("/items", YamlParser.normalizePathShape("/items"));
+    }
+
     // --- T.6: Same path different methods allowed ---
 
     @Test

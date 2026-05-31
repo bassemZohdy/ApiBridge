@@ -64,12 +64,17 @@ run_combination() {
   cat > "$compose_file" <<EOF
 services:
   json-server:
-    image: typicode/json-server
+    image: typicode/json-server:0.17
     command: "--watch /data/db.json --host 0.0.0.0"
     volumes:
       - $(pwd)/data:/data
     expose:
       - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/customers"]
+      interval: 5s
+      retries: 5
+      start_period: 2s
 
   app:
     image: $image_tag
@@ -85,7 +90,8 @@ services:
     volumes:
       - $(pwd)/brand.css:/config/brand.css:ro
     depends_on:
-      - json-server
+      json-server:
+        condition: service_healthy
 EOF
 
   log "Starting services..."

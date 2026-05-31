@@ -27,9 +27,6 @@ spring.web.resources.cache.cachecontrol.cache-public=true
 management.endpoints.web.exposure.include=health,info
 management.endpoint.health.probes.enabled=true
 management.endpoint.health.show-details=never
-
-# Structured JSON logging for container log aggregators (EFK/Loki/CloudWatch)
-logging.structured.format.console=ecs
 <#if (flags.enableTelemetry)!false>
 
 # Distributed tracing — OTLP exporter

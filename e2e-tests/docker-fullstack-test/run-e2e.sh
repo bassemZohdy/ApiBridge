@@ -99,6 +99,54 @@ run_generator "$GENERATED_DIR" --cartridge="../../apibridge-cartridges/devops/do
 [ ! -d "$GENERATED_DIR/k8s" ]               && pass "k8s/ absent (not kubernetes)" \
   || fail "k8s/ should not be present"
 
+# 3b. Generate with auditLog enabled to verify Redis/Mongo services
+echo ""
+echo "[3b/8] Verifying docker-compose with enableAuditLog..."
+rm -rf "$GENERATED_DIR-audit"
+java -jar "$JAR" \
+  --schema="$SCHEMA" \
+  --cartridge="../../apibridge-cartridges/backend/${BE_FLAVOR}" \
+  --cartridge="../../apibridge-cartridges/frontend/${FE_FLAVOR}" \
+  --cartridge="../../apibridge-cartridges/devops/dockerfile" \
+  --cartridge="../../apibridge-cartridges/devops/docker-compose" \
+  --output="$GENERATED_DIR-audit" \
+  --be-flavor="$BE_FLAVOR" \
+  --fe-flavor="$FE_FLAVOR"
+AUDIT_DC="$GENERATED_DIR-audit/docker-compose.yml"
+[ -f "$AUDIT_DC" ] && pass "audit docker-compose.yml present" || fail "audit docker-compose.yml missing"
+# sample-schema has enableAuditLog: false, so redis/mongo should be absent
+grep -q "redis:" "$AUDIT_DC" && fail "redis should NOT be present (auditLog disabled)" || pass "redis absent (auditLog disabled)"
+grep -q "mongo:" "$AUDIT_DC" && fail "mongo should NOT be present (auditLog disabled)" || pass "mongo absent (auditLog disabled)"
+rm -rf "$GENERATED_DIR-audit"
+
+# 3c. Positive case: schema with enableAuditLog: true
+echo ""
+echo "[3c/8] Verifying docker-compose with enableAuditLog=true..."
+cat > schema-auditlog.yaml <<'YAML'
+id: audit-test-service
+basePath: /api/audit
+flags:
+  enableAuditLog: true
+endpoints:
+  - path: /events
+    method: GET
+    backendUrl: https://api.example.com/events
+YAML
+rm -rf "$GENERATED_DIR-audit"
+java -jar "$JAR" \
+  --schema=schema-auditlog.yaml \
+  --cartridge="../../apibridge-cartridges/backend/${BE_FLAVOR}" \
+  --cartridge="../../apibridge-cartridges/devops/docker-compose" \
+  --output="$GENERATED_DIR-audit" \
+  --be-flavor="$BE_FLAVOR"
+AUDIT_DC="$GENERATED_DIR-audit/docker-compose.yml"
+[ -f "$AUDIT_DC" ] && pass "audit docker-compose.yml present" || fail "audit docker-compose.yml missing"
+grep -q "redis:" "$AUDIT_DC" && pass "redis service present (auditLog enabled)" || fail "redis service missing (auditLog enabled)"
+grep -q "mongo:" "$AUDIT_DC" && pass "mongo service present (auditLog enabled)" || fail "mongo service missing (auditLog enabled)"
+grep -q "SPRING_DATA_REDIS_URL\|QUARKUS_REDIS_HOSTS" "$AUDIT_DC" && pass "Redis env var present" || fail "Redis env var missing"
+grep -q "SPRING_DATA_MONGODB_URI\|QUARKUS_MONGODB_CONNECTION_STRING" "$AUDIT_DC" && pass "MongoDB env var present" || fail "MongoDB env var missing"
+rm -rf "$GENERATED_DIR-audit" schema-auditlog.yaml
+
 # 4. Verify backend subtree
 echo ""
 echo "[4/8] Verifying backend output (BE=$BE_FLAVOR)..."

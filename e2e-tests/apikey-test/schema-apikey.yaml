@@ -1,0 +1,12 @@
+id: "apikey-test-service"
+basePath: "/api/v1"
+flags:
+  securityLevel: "apiKey"
+  backendFlavor: "spring-boot"
+endpoints:
+  - path: "/items"
+    method: "GET"
+    backendUrl: "https://internal-mesh.local/items"
+  - path: "/items"
+    method: "POST"
+    backendUrl: "https://internal-mesh.local/items"

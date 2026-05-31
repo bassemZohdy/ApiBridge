@@ -40,17 +40,13 @@ import java.util.function.Supplier;
 </#if>
 <#if (flags.enableResponseCache)!false>
 import com.github.ben-manes.caffeine.cache.Caffeine;
-import java.util.concurrent.TimeUnit;
 <#if (flags.enableAuditLog)!false>
 import io.quarkus.redis.client.RedisClient;
-import io.vertx.redis.client.Response;
 </#if>
 </#if>
 
 import java.util.Set;
-<#if !(flags.enableResponseCache)!false>
 import java.util.concurrent.TimeUnit;
-</#if>
 <#if (flags.enableTransform)!false>
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -118,7 +114,7 @@ public class ProxyService {
             this.ttlSeconds = ttlSeconds;
         }
         @Override public String getIfPresent(String key) {
-            Response resp = redisClient.get(key);
+            io.vertx.redis.client.Response resp = redisClient.get(key);
             return resp != null ? resp.toString() : null;
         }
         @Override public void put(String key, String value) {

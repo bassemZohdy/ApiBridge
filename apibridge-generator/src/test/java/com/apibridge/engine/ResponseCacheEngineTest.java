@@ -79,4 +79,27 @@ public class ResponseCacheEngineTest extends ApiBridgeCartridgeEngineTestBase {
         assertTrue(content.contains("CACHE_TTL_SECONDS"), "docker-compose must have CACHE_TTL_SECONDS");
         assertTrue(content.contains("CACHE_MAX_SIZE"), "docker-compose must have CACHE_MAX_SIZE");
     }
+
+    @Test
+    public void testQuarkusProxyServiceAlwaysHasTimeUnitImport(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableTelemetry(false);
+        engine.generate(model, findCartridgeDir("backend/quarkus"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("import java.util.concurrent.TimeUnit;"),
+                "TimeUnit import must be present when enableResponseCache is false");
+    }
+
+    @Test
+    public void testQuarkusProxyServiceHasTimeUnitImportWithCacheEnabled(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableTelemetry(false);
+        engine.generate(model, findCartridgeDir("backend/quarkus"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("import java.util.concurrent.TimeUnit;"),
+                "TimeUnit import must be present when enableResponseCache is true");
+    }
 }

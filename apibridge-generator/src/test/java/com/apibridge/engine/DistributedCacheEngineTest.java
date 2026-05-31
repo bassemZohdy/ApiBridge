@@ -97,6 +97,24 @@ public class DistributedCacheEngineTest extends ApiBridgeCartridgeEngineTestBase
     }
 
     @Test
+    public void testQuarkusCacheWithAuditNoDuplicateResponseImport(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableResponseCache(true);
+        model.getFlags().setEnableAuditLog(true);
+        model.getFlags().setEnableTelemetry(false);
+        engine.generate(model, findCartridgeDir("backend/quarkus"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/backend/src/main/java/com/apibridge/generated/ProxyService.java"));
+        assertTrue(content.contains("RedisResponseCache"), "must contain RedisResponseCache when both flags on");
+        assertTrue(content.contains("io.vertx.redis.client.Response"),
+                "must use fully-qualified vertx Response instead of import");
+        long importCount = content.lines()
+                .filter(l -> l.trim().startsWith("import ") && l.contains("Response") && !l.contains("io.vertx"))
+                .count();
+        assertEquals(1, importCount, "exactly one non-vertx Response import (jakarta.ws.rs.core.Response)");
+    }
+
+    @Test
     public void testDockerComposeContainsCacheRedisUrl(@TempDir Path tempDir) throws Exception {
         BridgeSchemaModel model = createTestModel();
         model.getFlags().setEnableResponseCache(true);

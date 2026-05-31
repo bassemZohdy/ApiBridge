@@ -45,6 +45,13 @@ public class CartridgeDownloaderTest {
                 os.write(testZipBytes);
             }
         });
+        server.createContext("/not-found.zip", exchange -> {
+            String body = "Not Found";
+            exchange.sendResponseHeaders(404, body.length());
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(body.getBytes());
+            }
+        });
         server.start();
     }
 
@@ -108,5 +115,14 @@ public class CartridgeDownloaderTest {
         CartridgeDownloader downloader = new CartridgeDownloader();
         assertThrows(IllegalArgumentException.class,
                 () -> downloader.downloadAndExtract("http://localhost/file.zip", null));
+    }
+
+    @Test
+    public void testNon200StatusThrowsIOException() {
+        CartridgeDownloader downloader = new CartridgeDownloader();
+        IOException ex = assertThrows(IOException.class,
+                () -> downloader.downloadAndExtract(
+                        "http://localhost:" + port + "/not-found.zip", tempDir.toFile()));
+        assertTrue(ex.getMessage().contains("HTTP 404"), "Error must mention HTTP status: " + ex.getMessage());
     }
 }

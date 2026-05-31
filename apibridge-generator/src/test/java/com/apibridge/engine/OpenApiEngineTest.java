@@ -72,4 +72,40 @@ public class OpenApiEngineTest extends ApiBridgeCartridgeEngineTestBase {
         assertTrue(pom.contains("quarkus-smallrye-openapi"),
                 "Quarkus pom must include smallrye dep when enableOpenApi is true");
     }
+
+    @Test
+    public void testOpenApiMultiEndpointPaths(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createMultiEndpointModel();
+        model.getFlags().setEnableOpenApi(true);
+        engine.generate(model, findCartridgeDir("docs/openapi"), tempDir.resolve("out").toFile());
+
+        String yaml = Files.readString(tempDir.resolve("out/openapi.yaml"));
+        assertTrue(yaml.contains("/submissions"), "Must contain /submissions path");
+        assertTrue(yaml.contains("/submissions/{id}"), "Must contain /submissions/{id} path");
+        assertTrue(yaml.contains("get:"), "Must contain GET method");
+        assertTrue(yaml.contains("post:"), "Must contain POST method");
+        assertTrue(yaml.contains("put:"), "Must contain PUT method");
+        assertTrue(yaml.contains("delete:"), "Must contain DELETE method");
+    }
+
+    @Test
+    public void testOpenApiSecuritySchemeWhenBearerToken(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createOpenApiModel();
+        model.getFlags().setSecurityLevel("bearer-token");
+        engine.generate(model, findCartridgeDir("docs/openapi"), tempDir.resolve("out").toFile());
+
+        String yaml = Files.readString(tempDir.resolve("out/openapi.yaml"));
+        assertTrue(yaml.contains("securitySchemes:"), "Must define security schemes");
+        assertTrue(yaml.contains("bearerAuth:"), "Must define bearerAuth scheme");
+    }
+
+    @Test
+    public void testOpenApiOutputIsValidYaml(@TempDir Path tempDir) throws Exception {
+        engine.generate(createOpenApiModel(), findCartridgeDir("docs/openapi"), tempDir.resolve("out").toFile());
+
+        String yaml = Files.readString(tempDir.resolve("out/openapi.yaml"));
+        assertTrue(yaml.contains("openapi:"), "Must start with openapi version");
+        assertTrue(yaml.contains("paths:"), "Must have paths section");
+        assertFalse(yaml.contains("${"), "Must not contain unresolved FreeMarker expressions");
+    }
 }

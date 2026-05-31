@@ -10,7 +10,7 @@ mvn clean package
 
 # Run generator — apply one or more cartridges to same output dir
 # --schema= is repeatable — schemas are merged (id/basePath/flags from first, endpoints concatenated)
-java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
+java -jar apibridge-generator/target/apibridge-generator-0.1.0.jar \
   --schema=users-service.yaml \
   --schema=orders-service.yaml \
   --cartridge=apibridge-cartridges/backend/spring-boot \

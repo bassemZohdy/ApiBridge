@@ -17,7 +17,7 @@ mvn clean package -q
 ## Run against all cartridges
 
 ```bash
-JAR=apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar
+JAR=apibridge-generator/target/apibridge-generator-0.1.0.jar
 SCHEMA=sample-schema.yaml
 
 for cartridge in apibridge-cartridges/*/; do
@@ -32,13 +32,13 @@ done
 If `$ARGUMENTS` is provided, run only that cartridge:
 
 ```bash
-java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
+java -jar apibridge-generator/target/apibridge-generator-0.1.0.jar \
   --schema=sample-schema.yaml \
   --cartridge=apibridge-cartridges/$ARGUMENTS \
   --output=output/$ARGUMENTS
 ```
 
-Available cartridges: `backend/spring-boot`, `backend/quarkus`, `frontend/angular`, `frontend/react`, `frontend/vue`, `frontend/ui-schema`, `devops/dockerfile`, `devops/docker-compose`, `devops/k8s/kubernetes`, `devops/k8s/openshift`
+Available cartridges: `backend/spring-boot`, `backend/quarkus`, `frontend/angular`, `frontend/react`, `frontend/vue`, `frontend/ui-schema`, `devops/dockerfile`, `devops/docker-compose`, `devops/k8s/kubernetes`, `devops/k8s/openshift`, `devops/k8s/helm`, `docs/openapi`
 
 ## Inspect output
 

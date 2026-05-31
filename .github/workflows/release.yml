@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   packages: write
@@ -25,6 +29,22 @@ jobs:
       - name: Extract version from tag
         id: tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apibridge-web-builder/package-lock.json
+
+      - name: Web Builder — lint, typecheck, test, build
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+        working-directory: apibridge-web-builder
 
       - name: Build fat JAR (tests already passed in CI)
         run: |

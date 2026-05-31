@@ -1,0 +1,13 @@
+id: users-service
+basePath: /api/users
+endpoints:
+  - path: /users
+    method: GET
+    backendUrl: https://api.example.com/users
+    uiLayout:
+      component: List
+      columns:
+        - name: id
+          visible: true
+        - name: name
+          visible: true

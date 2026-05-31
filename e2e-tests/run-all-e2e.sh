@@ -27,10 +27,18 @@ JSONSERVER_STATUS="PENDING"
 KUBERNETES_STATUS="PENDING"
 OPENSHIFT_STATUS="PENDING"
 REACT_PROD_STATUS="PENDING"
+OPENAPI_STATUS="PENDING"
+HELM_STATUS="PENDING"
+UI_SCHEMA_STATUS="PENDING"
+OIDC_STATUS="PENDING"
+APIKEY_STATUS="PENDING"
+VUE_PROD_STATUS="PENDING"
+ANGULAR_PROD_STATUS="PENDING"
+MULTI_SCHEMA_STATUS="PENDING"
 
 # 1. Run Spring Boot E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [1/11] Executing Spring Boot E2E Validation..."
+echo "📋 [1/19] Executing Spring Boot E2E Validation..."
 echo "--------------------------------------------------"
 if ./maven-spring-boot-test/run-e2e.sh; then
   SPRING_BOOT_STATUS="SUCCESS"
@@ -40,7 +48,7 @@ fi
 
 # 2. Run Quarkus E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [2/11] Executing Quarkus E2E Validation..."
+echo "📋 [2/19] Executing Quarkus E2E Validation..."
 echo "--------------------------------------------------"
 if ./maven-quarkus-test/run-e2e.sh; then
   QUARKUS_STATUS="SUCCESS"
@@ -50,7 +58,7 @@ fi
 
 # 3. Run Angular E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [3/11] Executing Angular Frontend E2E Validation..."
+echo "📋 [3/19] Executing Angular Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-angular-test/run-e2e.sh; then
   ANGULAR_STATUS="SUCCESS"
@@ -60,7 +68,7 @@ fi
 
 # 4. Run React E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [4/11] Executing React Frontend E2E Validation..."
+echo "📋 [4/19] Executing React Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-react-test/run-e2e.sh; then
   REACT_STATUS="SUCCESS"
@@ -70,7 +78,7 @@ fi
 
 # 5. Run Vue E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [5/11] Executing Vue Frontend E2E Validation..."
+echo "📋 [5/19] Executing Vue Frontend E2E Validation..."
 echo "--------------------------------------------------"
 if ./typescript-vue-test/run-e2e.sh; then
   VUE_STATUS="SUCCESS"
@@ -80,7 +88,7 @@ fi
 
 # 6. Run Contract Symmetry check
 echo -e "\n--------------------------------------------------"
-echo "📋 [6/11] Executing Backend-Frontend Contract Symmetry Scanner..."
+echo "📋 [6/19] Executing Backend-Frontend Contract Symmetry Scanner..."
 echo "--------------------------------------------------"
 if ./verify-contract-symmetry.sh; then
   CONTRACT_STATUS="SUCCESS"
@@ -90,7 +98,7 @@ fi
 
 # 7. Run Fullstack Docker E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [7/11] Executing Fullstack Docker E2E Validation..."
+echo "📋 [7/19] Executing Fullstack Docker E2E Validation..."
 echo "--------------------------------------------------"
 if ./docker-fullstack-test/run-e2e.sh; then
   FULLSTACK_STATUS="SUCCESS"
@@ -100,7 +108,7 @@ fi
 
 # 8. Run json-server List/View/Form E2E
 echo -e "\n--------------------------------------------------"
-echo "📋 [8/11] Executing json-server List/View/Form E2E..."
+echo "📋 [8/19] Executing json-server List/View/Form E2E..."
 echo "--------------------------------------------------"
 if ./json-server-test/run-e2e.sh; then
   JSONSERVER_STATUS="SUCCESS"
@@ -110,7 +118,7 @@ fi
 
 # 9. Run Kubernetes manifest validation
 echo -e "\n--------------------------------------------------"
-echo "📋 [9/11] Executing Kubernetes Manifest Validation..."
+echo "📋 [9/19] Executing Kubernetes Manifest Validation..."
 echo "--------------------------------------------------"
 if ./kubernetes-test/run-e2e.sh; then
   KUBERNETES_STATUS="SUCCESS"
@@ -120,7 +128,7 @@ fi
 
 # 10. Run OpenShift manifest validation
 echo -e "\n--------------------------------------------------"
-echo "📋 [10/11] Executing OpenShift Manifest Validation..."
+echo "📋 [10/19] Executing OpenShift Manifest Validation..."
 echo "--------------------------------------------------"
 if ./openshift-test/run-e2e.sh; then
   OPENSHIFT_STATUS="SUCCESS"
@@ -130,12 +138,92 @@ fi
 
 # 11. Run React production build
 echo -e "\n--------------------------------------------------"
-echo "📋 [11/11] Executing React Production Build E2E..."
+echo "📋 [11/19] Executing React Production Build E2E..."
 echo "--------------------------------------------------"
 if ./react-prod-build-test/run-e2e.sh; then
   REACT_PROD_STATUS="SUCCESS"
 else
   REACT_PROD_STATUS="FAILED"
+fi
+
+# 12. Run OpenAPI spec validation
+echo -e "\n--------------------------------------------------"
+echo "📋 [12/19] Executing OpenAPI Spec Validation..."
+echo "--------------------------------------------------"
+if ./openapi-test/run-e2e.sh; then
+  OPENAPI_STATUS="SUCCESS"
+else
+  OPENAPI_STATUS="FAILED"
+fi
+
+# 13. Run Helm chart validation
+echo -e "\n--------------------------------------------------"
+echo "📋 [13/19] Executing Helm Chart Validation..."
+echo "--------------------------------------------------"
+if ./helm-test/run-e2e.sh; then
+  HELM_STATUS="SUCCESS"
+else
+  HELM_STATUS="FAILED"
+fi
+
+# 14. Run UI schema validation
+echo -e "\n--------------------------------------------------"
+echo "📋 [14/19] Executing UI Schema Validation..."
+echo "--------------------------------------------------"
+if ./ui-schema-test/run-e2e.sh; then
+  UI_SCHEMA_STATUS="SUCCESS"
+else
+  UI_SCHEMA_STATUS="FAILED"
+fi
+
+# 15. Run OIDC / SecurityConfig E2E
+echo -e "\n--------------------------------------------------"
+echo "📋 [15/19] Executing OIDC / SecurityConfig E2E..."
+echo "--------------------------------------------------"
+if ./oidc-test/run-e2e.sh; then
+  OIDC_STATUS="SUCCESS"
+else
+  OIDC_STATUS="FAILED"
+fi
+
+# 16. Run apiKey security validation
+echo -e "\n--------------------------------------------------"
+echo "📋 [16/19] Executing apiKey Security E2E..."
+echo "--------------------------------------------------"
+if ./apikey-test/run-e2e.sh; then
+  APIKEY_STATUS="SUCCESS"
+else
+  APIKEY_STATUS="FAILED"
+fi
+
+# 17. Run Vue production build
+echo -e "\n--------------------------------------------------"
+echo "📋 [17/19] Executing Vue Production Build E2E..."
+echo "--------------------------------------------------"
+if ./vue-prod-build-test/run-e2e.sh; then
+  VUE_PROD_STATUS="SUCCESS"
+else
+  VUE_PROD_STATUS="FAILED"
+fi
+
+# 18. Run Angular production build
+echo -e "\n--------------------------------------------------"
+echo "📋 [18/19] Executing Angular Production Build E2E..."
+echo "--------------------------------------------------"
+if ./angular-prod-build-test/run-e2e.sh; then
+  ANGULAR_PROD_STATUS="SUCCESS"
+else
+  ANGULAR_PROD_STATUS="FAILED"
+fi
+
+# 19. Run multi-schema composition
+echo -e "\n--------------------------------------------------"
+echo "📋 [19/19] Executing Multi-Schema Composition E2E..."
+echo "--------------------------------------------------"
+if ./multi-schema-test/run-e2e.sh; then
+  MULTI_SCHEMA_STATUS="SUCCESS"
+else
+  MULTI_SCHEMA_STATUS="FAILED"
 fi
 
 # Print final report card dashboard
@@ -209,6 +297,54 @@ if [ "$REACT_PROD_STATUS" = "SUCCESS" ]; then
 else
   printf "  %-35s | \033[0;31m%s\033[0m\n" "React Production Build" "FAILED"
 fi
+
+if [ "$OPENAPI_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "OpenAPI Spec Validation" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "OpenAPI Spec Validation" "FAILED"
+fi
+
+if [ "$HELM_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "Helm Chart Validation" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "Helm Chart Validation" "FAILED"
+fi
+
+if [ "$UI_SCHEMA_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "UI Schema Validation" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "UI Schema Validation" "FAILED"
+fi
+
+if [ "$OIDC_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "OIDC / SecurityConfig" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "OIDC / SecurityConfig" "FAILED"
+fi
+
+if [ "$APIKEY_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "apiKey Security" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "apiKey Security" "FAILED"
+fi
+
+if [ "$VUE_PROD_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "Vue Production Build" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "Vue Production Build" "FAILED"
+fi
+
+if [ "$ANGULAR_PROD_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "Angular Production Build" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "Angular Production Build" "FAILED"
+fi
+
+if [ "$MULTI_SCHEMA_STATUS" = "SUCCESS" ]; then
+  printf "  %-35s | \033[0;32m%s\033[0m\n" "Multi-Schema Composition" "SUCCESS"
+else
+  printf "  %-35s | \033[0;31m%s\033[0m\n" "Multi-Schema Composition" "FAILED"
+fi
 echo "=================================================="
 
 # Exit with error if any pipeline failed
@@ -222,7 +358,15 @@ if [ "$SPRING_BOOT_STATUS" != "SUCCESS" ] || \
    [ "$JSONSERVER_STATUS" != "SUCCESS" ] || \
    [ "$KUBERNETES_STATUS" != "SUCCESS" ] || \
    [ "$OPENSHIFT_STATUS" != "SUCCESS" ] || \
-   [ "$REACT_PROD_STATUS" != "SUCCESS" ]; then
+   [ "$REACT_PROD_STATUS" != "SUCCESS" ] || \
+   [ "$OPENAPI_STATUS" != "SUCCESS" ] || \
+   [ "$HELM_STATUS" != "SUCCESS" ] || \
+   [ "$UI_SCHEMA_STATUS" != "SUCCESS" ] || \
+   [ "$OIDC_STATUS" != "SUCCESS" ] || \
+   [ "$APIKEY_STATUS" != "SUCCESS" ] || \
+   [ "$VUE_PROD_STATUS" != "SUCCESS" ] || \
+   [ "$ANGULAR_PROD_STATUS" != "SUCCESS" ] || \
+   [ "$MULTI_SCHEMA_STATUS" != "SUCCESS" ]; then
   echo "❌ Error: One or more integration pipelines failed."
   exit 1
 else

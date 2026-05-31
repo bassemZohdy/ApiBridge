@@ -1,0 +1,12 @@
+id: orders-service
+basePath: /api/orders
+endpoints:
+  - path: /orders
+    method: POST
+    backendUrl: https://api.example.com/orders
+    uiLayout:
+      component: Form
+      fields:
+        - name: item
+          type: string
+          required: true

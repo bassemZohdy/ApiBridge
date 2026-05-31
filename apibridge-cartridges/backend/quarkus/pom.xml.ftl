@@ -41,6 +41,12 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
+
+        <!-- Structured JSON console logging -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-logging-json</artifactId>
+        </dependency>
 <#if (flags.enableTelemetry)!false>
         <dependency>
             <groupId>io.quarkus</groupId>

@@ -19,6 +19,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+<#if (flags.securityLevel!"") == "bearer-token">
+import jakarta.annotation.PostConstruct;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+</#if>
 <#if (flags.enableTelemetry)!false>
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -49,7 +53,21 @@ public class BridgeController {
     @Value("${r"${AUTH_SERVER_URL:}"}")
     private String authServerUrl;
 
-    private final RestTemplate authRestTemplate = new RestTemplate();
+    @Value("${r"${AUTH_CONNECT_TIMEOUT:5000}"}")
+    private int authConnectTimeout;
+
+    @Value("${r"${AUTH_READ_TIMEOUT:10000}"}")
+    private int authReadTimeout;
+
+    private RestTemplate authRestTemplate;
+
+    @PostConstruct
+    void initAuthRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(authConnectTimeout);
+        factory.setReadTimeout(authReadTimeout);
+        authRestTemplate = new RestTemplate(factory);
+    }
 
     private boolean validateBearerToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
@@ -60,18 +78,18 @@ public class BridgeController {
         if (token.isBlank()) {
             return false;
         }
-        if (authServerUrl != null && !authServerUrl.isBlank()) {
-            try {
-                HttpHeaders headers = new HttpHeaders();
-                headers.set("Authorization", "Bearer " + token);
-                ResponseEntity<Void> resp = authRestTemplate.exchange(
-                    authServerUrl, HttpMethod.GET, new HttpEntity<>(headers), Void.class);
-                return resp.getStatusCode().is2xxSuccessful();
-            } catch (Exception e) {
-                return false;
-            }
+        if (authServerUrl == null || authServerUrl.isBlank()) {
+            return false;
         }
-        return true;
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + token);
+            ResponseEntity<Void> resp = authRestTemplate.exchange(
+                authServerUrl, HttpMethod.GET, new HttpEntity<>(headers), Void.class);
+            return resp.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            return false;
+        }
     }
 </#if>
 

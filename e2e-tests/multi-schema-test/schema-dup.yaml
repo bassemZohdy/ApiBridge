@@ -1,0 +1,6 @@
+id: dup-service
+basePath: /api/dup
+endpoints:
+  - path: /users
+    method: GET
+    backendUrl: https://api.example.com/users

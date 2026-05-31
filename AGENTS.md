@@ -6,14 +6,14 @@
 - Single Maven module: `apibridge-generator/`. Cartridges under `apibridge-cartridges/` are **not** Maven modules — they are plain directories of `.ftl` FreeMarker templates.
 - Web schema builder: `apibridge-web-builder/` — separate Vite+React+TypeScript module (not a Maven module).
 - Fat JAR via `maven-shade-plugin`; main class: `com.apibridge.engine.ApiBridgeRunner`.
-- Output JAR: `apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar`.
+- Output JAR: `apibridge-generator/target/apibridge-generator-0.1.0.jar`.
 - Shell wrappers: `bin/apibridge` (Unix) and `bin/apibridge.bat` (Windows) delegate to `java -jar`.
 - Generator Docker image: `Dockerfile.generator` — multi-stage build with bundled cartridges.
 
 ```bash
 mvn clean package            # build fat JAR (skips tests)
 mvn test                     # unit tests only (fast)
-mvn verify                   # unit tests + Checkstyle + JaCoCo report
+mvn verify                   # unit tests + Checkstyle + JaCoCo report + coverage threshold (85% instruction / 80% branch)
 ```
 
 ## Verify before committing
@@ -74,7 +74,7 @@ Gate FE-specific content with: `(feFlavor!"") != ""`.
 ## Running the generator
 
 ```bash
-java -jar apibridge-generator/target/apibridge-generator-0.1.0-SNAPSHOT.jar \
+java -jar apibridge-generator/target/apibridge-generator-0.1.0.jar \
   --schema=users-service.yaml \
   --schema=orders-service.yaml \
   --cartridge=apibridge-cartridges/backend/spring-boot \
@@ -98,6 +98,7 @@ Browser-based GUI at `apibridge-web-builder/` for building `schema.yaml` without
 
 ```bash
 cd apibridge-web-builder && npm install && npm run dev   # http://localhost:5173
+cd apibridge-web-builder && npm run lint                  # ESLint
 cd apibridge-web-builder && npm test                      # 20 Vitest tests
 ```
 
@@ -105,7 +106,7 @@ cd apibridge-web-builder && npm test                      # 20 Vitest tests
 
 - Script: `./e2e-tests/run-all-e2e.sh` (bash — requires Linux/macOS or WSL).
 - Set `SKIP_GENERATOR_BUILD=true` to skip rebuilding the JAR (used in CI).
-- Suites: Spring Boot compile, Quarkus compile, Angular/React/Vue strict TypeScript compile, React production build, contract symmetry, Kubernetes manifest validation, OpenShift manifest validation, fullstack Docker, json-server integration (11 suites total).
+- Suites: Spring Boot compile, Quarkus compile, Angular/React/Vue strict TypeScript compile, React/Vue/Angular production build, contract symmetry, Kubernetes manifest validation, OpenShift manifest validation, Helm chart validation, OpenAPI spec validation, UI schema validation, OIDC SecurityConfig, apiKey security, multi-schema composition, fullstack Docker, json-server integration (19 suites total).
 - **Slow** — run on CI/PR only, not before every local commit.
 - Individual suite: e.g. `./e2e-tests/maven-spring-boot-test/run-e2e.sh`.
 
@@ -136,7 +137,7 @@ Full reference: `docs/schema-reference.md`.
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `e2e-compile` (compile checks + K8s/OpenShift manifest validation + React prod build) → `e2e-docker` (fullstack Docker build + runtime) → `e2e-json-server` (live API integration). Triggers on push to `main`/`feature/**`/`bugfix**` and PRs to `main`.
+GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `web-builder` (lint + typecheck + tests), `e2e-compile` (17 compile checks incl. K8s/OpenShift/Helm/OpenAPI/OIDC/apiKey/multi-schema + Vue/Angular/React prod builds), `e2e-docker` (fullstack Docker build + runtime), `e2e-json-server` (live API integration). All E2E jobs run in parallel after `build`. Triggers on push to `main`/`feature/**`/`bugfix**` and PRs to `main`. Concurrency groups auto-cancel superseded runs.
 
 Release workflow (`.github/workflows/release.yml`): triggers on `v*` tag push — builds fat JAR, creates GitHub Release with ZIP archive, builds and pushes Docker image to GHCR.
 

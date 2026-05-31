@@ -25,15 +25,37 @@ public class CartridgeCacheTest {
         File dir = cache.allocate("https://example.com/cartridge.zip");
         assertTrue(dir.exists());
         assertTrue(dir.isDirectory());
+        assertTrue(dir.getName().endsWith(".tmp"));
     }
 
     @Test
-    public void testIsCachedAfterAllocate() {
+    public void testIsCachedAfterCommit() throws Exception {
         CartridgeCache cache = new CartridgeCache(tempDir.toFile());
         String key = "https://example.com/cartridge.zip";
         assertFalse(cache.isCached(key));
-        cache.allocate(key);
+        File tmpDir = cache.allocate(key);
+        new File(tmpDir, "test.ftl").createNewFile();
+        cache.commit(key);
         assertTrue(cache.isCached(key));
+    }
+
+    @Test
+    public void testEmptyDirIsNotCached() {
+        CartridgeCache cache = new CartridgeCache(tempDir.toFile());
+        String key = "https://example.com/cartridge.zip";
+        cache.resolve(key).mkdirs();
+        assertFalse(cache.isCached(key), "empty directory should not count as cached");
+    }
+
+    @Test
+    public void testCleanupRemovesTempDir() throws Exception {
+        CartridgeCache cache = new CartridgeCache(tempDir.toFile());
+        String key = "https://example.com/cartridge.zip";
+        File tmpDir = cache.allocate(key);
+        new File(tmpDir, "test.ftl").createNewFile();
+        cache.cleanup(key);
+        assertFalse(tmpDir.exists());
+        assertFalse(cache.isCached(key));
     }
 
     @Test

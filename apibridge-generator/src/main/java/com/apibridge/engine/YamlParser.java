@@ -104,6 +104,11 @@ public class YamlParser {
         validateEnum(flags.getDeployTarget(), "flags.deployTarget", "docker-compose", "kubernetes", "openshift");
         validateEnum(flags.getSecurityLevel(), "flags.securityLevel", "bearer-token", "apiKey");
 
+        flags.setBackendFlavor(normalizeEnum(flags.getBackendFlavor(), "spring-boot", "quarkus"));
+        flags.setFeFlavor(normalizeEnum(flags.getFeFlavor(), "angular", "react", "vue"));
+        flags.setDeployTarget(normalizeEnum(flags.getDeployTarget(), "docker-compose", "kubernetes", "openshift"));
+        flags.setSecurityLevel(normalizeEnum(flags.getSecurityLevel(), "bearer-token", "apiKey"));
+
         validatePagination(flags.getPagination());
         validateApiVersion(flags);
 
@@ -160,7 +165,7 @@ public class YamlParser {
         if (!VALID_HTTP_METHODS.contains(methodUpper)) {
             throw new IllegalArgumentException("Schema validation error at " + location + ": Invalid HTTP method '" + endpoint.getMethod() + "'. Must be GET, POST, PUT, DELETE, or PATCH.");
         }
-        String endpointKey = methodUpper + " " + endpoint.getPath();
+        String endpointKey = methodUpper + " " + normalizePathShape(endpoint.getPath());
         if (!seenEndpoints.add(endpointKey)) {
             throw new IllegalArgumentException("Schema validation error at " + location + ": Duplicate endpoint " + endpointKey + ".");
         }
@@ -279,6 +284,23 @@ public class YamlParser {
         }
         throw new IllegalArgumentException("Schema validation error: Invalid " + fieldPath
                 + " value '" + value + "'. Must be " + formatEnumValues(validValues) + ".");
+    }
+
+    private static String normalizeEnum(String value, String... validValues) {
+        if (value == null) {
+            return null;
+        }
+        String lower = value.toLowerCase();
+        for (String valid : validValues) {
+            if (lower.equals(valid.toLowerCase())) {
+                return valid;
+            }
+        }
+        return value;
+    }
+
+    static String normalizePathShape(String path) {
+        return path.replaceAll("\\{[^}]+}", "{*}");
     }
 
     private static String formatEnumValues(String... values) {

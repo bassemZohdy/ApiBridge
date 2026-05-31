@@ -44,7 +44,7 @@ public class YamlParserFlagsTest extends YamlParserTestBase {
                 """);
         BridgeSchemaModel model = parser.parse(file);
         assertNotNull(model);
-        assertEquals("Spring-Boot", model.getFlags().getBackendFlavor());
+        assertEquals("spring-boot", model.getFlags().getBackendFlavor());
     }
 
     // --- feFlavor ---
@@ -80,7 +80,7 @@ public class YamlParserFlagsTest extends YamlParserTestBase {
                 """);
         BridgeSchemaModel model = parser.parse(file);
         assertNotNull(model);
-        assertEquals("Angular", model.getFlags().getFeFlavor());
+        assertEquals("angular", model.getFlags().getFeFlavor());
     }
 
     @Test
@@ -167,7 +167,7 @@ public class YamlParserFlagsTest extends YamlParserTestBase {
                 """);
         BridgeSchemaModel model = parser.parse(file);
         assertNotNull(model);
-        assertEquals("Bearer-Token", model.getFlags().getSecurityLevel());
+        assertEquals("bearer-token", model.getFlags().getSecurityLevel());
     }
 
     @Test
@@ -286,7 +286,7 @@ public class YamlParserFlagsTest extends YamlParserTestBase {
                 """);
         BridgeSchemaModel model = parser.parse(file);
         assertNotNull(model);
-        assertEquals("Docker-Compose", model.getFlags().getDeployTarget());
+        assertEquals("docker-compose", model.getFlags().getDeployTarget());
     }
 
     // --- T.2: backendFlavor "quarkus" valid parse ---

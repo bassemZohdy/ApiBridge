@@ -49,8 +49,14 @@ public class CartridgeResolver {
             return cache.resolve(url);
         }
         File targetDir = cache.allocate(url);
-        downloader.downloadAndExtract(url, targetDir);
-        return targetDir;
+        try {
+            downloader.downloadAndExtract(url, targetDir);
+            cache.commit(url);
+        } catch (Exception e) {
+            cache.cleanup(url);
+            throw e;
+        }
+        return cache.resolve(url);
     }
 
     private File resolveGitHub(String spec) throws IOException, InterruptedException {
@@ -80,11 +86,18 @@ public class CartridgeResolver {
         }
 
         File archiveDir = cache.allocate(cacheKey);
-        downloader.downloadAndExtract(archiveUrl, archiveDir);
-
-        if (subpath != null) {
-            return new File(archiveDir, repo + "-" + ref + "/" + subpath);
+        try {
+            downloader.downloadAndExtract(archiveUrl, archiveDir);
+            cache.commit(cacheKey);
+        } catch (Exception e) {
+            cache.cleanup(cacheKey);
+            throw e;
         }
-        return new File(archiveDir, repo + "-" + ref);
+
+        File committedDir = cache.resolve(cacheKey);
+        if (subpath != null) {
+            return new File(committedDir, repo + "-" + ref + "/" + subpath);
+        }
+        return new File(committedDir, repo + "-" + ref);
     }
 }
