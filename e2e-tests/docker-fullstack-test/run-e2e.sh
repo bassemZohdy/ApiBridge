@@ -114,9 +114,9 @@ java -jar "$JAR" \
   --fe-flavor="$FE_FLAVOR"
 AUDIT_DC="$GENERATED_DIR-audit/docker-compose.yml"
 [ -f "$AUDIT_DC" ] && pass "audit docker-compose.yml present" || fail "audit docker-compose.yml missing"
-# sample-schema has enableAuditLog: false, so redis/mongo should be absent
-grep -q "redis:" "$AUDIT_DC" && fail "redis should NOT be present (auditLog disabled)" || pass "redis absent (auditLog disabled)"
+# sample-schema has enableAuditLog: false (default), so mongo should be absent
 grep -q "mongo:" "$AUDIT_DC" && fail "mongo should NOT be present (auditLog disabled)" || pass "mongo absent (auditLog disabled)"
+# redis may be present due to enableResponseCache: true
 rm -rf "$GENERATED_DIR-audit"
 
 # 3c. Positive case: schema with enableAuditLog: true
