@@ -59,9 +59,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Versioning:
 - Test count: 254 → 311 (57 new tests across P7 sub-phases + cleanup).
 - `ApiBridgeRunner` updated: multi-schema via `SchemaComposer`, cartridge resolution via `CartridgeResolver`, `InterruptedException` handling.
 - FreeMarker context gains `enableOidc` (boolean) and `oidcIssuerUri` (String) variables.
-- `YamlParserTest` split into 10 feature-named files (131 tests).
-- `ApiBridgeCartridgeEngineTest` split into 18 feature-named classes (170 tests).
-- `ApiBridgeRunnerTest` (4 tests). Grand total: 311.
+- `YamlParserTest` split into 13 feature-named files (131 tests).
+- `ApiBridgeCartridgeEngineTest` split into 21 feature-named classes (170 tests).
+- `ApiBridgeRunnerTest` (3 tests). Grand total: 311.
 
 ### Fixed — Post-P7 anti-pattern review (H1–H11)
 
