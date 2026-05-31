@@ -258,7 +258,7 @@ public class YamlParserFlagsTest extends YamlParserTestBase {
     }
 
     @Test
-    public void testDeployTargetAbsentMeansNullFlags(@TempDir Path tempDir) throws Exception {
+    public void testFlagsSectionAbsentMeansNullFlags(@TempDir Path tempDir) throws Exception {
         var file = writeYaml(tempDir, "schema.yaml", """
                 id: "test"
                 basePath: "/api"

@@ -88,4 +88,25 @@ public class CartridgeDownloaderTest {
         assertThrows(Exception.class,
                 () -> downloader.downloadAndExtract("http://localhost:1/missing.zip", tempDir.toFile()));
     }
+
+    @Test
+    public void testNullUrlThrows() {
+        CartridgeDownloader downloader = new CartridgeDownloader();
+        assertThrows(IllegalArgumentException.class,
+                () -> downloader.downloadAndExtract(null, tempDir.toFile()));
+    }
+
+    @Test
+    public void testBlankUrlThrows() {
+        CartridgeDownloader downloader = new CartridgeDownloader();
+        assertThrows(IllegalArgumentException.class,
+                () -> downloader.downloadAndExtract("  ", tempDir.toFile()));
+    }
+
+    @Test
+    public void testNullTargetDirThrows() {
+        CartridgeDownloader downloader = new CartridgeDownloader();
+        assertThrows(IllegalArgumentException.class,
+                () -> downloader.downloadAndExtract("http://localhost/file.zip", null));
+    }
 }

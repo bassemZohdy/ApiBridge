@@ -90,4 +90,20 @@ public class HealthCheckEngineTest extends ApiBridgeCartridgeEngineTestBase {
         String content = Files.readString(tempDir.resolve("out/k8s/configmap.yaml"));
         assertTrue(content.contains("HEALTH_CHECK_INTERVAL_SECONDS"), "configmap must have HEALTH_CHECK_INTERVAL_SECONDS");
     }
+
+    @Test
+    public void testHealthCheckNotGeneratedWhenFlagOff(@TempDir Path tempDir) throws Exception {
+        BridgeSchemaModel model = createTestModel();
+        model.getFlags().setEnableHealthCheck(false);
+        engine.generate(model, findCartridgeDir("backend/spring-boot"), tempDir.resolve("out").toFile());
+
+        assertFalse(
+                Files.exists(tempDir.resolve(
+                        "out/backend/src/main/java/com/apibridge/generated/HealthCheckService.java")),
+                "HealthCheckService must NOT be generated when enableHealthCheck is false");
+        assertFalse(
+                Files.exists(tempDir.resolve(
+                        "out/backend/src/main/java/com/apibridge/generated/BridgeHealthController.java")),
+                "BridgeHealthController must NOT be generated when enableHealthCheck is false");
+    }
 }

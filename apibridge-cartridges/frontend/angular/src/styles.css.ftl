@@ -476,3 +476,18 @@ app-root {
   transition: background 0.15s, border-color 0.15s;
 }
 .apib-theme-toggle:hover { border-color: var(--accent); color: var(--text); }
+
+/* ── Offline banner ─────────────────────────────────────────── */
+.apib-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: #f59e0b;
+  color: #1c1917;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}

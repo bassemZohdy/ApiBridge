@@ -22,7 +22,26 @@ resources: {}
 
 env:
   MOCK_MODE: "false"
+  BLOCK_TRAFFIC: "false"
   DEBUG_MODE: "false"
+  CORS_ALLOWED_ORIGINS: "*"
+  PAGINATION_PAGE_PARAM: "page"
+  PAGINATION_SIZE_PARAM: "size"
+  PAGINATION_DEFAULT_PAGE_SIZE: "20"
+  PAGINATION_SORT_PARAM: "sort"
+  PAGINATION_DIRECTION_PARAM: "dir"
+  CUSTOM_CSS_PATH: ""
+<#if (flags.securityLevel!"") == "apiKey">
+  API_KEY: ""
+</#if>
+<#if (flags.securityLevel!"") == "bearer-token">
+  AUTH_SERVER_URL: ""
+</#if>
+<#if (flags.enableTelemetry)!false>
+  MANAGEMENT_TRACING_ENABLED: "true"
+  MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: "http://localhost:4318/v1/traces"
+</#if>
 <#if (flags.enableRateLimiter)!false>
   RATE_LIMIT_PERMITS: "10"
   RATE_LIMIT_PERIOD_SECONDS: "1"
@@ -46,6 +65,12 @@ env:
 </#if>
 <#if (flags.enableSearch)!false>
   SEARCH_PARAM: "q"
+</#if>
+<#if (flags.enableAuditLog)!false>
+  SPRING_DATA_REDIS_URL: "redis://redis:6379"
+  SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017"
+  SPRING_DATA_MONGODB_DATABASE: "${id}-audit"
+  AUDIT_LOG_TTL_DAYS: "30"
 </#if>
 <#if (flags.enableOidc)!false>
   OIDC_ISSUER_URI: "${oidcIssuerUri}"

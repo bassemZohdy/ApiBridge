@@ -22,7 +22,7 @@ All error responses use `Content-Type: application/json`.
 ## Test status
 
 ```
-mvn verify → 300/300 PASS, 0 Checkstyle violations
+mvn verify → 305/305 PASS, 0 Checkstyle violations
 ```
 
 | Test class | Count | Covers |
@@ -193,6 +193,16 @@ BridgeSchemaModel.UiLayout:
   List<Field> fields
   List<Column> columns
   String searchMode   // "delegate" | "local" | null
+
+BridgeSchemaModel.Field:
+  String name
+  String type         // "string"|"number"|"integer"|"boolean"|"email"|"date"|"url"|"password"
+  String label
+  boolean required
+
+BridgeSchemaModel.Column:
+  String field
+  String label
 
 BridgeSchemaModel.Transforms:
   HeaderTransform requestHeaders

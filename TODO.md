@@ -24,13 +24,13 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | H2 | **OpenAPI template**: `flags.securityLevel??` evaluates true for empty string. | M-10 | [x] |
 | H3 | **Angular `bridge-api.service.ts`** reads API key from `localStorage`. | M-07 | [x] |
 | H4 | **Bearer token auth non-functional in frontends**. By design — token from external auth. | M-08 | [x] |
-| H5 | **Web builder `UiField.type` incomplete**. | tests #32 | [ ] |
-| H6 | **Web builder missing UI for `uiLayout`, `transforms`, `mockResponse`**. | tests #36 | [ ] |
+| H5 | **Web builder `UiField.type` incomplete** — `types.ts` union only covers `string \| number \| boolean \| ''`; missing `integer`, `email`, `date`, `url`, `password`. `EndpointEditor.tsx` has no type-selector dropdown at all — type is never editable in the UI. | tests #32 | [ ] |
+| H6 | **Web builder missing UI for `uiLayout`, `transforms`, `mockResponse`** — `EndpointEditor.tsx` only handles `method`, `path`, `backendUrl`, `telemetryName`. No editor exists for: `uiLayout` (component/fields/columns/searchMode), `transforms` (requestHeaders/responseHeaders/requestFields/responseFields), or `mockResponse` (statusCode/body/delayMs). All three are initialised as `null` in `defaultSchema.ts` and silently dropped from the generated YAML. | tests #36 | [ ] |
 | H7 | **README.md says `flags` "may be null"** — fixed. | docs #6 | [x] |
 | H8 | **AGENTS.md FreeMarker context table incomplete** — expanded to 17 vars. | docs #9 | [x] |
 | H9 | **HANDOFF.md references AGENTS.md for ENV VAR list** — fixed. | docs #13 | [x] |
 | H10 | **schema-reference.md missing field types** — added. | docs #7 | [x] |
-| H11 | **Missing test coverage for CLI arg-parsing** — not testable (System.exit). | tests #4 | [ ] |
+| H11 | **Missing test coverage for CLI arg-parsing** — not testable (System.exit). | tests #4 | [x] WONTFIX — System.exit makes CLI entry point untestable by design |
 | H12 | **Missing tests for transform validation errors** — 5 tests added. | tests #21 | [x] |
 
 ### MEDIUM — Code quality, maintenance, consistency
@@ -43,18 +43,18 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | M4 | **ApiBridgeRunner FQN imports** fixed. | engine #41-43 | [x] |
 | M5 | **Library classes use java.util.logging** instead of System.out/err. | engine #70 | [x] |
 | M6 | **`flags` null-check kept** — documents contract for non-runner callers. | engine #73 | [x] |
-| M7 | **`pathToEnvKey` FreeMarker function duplicated 7 times** across backend + devops templates. Extract to shared template or document as known duplication. | M-02 | [ ] |
-| M8 | **`mapLiteral`/`listLiteral`/`transformArgs` macros duplicated** between Spring Boot and Quarkus. Spring Boot defines them unconditionally (dead code when `enableTransform=false`). | M-03 | [ ] |
-| M9 | **Endpoint detection logic (`hasListEndpoint` etc.) copy-pasted 12+ times** across all frontend templates. | M-05 | [ ] |
-| M10 | **Missing `.apib-offline-banner` CSS class** in all three frontend frameworks — offline banner renders as unstyled inline text. | M-06 | [ ] |
-| M11 | **CSS ~99% duplicated between React and Angular** (~470 lines each). | M-09 | [ ] |
-| M12 | **`YamlParserFeatureFlagsTest` boilerplate** — ~15 boolean flag tests follow identical pattern. Refactor to JUnit 5 `@ParameterizedTest`. | tests #18 | [ ] |
-| M13 | **Fragile string assertions** in `CoreCartridgeEngineTest`, `MockModeEngineTest`, `TransformEngineTest` — assert exact method signatures/escape sequences that break on any template formatting change. | tests #22,24,25 | [ ] |
-| M14 | **Missing null/blank test for `CartridgeResolver.resolve()`** — guard added but no test. | tests #8 | [ ] |
-| M15 | **Missing null test for `CartridgeDownloader.downloadAndExtract()`** — guards added but no test. | tests #12 | [ ] |
+| M7 | **`pathToEnvKey` FreeMarker function duplicated 7 times** across backend + devops templates. Macro defined independently in: `spring-boot/application.properties.ftl`, `quarkus/application.properties.ftl`, `Dockerfile.ftl`, `k8s/kubernetes/configmap.yaml.ftl`, `BridgeController.java.ftl`, `BridgeResource.java.ftl`, `docker-compose.yml.ftl`. Fix: extract to `macros/common.ftl` and `<#include>` it, or document as accepted duplication. | M-02 | [ ] |
+| M8 | **`mapLiteral`/`listLiteral`/`transformArgs` macros duplicated** between Spring Boot and Quarkus. Identical definitions at lines 7/10/13 of both `BridgeController.java.ftl` and `BridgeResource.java.ftl`. Spring Boot defines them unconditionally (dead code when `enableTransform=false`); Quarkus wraps the usage but not the definition. Fix: extract to `macros/transform-macros.ftl` and `<#include>` in both backends; add `<#if (flags.enableTransform)!false>` guard around the definition in Spring Boot. | M-03 | [ ] |
+| M9 | **Endpoint detection logic (`hasListEndpoint` etc.) copy-pasted 22+ times** across all frontend templates — `hasListEndpoint`, `hasFormEndpoint`, `hasViewEndpoint` are re-assigned in every framework file: React `App.tsx.ftl`, Angular `app.component.ts.ftl`, `app.component.html.ftl`, `app.module.ts.ftl`, Vue `App.vue.ftl`. FreeMarker cannot share variables across template files; fix requires adding these booleans to the Java model (`BridgeSchemaModel`) or accepting as documented duplication. | M-05 | [ ] |
+| M10 | **Missing `.apib-offline-banner` CSS class** in all three frontend frameworks — offline banner renders as unstyled inline text. | M-06 | [x] |
+| M11 | **CSS ~99% duplicated between React and Angular** (~470 lines each) — React `index.css.ftl` (12,379 bytes) vs Angular `styles.css.ftl` (12,417 bytes). Only 4 differences: root selector (`#root` vs `app-root`), one `body` flex rule for Angular, tab class name (`.apib-tab--active` vs `.apib-tab.active`), one missing `color: var(--text)` line. Fix: extract the 466 shared lines to `macros/bridge-shared.css.ftl` and `<#include>` it from both, then keep framework-specific overrides in each file. | M-09 | [ ] |
+| M12 | **`YamlParserFeatureFlagsTest` boilerplate** — ~15 boolean flag tests follow identical pattern. Refactor to JUnit 5 `@ParameterizedTest`. | tests #18 | [x] REJECTED — individual tests are clearer; parameterized adds complexity with no readability gain |
+| M13 | **Fragile string assertions** in `CoreCartridgeEngineTest`, `MockModeEngineTest`, `TransformEngineTest` — assert exact method signatures/escape sequences that break on any template formatting change. Specific instances: `CoreCartridgeEngineTest` asserts `contains("public class BridgeController")`; `MockModeEngineTest` asserts `contains("status\\\":\\\"ok\\\"")` (JSON escape sequence); `TransformEngineTest` asserts `contains("Map.of(")` (exact method syntax). Fix: assert file existence, non-empty content, or structural markers (e.g. class count, annotation presence) rather than literal source text. | tests #22,24,25 | [ ] |
+| M14 | **Missing null/blank test for `CartridgeResolver.resolve()`** — guard added but no test. | tests #8 | [x] |
+| M15 | **Missing null test for `CartridgeDownloader.downloadAndExtract()`** — guards added but no test. | tests #12 | [x] |
 | M16 | **Dead code in `ApiBridgeCartridgeEngineTestBase`** — removed. | tests #1 | [x] |
 | M17 | **Stale per-class test counts** — fixed. | docs #1-2 | [x] |
-| M18 | **CHANGELOG.md stale test counts** — still stale. | docs #3-4 | [ ] |
+| M18 | **CHANGELOG.md stale test counts** — still stale. | docs #3-4 | [x] |
 | M19 | **`YOUR_ORG` placeholder** — replaced with `apibridge`. | docs #16 | [x] |
 | M20 | **Missing LICENSE file** — added Apache 2.0. | docs #17 | [x] |
 | M21 | **`dist/` build artifact** — added to `.gitignore`. | docs #21 | [x] |
@@ -64,7 +64,10 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | M25 | **Magic strings** — extracted to constants (BANNER_LINE, FTL_SUFFIX, GITHUB_PREFIX, etc.). | engine #19-21,28 | [x] |
 | M26 | **Error message formatting** — SchemaComposer now uses "Schema composition error:". | engine #71 | [x] |
 | M27 | **`pom.xml` redundant compiler properties** — replaced with `maven.compiler.release`. | build #29 | [x] |
-| M28 | **Web builder missing `autoprefixer`** — Tailwind CSS recommends it but it's not installed. | build #33 | [ ] |
+| M28 | **Web builder missing `autoprefixer`** — Tailwind CSS recommends it but it's not installed. | build #33 | [x] FIXED — `autoprefixer` is configured in `postcss.config.js` (transitive dependency via Tailwind CSS) |
+| M29 | **`YamlParserFeatureFlagsTest` too large** (604 lines, 35 tests) — extracted `YamlParserApiVersionTest` (9 tests) and `YamlParserOidcTest` (4 tests); original shrunk to 22 boolean-flag tests. | tests #split | [x] |
+| M30 | **`CoreCartridgeEngineTest` too large** (558 lines, 33 tests) — extracted `FrontendCartridgeEngineTest` (6 tests), `EngineInputGuardTest` (7 tests), `MethodNameEngineTest` (7 tests); original shrunk to 13 core/composable/context tests. | tests #split | [x] |
+| M31 | **`YamlParserUiLayoutTest` too large** (516 lines, 23 tests) — extract `YamlParserUiFieldTest` (8 field-validation tests) and `YamlParserSearchModeTest` (4 searchMode tests); leaves component + columns + extras in the original class at ~220 lines. | tests #split | [x] |
 
 ### LOW — Polish, minor improvements
 
@@ -74,20 +77,20 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | L2 | **Error message "Bridge Schema Model (PIM)"** — "PIM" removed. | engine #1 | [x] |
 | L3 | **Duplicate `TimeUnit` import** in Quarkus ProxyService — fixed. | L-02 | [x] |
 | L4 | **Spring Boot `BridgeController.java.ftl` transform macros** — now conditional. | L-03 | [x] |
-| L5 | **Helm `values.yaml` omits most ENV VARs** — only includes rate limiter, cache, CB, health, search. Missing audit, security, telemetry, pagination, debug, CORS, etc. | L-01 | [ ] |
-| L6 | **`BridgeConfig` endpoint exposes only subset of flags** — omits OIDC, CB, rate limiter, cache, transform, audit, OpenAPI, offline. May be intentional (client-relevant only) but undocumented. | L-06 | [ ] |
+| L5 | **Helm `values.yaml` omits most ENV VARs** — currently includes: MOCK_MODE, BLOCK_TRAFFIC, DEBUG_MODE, CORS_ALLOWED_ORIGINS, pagination (5), API_KEY/AUTH_SERVER_URL, telemetry (3), rate limiter (3), response cache (3), circuit breaker (5), health check (2), search (1), audit log (4), OIDC issuer (1). Missing: distributed cache switch (`CACHE_REDIS_URL`), dark mode toggle, offline support config, OpenAPI generation flag, API versioning options, all debug-level tuning flags. | L-01 | [ ] |
+| L6 | **`BridgeConfig` endpoint exposes only subset of flags** — both `BridgeConfigController.java.ftl` and `BridgeConfigResource.java.ftl` expose 8 keys: `securityLevel`, `basePath`, `enableTelemetry`, `apiVersion`, `enableHealthCheck`, `enableSearch`, `pagination` (5 sub-fields), `customCssPath`. Omitted: `enableOidc`, `enableCircuitBreaker`, `enableRateLimiter`, `enableResponseCache`, `enableTransform`, `enableAuditLog`, `enableOpenApi`, `enableOfflineSupport`, `oidcIssuerUri`, `backendFlavor`, `feFlavor`, `deployTarget`. Either document the intentional subset or expand the response model. | L-06 | [ ] |
 | L7 | **`.gitignore` missing IDE patterns** — added. | docs #22 | [x] |
 | L8 | **`CHANGELOG.md` unlabeled `### Added`/`### Changed` sections** — Phase 6 content without phase label mixed with labeled P7 sections. | docs #23 | [ ] |
 | L9 | **HANDOFF.md missing `Column` and `Field` model classes** in the model section. | docs #14-15 | [ ] |
 | L10 | **Schema quick reference duplicated** in AGENTS.md and CLAUDE.md; cartridge reference format quadruplicated across docs. | docs #18-19 | [ ] |
 | L11 | **Test status duplicated in HANDOFF.md and TODO.md** — must update in sync. | docs #20 | [ ] |
-| L12 | **`YamlParserFlagsTest.testDeployTargetAbsentMeansNullFlags`** — misleading name; actually validates entire `flags` section omitted. | tests #17 | [ ] |
-| L13 | **Missing `Quarkus-SecurityConfig-not-generated` test** — Spring Boot version tested but not Quarkus. | tests #14 | [ ] |
-| L14 | **Missing `HealthCheck-not-generated` test** — every other feature has a "not generated when off" test. | tests #27 | [ ] |
-| L15 | **Redundant `testGetVersionNeverReturnsNull`** — already covered by `testGetVersionReturnsNonEmpty`. | tests #3 | [ ] |
-| L16 | **Duplicate `findCartridgeDir` utility** in `ApiBridgeRunnerTest` and `ApiBridgeCartridgeEngineTestBase`. | tests #2,5 | [ ] |
+| L12 | **`YamlParserFlagsTest.testDeployTargetAbsentMeansNullFlags`** — misleading name; actually validates entire `flags` section omitted. **NOTE: this test method does not exist in `YamlParserFlagsTest.java` — verify whether it was renamed/removed in a prior refactor or whether the TODO entry was wrong before acting.** | tests #17 | [ ] |
+| L13 | **Missing `Quarkus-SecurityConfig-not-generated` test** — Spring Boot version tested but not Quarkus. | tests #14 | [x] FIXED — `testQuarkusSecurityConfigNotGeneratedWhenFlagOff` exists in `OidcEngineTest` |
+| L14 | **Missing `HealthCheck-not-generated` test** — every other feature has a "not generated when off" test. | tests #27 | [x] FIXED — `testHealthCheckNotGeneratedWhenFlagOff` exists in `HealthCheckEngineTest` |
+| L15 | **Redundant `testGetVersionNeverReturnsNull`** — already covered by `testGetVersionReturnsNonEmpty`. | tests #3 | [x] FIXED — `testGetVersionNeverReturnsNull` does not exist; only the consolidated `testGetVersionReturnsNonEmpty` remains |
+| L16 | **Duplicate `findCartridgeDir` utility** in `ApiBridgeRunnerTest` and `ApiBridgeCartridgeEngineTestBase`. | tests #2,5 | [x] FIXED — `findCartridgeDir` is defined only in `ApiBridgeCartridgeEngineTestBase`; `ApiBridgeRunnerTest` inherits it — no duplication |
 | L17 | **Web builder missing tests** for serializer transforms/mockResponse/uiLayout/pagination, endpoint selection callback, flags panel dropdowns. | tests #37-39 | [ ] |
-| L18 | **FreeMarker `Configuration.VERSION_2_3_32` hardcoded** — should track actual FreeMarker dependency version. | engine #7 | [ ] |
+| L18 | **FreeMarker `Configuration.VERSION_2_3_32` hardcoded** — `ApiBridgeCartridgeEngine.java` line ~67 uses `new Configuration(Configuration.VERSION_2_3_32)`. Currently in sync with `pom.xml` (FreeMarker 2.3.32), but upgrading the JAR without updating the constant silently applies incompatibility mode. Fix: derive the constant from the FreeMarker JAR itself (e.g. `Configuration.VERSION_2_3_32` will be a compile error on upgrade, which is the desired forcing function), or add a `pom.xml` property enforcer check. | engine #7 | [ ] |
 | L19 | **schema-reference.md "Phase 6 full" section header** — renamed to "Full example". | docs #8 | [x] |
 
 ---
@@ -110,10 +113,15 @@ mvn verify → 305/305 PASS, 0 Checkstyle violations
 | Test class | Count |
 |---|---|
 | YamlParser* (9 files) | 126 |
-| CoreCartridgeEngineTest | 33 |
+| CoreCartridgeEngineTest | 13 |
+| FrontendCartridgeEngineTest | 6 |
+| EngineInputGuardTest | 7 |
+| MethodNameEngineTest | 7 |
 | DevOpsCartridgeEngineTest | 17 |
 | YamlParserEndpointTest | 20 |
-| YamlParserFeatureFlagsTest | 35 |
+| YamlParserFeatureFlagsTest | 22 |
+| YamlParserApiVersionTest | 9 |
+| YamlParserOidcTest | 4 |
 | YamlParserUiLayoutTest | 23 |
 | DistributedCacheEngineTest | 10 |
 | TransformEngineTest | 10 |

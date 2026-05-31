@@ -113,4 +113,14 @@ public class CartridgeResolverTest {
     public void testInvalidGithubSpecThrows() {
         assertThrows(IllegalArgumentException.class, () -> resolver().resolve("github:badspec"));
     }
+
+    @Test
+    public void testNullArgThrows() {
+        assertThrows(IllegalArgumentException.class, () -> resolver().resolve(null));
+    }
+
+    @Test
+    public void testBlankArgThrows() {
+        assertThrows(IllegalArgumentException.class, () -> resolver().resolve("  "));
+    }
 }

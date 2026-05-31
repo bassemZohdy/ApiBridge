@@ -82,6 +82,19 @@ public class OidcEngineTest extends ApiBridgeCartridgeEngineTestBase {
     }
 
     @Test
+    public void testQuarkusSecurityConfigNotGeneratedWhenFlagOff(@TempDir Path tempDir) throws Exception {
+        engine.generate(createTestModel(), findCartridgeDir("backend/quarkus"), tempDir.resolve("out").toFile());
+
+        assertFalse(
+                Files.exists(tempDir.resolve(
+                        "out/backend/src/main/resources/application.properties"))
+                        && Files.readString(tempDir.resolve(
+                                "out/backend/src/main/resources/application.properties"))
+                                .contains("quarkus.oidc.auth-server-url"),
+                "Quarkus OIDC config must NOT be present when enableOidc is false");
+    }
+
+    @Test
     public void testHealthAndConfigEndpointsPermitAllInSecurityConfig(@TempDir Path tempDir) throws Exception {
         engine.generate(createOidcModel(), findCartridgeDir("backend/spring-boot"), tempDir.resolve("out").toFile());
 

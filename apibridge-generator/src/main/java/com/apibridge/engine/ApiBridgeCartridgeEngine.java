@@ -146,6 +146,7 @@ public class ApiBridgeCartridgeEngine {
         if (cached != null) {
             return cached;
         }
+        // Keep in sync with freemarker.version in pom.xml when upgrading FreeMarker.
         Configuration cfg = new Configuration(Configuration.VERSION_2_3_32);
         cfg.setDirectoryForTemplateLoading(cartridgeDir);
         cfg.setDefaultEncoding(StandardCharsets.UTF_8.name());
