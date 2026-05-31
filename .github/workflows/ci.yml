@@ -312,9 +312,6 @@ jobs:
           always() && (
             steps.spring_boot.outcome == 'failure' ||
             steps.quarkus.outcome   == 'failure' ||
-            steps.angular.outcome   == 'failure' ||
-            steps.react.outcome     == 'failure' ||
-            steps.vue.outcome       == 'failure' ||
             steps.contract.outcome  == 'failure' ||
             steps.kubernetes.outcome == 'failure' ||
             steps.openshift.outcome == 'failure' ||

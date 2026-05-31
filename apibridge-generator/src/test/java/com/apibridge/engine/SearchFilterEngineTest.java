@@ -66,8 +66,8 @@ public class SearchFilterEngineTest extends ApiBridgeCartridgeEngineTestBase {
         engine.generate(model, findCartridgeDir("frontend/react"), tempDir.resolve("out").toFile());
 
         String content = Files.readString(tempDir.resolve("out/frontend/src/ApiBridgeList.tsx"));
-        assertFalse(content.contains("apib-search-bar"), "React List must not have search bar when enableSearch=false");
-        assertFalse(content.contains("searchTerm"), "React List must not have searchTerm when enableSearch=false");
+        assertFalse(content.contains("apib-search-bar"), "React List must not contain search bar when disabled");
+        assertFalse(content.contains("searchTerm"), "React List must not have searchTerm when disabled");
     }
 
     @Test
