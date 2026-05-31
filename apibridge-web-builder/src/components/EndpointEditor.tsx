@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Endpoint, UiField, UiColumn, UiLayout, MockResponse } from '../types';
+import type { Endpoint, UiField, UiColumn, UiLayout, MockResponse, HeaderTransform, FieldTransform } from '../types';
 
 interface Props {
   endpoint: Endpoint;
@@ -229,6 +229,141 @@ export function EndpointEditor({ endpoint, onChange }: Props) {
           )}
         </div>
       )}
+
+      {/* ── Transforms ─────────────────────────────────────── */}
+      <TransformEditor endpoint={endpoint} onChange={onChange} />
     </div>
+  );
+}
+
+/* ── Helpers for key-value pair editing ─────────────────────────── */
+
+function KvpEditor({ map, onChange, keyLabel }: { map: Record<string, string>; onChange: (m: Record<string, string>) => void; keyLabel: string }) {
+  const entries = Object.entries(map);
+  const set = (idx: number, k: string, v: string) => {
+    const e = [...entries]; e[idx] = [k, v];
+    onChange(Object.fromEntries(e.filter(([k]) => k)));
+  };
+  const remove = (idx: number) => onChange(Object.fromEntries(entries.filter((_, i) => i !== idx)));
+  return (
+    <div className="space-y-1">
+      {entries.map(([k, v], i) => (
+        <div key={i} className="flex gap-1 items-center">
+          <input type="text" placeholder={keyLabel} value={k}
+            onChange={e => set(i, e.target.value, v)}
+            className="flex-1 rounded bg-gray-800 border border-gray-600 text-gray-100 px-1 py-0.5 text-xs font-mono" />
+          <input type="text" placeholder="value" value={v}
+            onChange={e => set(i, k, e.target.value)}
+            className="flex-1 rounded bg-gray-800 border border-gray-600 text-gray-100 px-1 py-0.5 text-xs font-mono" />
+          <button type="button" onClick={() => remove(i)} className="text-xs text-red-400 hover:text-red-300 shrink-0">✕</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange({ ...map, '': '' })}
+        className="text-xs text-blue-400 hover:text-blue-300">+ Add</button>
+    </div>
+  );
+}
+
+function RemoveListEditor({ list, onChange }: { list: string[]; onChange: (l: string[]) => void }) {
+  const set = (idx: number, v: string) => { const l = [...list]; l[idx] = v; onChange(l); };
+  const remove = (idx: number) => onChange(list.filter((_, i) => i !== idx));
+  return (
+    <div className="space-y-1">
+      {list.map((v, i) => (
+        <div key={i} className="flex gap-1 items-center">
+          <input type="text" placeholder="header name" value={v}
+            onChange={e => set(i, e.target.value)}
+            className="flex-1 rounded bg-gray-800 border border-gray-600 text-gray-100 px-1 py-0.5 text-xs font-mono" />
+          <button type="button" onClick={() => remove(i)} className="text-xs text-red-400 hover:text-red-300 shrink-0">✕</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...list, ''])}
+        className="text-xs text-blue-400 hover:text-blue-300">+ Add</button>
+    </div>
+  );
+}
+
+function TransformEditor({ endpoint, onChange }: { endpoint: Endpoint; onChange: (e: Endpoint) => void }) {
+  const [show, setShow] = useState(false);
+  const set = (patch: Partial<Endpoint>) => onChange({ ...endpoint, ...patch });
+  const transforms = endpoint.transforms;
+
+  const emptyHeaders = (): HeaderTransform => ({ add: {}, remove: [], rename: {} });
+  const emptyFields = (): FieldTransform => ({ rename: {}, remove: [] });
+
+  return (
+    <>
+      <SectionHeader title="Transforms" visible={show} onToggle={() => setShow(!show)} />
+      {show && (
+        <div className="space-y-3 pl-1">
+          {transforms ? (
+            <>
+              {/* Request Headers */}
+              <div className="border-l-2 border-gray-700 pl-2 space-y-1">
+                <label className="text-xs text-blue-300 font-semibold">Request Headers</label>
+                <label className="text-xs text-gray-500 mt-1">Add</label>
+                <KvpEditor map={transforms.requestHeaders?.add ?? {}} keyLabel="header"
+                  onChange={m => set({ transforms: { ...transforms, requestHeaders: { ...(transforms.requestHeaders ?? emptyHeaders()), add: m } } })} />
+                <label className="text-xs text-gray-500 mt-1">Remove</label>
+                <RemoveListEditor list={transforms.requestHeaders?.remove ?? []}
+                  onChange={l => set({ transforms: { ...transforms, requestHeaders: { ...(transforms.requestHeaders ?? emptyHeaders()), remove: l } } })} />
+                <label className="text-xs text-gray-500 mt-1">Rename</label>
+                <KvpEditor map={transforms.requestHeaders?.rename ?? {}} keyLabel="from"
+                  onChange={m => set({ transforms: { ...transforms, requestHeaders: { ...(transforms.requestHeaders ?? emptyHeaders()), rename: m } } })} />
+              </div>
+
+              {/* Response Headers */}
+              <div className="border-l-2 border-gray-700 pl-2 space-y-1">
+                <label className="text-xs text-blue-300 font-semibold">Response Headers</label>
+                <label className="text-xs text-gray-500 mt-1">Add</label>
+                <KvpEditor map={transforms.responseHeaders?.add ?? {}} keyLabel="header"
+                  onChange={m => set({ transforms: { ...transforms, responseHeaders: { ...(transforms.responseHeaders ?? emptyHeaders()), add: m } } })} />
+                <label className="text-xs text-gray-500 mt-1">Remove</label>
+                <RemoveListEditor list={transforms.responseHeaders?.remove ?? []}
+                  onChange={l => set({ transforms: { ...transforms, responseHeaders: { ...(transforms.responseHeaders ?? emptyHeaders()), remove: l } } })} />
+                <label className="text-xs text-gray-500 mt-1">Rename</label>
+                <KvpEditor map={transforms.responseHeaders?.rename ?? {}} keyLabel="from"
+                  onChange={m => set({ transforms: { ...transforms, responseHeaders: { ...(transforms.responseHeaders ?? emptyHeaders()), rename: m } } })} />
+              </div>
+
+              {/* Request Fields */}
+              <div className="border-l-2 border-gray-700 pl-2 space-y-1">
+                <label className="text-xs text-blue-300 font-semibold">Request Fields</label>
+                <label className="text-xs text-gray-500 mt-1">Rename</label>
+                <KvpEditor map={transforms.requestFields?.rename ?? {}} keyLabel="from"
+                  onChange={m => set({ transforms: { ...transforms, requestFields: { ...(transforms.requestFields ?? emptyFields()), rename: m } } })} />
+                <label className="text-xs text-gray-500 mt-1">Remove</label>
+                <RemoveListEditor list={transforms.requestFields?.remove ?? []}
+                  onChange={l => set({ transforms: { ...transforms, requestFields: { ...(transforms.requestFields ?? emptyFields()), remove: l } } })} />
+              </div>
+
+              {/* Response Fields */}
+              <div className="border-l-2 border-gray-700 pl-2 space-y-1">
+                <label className="text-xs text-blue-300 font-semibold">Response Fields</label>
+                <label className="text-xs text-gray-500 mt-1">Rename</label>
+                <KvpEditor map={transforms.responseFields?.rename ?? {}} keyLabel="from"
+                  onChange={m => set({ transforms: { ...transforms, responseFields: { ...(transforms.responseFields ?? emptyFields()), rename: m } } })} />
+                <label className="text-xs text-gray-500 mt-1">Remove</label>
+                <RemoveListEditor list={transforms.responseFields?.remove ?? []}
+                  onChange={l => set({ transforms: { ...transforms, responseFields: { ...(transforms.responseFields ?? emptyFields()), remove: l } } })} />
+              </div>
+
+              <button type="button" onClick={() => set({ transforms: null })}
+                className="text-xs text-red-400 hover:text-red-300">Remove Transforms</button>
+            </>
+          ) : (
+            <button type="button" onClick={() => set({
+              transforms: {
+                requestHeaders: emptyHeaders(),
+                responseHeaders: emptyHeaders(),
+                requestFields: emptyFields(),
+                responseFields: emptyFields(),
+              }
+            })}
+              className="text-xs text-blue-400 hover:text-blue-300">Enable Transforms</button>
+          )}
+        </div>
+      )}
+    </>
   );
 }
