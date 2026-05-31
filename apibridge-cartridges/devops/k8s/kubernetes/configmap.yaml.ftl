@@ -1,3 +1,4 @@
+<#-- pathToEnvKey: synced across 7 files; keep in sync when modifying -->
 <#function pathToEnvKey path>
   <#local s = path?replace("[{}]", "", "r")?replace("[^A-Za-z0-9]", "_", "r")?upper_case />
   <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
