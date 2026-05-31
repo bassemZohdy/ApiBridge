@@ -21,13 +21,54 @@ All error responses use `Content-Type: application/json`.
 
 ## Test status
 
-For the authoritative, up-to-date test inventory see **TODO.md** — `mvn verify` summary and per-class counts.
-
 ```
 mvn verify → 311/311 PASS, 0 Checkstyle violations
 ```
 
-Web builder tests (Vitest): 20 tests in `apibridge-web-builder/`.
+| Test class | Count |
+|---|---|
+| YamlParser* (13 files) | 131 |
+| CoreCartridgeEngineTest | 13 |
+| FrontendCartridgeEngineTest | 6 |
+| EngineInputGuardTest | 7 |
+| MethodNameEngineTest | 7 |
+| DevOpsCartridgeEngineTest | 17 |
+| YamlParserEndpointTest | 20 |
+| YamlParserFeatureFlagsTest | 22 |
+| YamlParserApiVersionTest | 9 |
+| YamlParserOidcTest | 4 |
+| YamlParserUiLayoutTest | 11 |
+| YamlParserUiFieldTest | 8 |
+| YamlParserSearchModeTest | 4 |
+| DistributedCacheEngineTest | 10 |
+| TransformEngineTest | 10 |
+| SchemaComposerTest | 8 |
+| HelmCartridgeEngineTest | 8 |
+| CartridgeCacheTest | 7 |
+| CartridgeDownloaderTest | 7 |
+| CartridgeResolverTest | 8 |
+| HealthCheckEngineTest | 8 |
+| OidcEngineTest | 8 |
+| YamlParserFlagsTest | 18 |
+| CircuitBreakerEngineTest | 6 |
+| ResponseCacheEngineTest | 6 |
+| RateLimiterEngineTest | 6 |
+| OfflineSupportEngineTest | 6 |
+| OpenApiEngineTest | 6 |
+| SearchFilterEngineTest | 6 |
+| YamlParserTopLevelTest | 6 |
+| YamlParserMockResponseTest | 9 |
+| YamlParserPaginationTest | 5 |
+| YamlParserFileAccessTest | 5 |
+| YamlParserTransformsTest | 10 |
+| AuditLogEngineTest | 4 |
+| ApiVersioningEngineTest | 4 |
+| DebugModeEngineTest | 4 |
+| ApiBridgeRunnerTest | 3 |
+| DarkModeEngineTest | 3 |
+| MockModeEngineTest | 2 |
+
+Vitest (web builder): 20 tests.
 
 E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React tsc, Vue tsc, React prod build, contract symmetry, Kubernetes manifests, OpenShift manifests, fullstack Docker, json-server.
 
