@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Core template engine that applies a FreeMarker cartridge against a {@link BridgeSchemaModel}
@@ -35,6 +37,7 @@ public class ApiBridgeCartridgeEngine {
     private static final String DEFAULT_BE_FLAVOR = "spring-boot";
 
     private static final Map<String, Configuration> CONFIGURATION_CACHE = new ConcurrentHashMap<>();
+    private static final Logger LOG = Logger.getLogger(ApiBridgeCartridgeEngine.class.getName());
 
     private static final Set<String> OUTPUT_PREFIX_CATEGORIES =
             Set.of("backend", "frontend", "k8s");
@@ -67,13 +70,13 @@ public class ApiBridgeCartridgeEngine {
                     "No blueprint template files (*.ftl) found in cartridge: " + cartridgeDir.getAbsolutePath());
         }
 
-        System.out.println("Discovered " + entries.size() + " blueprint templates inside cartridge: "
-                + cartridgeDir.getName());
+        LOG.log(Level.INFO, "Discovered {0} blueprint templates inside cartridge: {1}",
+                new Object[]{entries.size(), cartridgeDir.getName()});
 
         Map<String, Object> context = buildContext(model);
 
         for (TemplateEntry entry : entries) {
-            System.out.println("Processing blueprint template: " + entry.templateName);
+            LOG.log(Level.FINE, "Processing blueprint template: {0}", entry.templateName);
 
             Template template = cfg.getTemplate(entry.templateName);
             StringWriter sw = new StringWriter();
@@ -81,7 +84,7 @@ public class ApiBridgeCartridgeEngine {
             String rendered = sw.toString();
 
             if (rendered.isBlank()) {
-                System.out.println("Skipping empty output for: " + entry.templateName);
+                LOG.log(Level.FINE, "Skipping empty output for: {0}", entry.templateName);
                 continue;
             }
 
@@ -93,7 +96,7 @@ public class ApiBridgeCartridgeEngine {
             try (Writer writer = new FileWriter(entry.outputFile, StandardCharsets.UTF_8)) {
                 writer.write(rendered);
             }
-            System.out.println("Wrote generated file: " + entry.outputFile.getAbsolutePath());
+            LOG.log(Level.INFO, "Wrote generated file: {0}", entry.outputFile.getAbsolutePath());
         }
     }
 

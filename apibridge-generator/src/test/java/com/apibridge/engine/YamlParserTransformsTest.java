@@ -122,4 +122,105 @@ public class YamlParserTransformsTest extends YamlParserTestBase {
         BridgeSchemaModel model = parser.parse(file);
         assertNull(model.getEndpoints().get(0).getTransforms());
     }
+
+    // --- Blank key/value validation in add maps ---
+
+    @Test
+    public void testTransformRejectsBlankHeaderNameInAdd(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableTransform: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    transforms:
+                      requestHeaders:
+                        add: { "": "value" }
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("blank header name"), "Expected blank header name error, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void testTransformRejectsBlankHeaderValueInAdd(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableTransform: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    transforms:
+                      requestHeaders:
+                        add: { "X-Key": "" }
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("blank value for header"), "Expected blank value error, got: " + ex.getMessage());
+    }
+
+    // --- Blank key/value validation in rename maps ---
+
+    @Test
+    public void testTransformRejectsBlankKeyInRename(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableTransform: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    transforms:
+                      requestHeaders:
+                        rename: { "": "X-New" }
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("blank key"), "Expected blank key error, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void testTransformRejectsBlankValueInRename(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableTransform: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    transforms:
+                      responseFields:
+                        rename: { "X-Old": "" }
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("blank value for key"), "Expected blank value error, got: " + ex.getMessage());
+    }
+
+    // --- Blank entry validation in remove lists ---
+
+    @Test
+    public void testTransformRejectsBlankEntryInRemove(@TempDir Path tempDir) throws Exception {
+        var file = writeYaml(tempDir, "schema.yaml", """
+                id: "test"
+                basePath: "/api"
+                flags:
+                  enableTransform: true
+                endpoints:
+                  - path: "/run"
+                    method: "POST"
+                    backendUrl: "https://example.com/run"
+                    transforms:
+                      requestHeaders:
+                        remove: [ "" ]
+                """);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> parser.parse(file));
+        assertTrue(ex.getMessage().contains("blank entry"), "Expected blank entry error, got: " + ex.getMessage());
+    }
 }

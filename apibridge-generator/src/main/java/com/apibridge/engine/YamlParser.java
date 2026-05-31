@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * Parses and validates ApiBridge YAML schema files into {@link BridgeSchemaModel} instances.
@@ -25,6 +26,7 @@ public class YamlParser {
     private static final Set<String> VALID_HTTP_METHODS = Set.of("GET", "POST", "PUT", "DELETE", "PATCH");
     private static final Set<String> VALID_COMPONENT_TYPES = Set.of("form", "list", "view");
     private static final Set<String> VALID_SEARCH_MODES = Set.of("delegate", "local");
+    private static final Logger LOG = Logger.getLogger(YamlParser.class.getName());
 
     private final ObjectMapper mapper;
 
@@ -74,7 +76,7 @@ public class YamlParser {
 
         List<String> warnings = validateEndpoints(model);
         if (!warnings.isEmpty()) {
-            System.err.println("Warning: transforms defined on endpoint(s) " + warnings
+            LOG.warning("Transforms defined on endpoint(s) " + warnings
                     + " but flags.enableTransform is not true — transforms will be ignored.");
         }
     }
