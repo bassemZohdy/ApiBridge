@@ -64,7 +64,7 @@ run_combination() {
   cat > "$compose_file" <<EOF
 services:
   json-server:
-    image: typicode/json-server:0.17
+    image: typicode/json-server:0.17.4
     command: "--watch /data/db.json --host 0.0.0.0"
     volumes:
       - $(pwd)/data:/data
