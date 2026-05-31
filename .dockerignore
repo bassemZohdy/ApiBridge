@@ -1,0 +1,10 @@
+target/
+output/
+node_modules/
+dist/
+e2e-tests/
+.git/
+.idea/
+.vscode/
+*.iml
+.DS_Store

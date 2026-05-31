@@ -107,7 +107,7 @@ Duplicate endpoints (same `path` + `method` combination) are rejected.
 |---|---|---|---|
 | `name` | string | Yes | Field identifier (camelCase, e.g. `companyName`). |
 | `label` | string | No | Display label for the field. Defaults to the field name when absent. |
-| `type` | string | Conditional | Field type (`string`, `number`, `boolean`). Required for `Form` component; optional for `View` (display-only). |
+| `type` | string | Conditional | Field type (`string`, `number`, `integer`, `boolean`, `email`, `date`, `url`, `password`). Required for `Form` component; optional for `View` (display-only). Maps to HTML input types; `email` adds pattern validation. |
 | `required` | boolean | No | Whether the field is required. Defaults to `false`. Only meaningful for `Form` fields. |
 
 ---
@@ -194,7 +194,7 @@ mockResponse:
 
 ---
 
-## Example (Phase 6 full)
+## Full example
 
 ```yaml
 id: "customer-onboarding-bridge"

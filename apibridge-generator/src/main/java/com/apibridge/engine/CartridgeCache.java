@@ -18,14 +18,23 @@ public class CartridgeCache {
     }
 
     public boolean isCached(String key) {
+        if (key == null) {
+            throw new IllegalArgumentException("Cache key cannot be null.");
+        }
         return resolve(key).isDirectory();
     }
 
     public File resolve(String key) {
+        if (key == null) {
+            throw new IllegalArgumentException("Cache key cannot be null.");
+        }
         return new File(cacheRoot, sha256(key));
     }
 
     public File allocate(String key) {
+        if (key == null) {
+            throw new IllegalArgumentException("Cache key cannot be null.");
+        }
         File dir = resolve(key);
         dir.mkdirs();
         return dir;

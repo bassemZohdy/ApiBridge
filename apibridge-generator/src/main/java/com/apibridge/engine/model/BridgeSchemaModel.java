@@ -87,7 +87,9 @@ public class BridgeSchemaModel {
         private boolean enableOfflineSupport;
         /** Whether to generate an OpenAPI 3.0.3 specification from the schema. */
         private boolean enableOpenApi;
+        /** Whether to generate OAuth2 JWT resource server configuration. Requires {@code oidcIssuerUri}. */
         private boolean enableOidc;
+        /** OIDC issuer URI for JWT validation. Required when {@code enableOidc} is true. */
         private String oidcIssuerUri;
 
         public boolean isEnableRateLimiter() { return enableRateLimiter; }

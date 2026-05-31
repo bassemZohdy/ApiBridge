@@ -28,7 +28,12 @@ public class SchemaComposer {
                 continue;
             }
             for (BridgeSchemaModel.Endpoint ep : schema.getEndpoints()) {
-                String key = ep.getMethod().toUpperCase() + " " + ep.getPath();
+                String method = ep.getMethod();
+                String path = ep.getPath();
+                if (method == null || path == null) {
+                    continue;
+                }
+                String key = method.toUpperCase() + " " + path;
                 if (!seen.add(key)) {
                     throw new IllegalArgumentException(
                             "Composition error: duplicate endpoint " + key

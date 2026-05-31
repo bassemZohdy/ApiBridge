@@ -3,7 +3,9 @@ package com.apibridge.engine;
 import com.apibridge.engine.model.BridgeSchemaModel;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ApiBridgeRunner {
 
@@ -14,8 +16,8 @@ public class ApiBridgeRunner {
         System.out.println("  ApiBridge Pluggable MDA Code Generator Engine");
         System.out.println("==================================================");
 
-        List<String> schemaPaths = new java.util.ArrayList<>();
-        List<String> cartridgePaths = new java.util.ArrayList<>();
+        List<String> schemaPaths = new ArrayList<>();
+        List<String> cartridgePaths = new ArrayList<>();
         String outputPath = null;
         String feFlavorOverride = null;
         String beFlavorOverride = null;
@@ -82,7 +84,7 @@ public class ApiBridgeRunner {
 
             // Apply CLI overrides (take precedence over schema flags)
             if (model.getFlags() == null) {
-                model.setFlags(new com.apibridge.engine.model.BridgeSchemaModel.Flags());
+                model.setFlags(new BridgeSchemaModel.Flags());
             }
             applyOverride(feFlavorOverride, "FE Flavor", v -> model.getFlags().setFeFlavor(v));
             applyOverride(beFlavorOverride, "BE Flavor", v -> model.getFlags().setBackendFlavor(v));
@@ -130,7 +132,7 @@ public class ApiBridgeRunner {
         return (v != null && !v.isBlank()) ? v : "unknown";
     }
 
-    private static void applyOverride(String value, String label, java.util.function.Consumer<String> setter) {
+    private static void applyOverride(String value, String label, Consumer<String> setter) {
         if (value != null && !value.isBlank()) {
             setter.accept(value);
             System.out.println(label + " Override: " + value);

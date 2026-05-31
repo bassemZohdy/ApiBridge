@@ -58,7 +58,6 @@ public abstract class ApiBridgeCartridgeEngineTestBase {
         listEp.setBackendUrl("https://example.com/customers");
         BridgeSchemaModel.UiLayout listLayout = new BridgeSchemaModel.UiLayout();
         listLayout.setComponent("List");
-        model.getEndpoints();
 
         BridgeSchemaModel.Endpoint viewEp = new BridgeSchemaModel.Endpoint();
         viewEp.setPath("/{id}");

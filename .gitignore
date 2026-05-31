@@ -5,6 +5,13 @@ dependency-reduced-pom.xml
 
 # Node.js
 node_modules/
+dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
 
 # E2E test runtime output — regenerated on every run
 e2e-tests/*/generated/

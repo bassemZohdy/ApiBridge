@@ -27,12 +27,12 @@ mvn verify → 300/300 PASS, 0 Checkstyle violations
 
 | Test class | Count | Covers |
 |---|---|---|
-| `YamlParser*` (9 files) | 112 | Schema validation: HTTP methods, duplicates, feature flags, apiVersion, mockResponse, transforms, uiLayout, pagination, OIDC |
+| `YamlParser*` (9 files) | 126 | Schema validation: HTTP methods, duplicates, feature flags, apiVersion, mockResponse, transforms, uiLayout, pagination, OIDC |
 | `CoreCartridgeEngineTest` | 33 | Cartridge generation, composability, FreeMarker context, method names, security |
 | `DevOpsCartridgeEngineTest` | 17 | Dockerfile, Docker Compose, k8s ConfigMap |
-| `TransformEngineTest` | 20 | Header + field transforms, controller args, pass-through |
+| `TransformEngineTest` | 10 | Header + field transforms, controller args, pass-through |
 | `DistributedCacheEngineTest` | 10 | Redis dual-cache, CACHE_REDIS_URL switching |
-| `SearchFilterEngineTest` | 10 | Search bar (React/Angular/Vue), delegate vs local |
+| `SearchFilterEngineTest` | 6 | Search bar (React/Angular/Vue), delegate vs local |
 | `AuditLogEngineTest` | 4 | Redis Streams + MongoDB audit trail |
 | `CircuitBreakerEngineTest` | 6 | Resilience4j CB + retry |
 | `ResponseCacheEngineTest` | 6 | Caffeine cache |
@@ -132,7 +132,7 @@ E2E suites (11 total): Spring Boot compile, Quarkus compile, Angular tsc, React 
 | `SEARCH_PARAM` | `q` | Search & Filtering | Per-instance |
 | `OIDC_ISSUER_URI` | _(empty)_ | OIDC Authentication | Per-instance |
 
-Legacy ENV VARs (see AGENTS.md for full list): `CB_*`, `CACHE_TTL_SECONDS`, `CACHE_MAX_SIZE`, `MOCK_MODE`, `BLOCK_TRAFFIC`, `AUTH_SERVER_URL`, `PAGINATION_*`, `CUSTOM_CSS_PATH`, `AUDIT_*`, `PROXY_*`.
+Additional ENV VARs: `CB_*` (circuit breaker), `CACHE_TTL_SECONDS`, `CACHE_MAX_SIZE`, `MOCK_MODE`, `BLOCK_TRAFFIC`, `AUTH_SERVER_URL`, `PAGINATION_*`, `CUSTOM_CSS_PATH`, `AUDIT_*`, `PROXY_*`, `CORS_ALLOWED_ORIGINS`, `DEBUG_MODE`. See `docs/schema-reference.md` for the full list.
 
 ---
 

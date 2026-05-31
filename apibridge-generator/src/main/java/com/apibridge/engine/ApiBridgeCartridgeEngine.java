@@ -30,7 +30,7 @@ public class ApiBridgeCartridgeEngine {
     public void generate(BridgeSchemaModel model, File cartridgeDir, File outputDir)
             throws IOException, TemplateException {
         if (model == null) {
-            throw new IllegalArgumentException("Bridge Schema Model (PIM) cannot be null.");
+            throw new IllegalArgumentException("Bridge Schema Model cannot be null.");
         }
         if (cartridgeDir == null || !cartridgeDir.exists() || !cartridgeDir.isDirectory()) {
             throw new IllegalArgumentException("Cartridge path must point to a valid, existing directory.");
@@ -81,7 +81,7 @@ public class ApiBridgeCartridgeEngine {
             try (Writer writer = new FileWriter(entry.outputFile, StandardCharsets.UTF_8)) {
                 writer.write(rendered);
             }
-            System.out.println("Projected generated outlet asset: " + entry.outputFile.getAbsolutePath());
+            System.out.println("Wrote generated file: " + entry.outputFile.getAbsolutePath());
         }
     }
 

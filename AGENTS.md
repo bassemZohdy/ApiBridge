@@ -59,6 +59,13 @@ Available variables in all `.ftl` templates:
 | `backendFlavor` | String | `spring-boot` or `quarkus` (never null, defaults to `spring-boot`) |
 | `feFlavor` | String | `react`, `angular`, `vue`, or `""` if unset |
 | `deployTarget` | String | `docker-compose`, `kubernetes`, `openshift`, or `""` |
+| `enableRateLimiter` | boolean | `false` when flag off. Top-level convenience variable. |
+| `enableTransform` | boolean | `false` when flag off. Top-level convenience variable. |
+| `apiVersion` | String | `""` when unset. Top-level convenience variable. |
+| `enableHealthCheck` | boolean | `false` when flag off. Top-level convenience variable. |
+| `enableSearch` | boolean | `false` when flag off. Top-level convenience variable. |
+| `enableOfflineSupport` | boolean | `false` when flag off. Top-level convenience variable. |
+| `enableOpenApi` | boolean | `false` when flag off. Top-level convenience variable. |
 | `enableOidc` | boolean | `false` when flag off. Gates `SecurityConfig.java` generation. |
 | `oidcIssuerUri` | String | OIDC issuer URL. Only meaningful when `enableOidc` is true. |
 

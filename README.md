@@ -457,7 +457,7 @@ Checkstyle rules: 4-space indent, no star imports, no unused imports, braces req
 |---|---|---|
 | `id` | String | Service identifier |
 | `basePath` | String | REST base path |
-| `flags` | Flags | Schema flags object (may be null if `flags:` key absent) |
+| `flags` | Flags | Schema flags object (always non-null — synthesised with defaults when `flags:` key absent) |
 | `endpoints` | List\<Endpoint\> | All endpoint definitions |
 | `backendFlavor` | String | `spring-boot` or `quarkus` (never null) |
 | `feFlavor` | String | `react`, `angular`, `vue`, or `""` if unset |

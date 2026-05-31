@@ -3,6 +3,7 @@
   <#local s = s?replace("_+", "_", "r")?remove_beginning("_")?remove_ending("_") />
   <#return s />
 </#function>
+<#if (flags.enableTransform)!false>
 <#macro mapLiteral map>
 <#if map?? && map?has_content>Map.of(<#list map as k, v>"${k}", "${v}"<#if k?has_next>, </#if></#list>)<#else>null</#if>
 </#macro>
@@ -10,6 +11,7 @@
 <#if list?? && list?has_content>List.of(<#list list as v>"${v}"<#if v?has_next>, </#if></#list>)<#else>null</#if>
 </#macro>
 <#macro transformArgs t><#assign rh = (t.requestHeaders)!{} /><#assign rsh = (t.responseHeaders)!{} /><#assign rf = (t.requestFields)!{} /><#assign rsf = (t.responseFields)!{} />, <@mapLiteral (rh.add)!{} />, <@listLiteral (rh.remove)![] />, <@mapLiteral (rh.rename)!{} />, <@mapLiteral (rf.rename)!{} />, <@listLiteral (rf.remove)![] />, <@mapLiteral (rsh.add)!{} />, <@listLiteral (rsh.remove)![] />, <@mapLiteral (rsh.rename)!{} />, <@mapLiteral (rsf.rename)!{} />, <@listLiteral (rsf.remove)![] /></#macro>
+</#if>
 package com.apibridge.generated;
 
 import org.springframework.beans.factory.annotation.Value;
