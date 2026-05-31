@@ -71,7 +71,7 @@ services:
     expose:
       - "3000"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/customers"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/customers', function(r){ process.exit(r.statusCode===200 ? 0 : 1); })"]
       interval: 5s
       retries: 5
       start_period: 2s
