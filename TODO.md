@@ -49,9 +49,9 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | M10 | **Missing `.apib-offline-banner` CSS class** in all three frontend frameworks — offline banner renders as unstyled inline text. | M-06 | [x] |
 | M11 | **CSS ~99% duplicated between React and Angular** — WONTFIX; FreeMarker `<#include>` is relative to cartridge root, and the two CSS files are in different directories. Extract would require engine-level multi-template-loader. | M-09 | [x] |
 | M12 | **`YamlParserFeatureFlagsTest` boilerplate** — ~15 boolean flag tests follow identical pattern. Refactor to JUnit 5 `@ParameterizedTest`. | tests #18 | [x] REJECTED — individual tests are clearer; parameterized adds complexity with no readability gain |
-| M13 | **Fragile string assertions** in `CoreCartridgeEngineTest`, `MockModeEngineTest`, `TransformEngineTest` — assert exact method signatures/escape sequences that break on any template formatting change. Specific instances: `CoreCartridgeEngineTest` asserts `contains("public class BridgeController")`; `MockModeEngineTest` asserts `contains("status\\\":\\\"ok\\\"")` (JSON escape sequence); `TransformEngineTest` asserts `contains("Map.of(")` (exact method syntax). Fix: assert file existence, non-empty content, or structural markers (e.g. class count, annotation presence) rather than literal source text. | tests #22,24,25 | [ ] |
-| M14 | **Missing null/blank test for `CartridgeResolver.resolve()`** — guard added but no test. | tests #8 | [x] |
-| M15 | **Missing null test for `CartridgeDownloader.downloadAndExtract()`** — guards added but no test. | tests #12 | [x] |
+| M13 | **Fragile string assertions** — replaced JSON escape checks with status code checks in MockModeTest; replaced Map.of()/List.of() syntax checks with data-value checks in TransformTest; relaxed public class to class in CoreCartridgeEngineTest. | tests #22,24,25 | [x] |
+| M14 | **Missing null/blank test for CartridgeResolver.resolve() — added 2 tests.** | tests #8 | [x] |
+| M15 | **Missing null test for CartridgeDownloader.downloadAndExtract() — added 3 tests.** | tests #12 | [x] |
 | M16 | **Dead code in `ApiBridgeCartridgeEngineTestBase`** — removed. | tests #1 | [x] |
 | M17 | **Stale per-class test counts** — fixed. | docs #1-2 | [x] |
 | M18 | **CHANGELOG.md stale test counts** — still stale. | docs #3-4 | [x] |
@@ -78,9 +78,9 @@ Deep project-wide review completed. All P7 and anti-pattern fix work is done. Th
 | L3 | **Duplicate `TimeUnit` import** in Quarkus ProxyService — fixed. | L-02 | [x] |
 | L4 | **Spring Boot `BridgeController.java.ftl` transform macros** — now conditional. | L-03 | [x] |
 | L5 | **Helm `values.yaml` omits most ENV VARs** — audit log, pagination, telemetry, security (API_KEY/AUTH_SERVER_URL), circuit breaker, CORS, block traffic, MOCK_MODE added. Still missing: dark mode toggle, offline support config, apiVersion, OpenAPI generation, debug tuning flags. Most of these are intentionally server-only (not configurable per-instance from Helm). | L-01 | [x] |
-| L6 | **`BridgeConfig` endpoint exposes only subset of flags** — both `BridgeConfigController.java.ftl` and `BridgeConfigResource.java.ftl` expose 8 keys: `securityLevel`, `basePath`, `enableTelemetry`, `apiVersion`, `enableHealthCheck`, `enableSearch`, `pagination` (5 sub-fields), `customCssPath`. Omitted: `enableOidc`, `enableCircuitBreaker`, `enableRateLimiter`, `enableResponseCache`, `enableTransform`, `enableAuditLog`, `enableOpenApi`, `enableOfflineSupport`, `oidcIssuerUri`, `backendFlavor`, `feFlavor`, `deployTarget`. Either document the intentional subset or expand the response model. | L-06 | [ ] |
+| L6 | **BridgeConfig endpoint exposes only subset of flags** — documented as intentional frontend-relevant subset in both templates. Server behavior flags are not client-visible. | L-06 | [x] |
 | L7 | **`.gitignore` missing IDE patterns** — added. | docs #22 | [x] |
-| L8 | **`CHANGELOG.md` unlabeled `### Added`/`### Changed` sections** — Phase 6 content without phase label mixed with labeled P7 sections. | docs #23 | [ ] |
+| L8 | **CHANGELOG.md unlabeled sections** — added Phase 1-3, Phase 4, Phase 5 labels. | docs #23 | [x] |
 | L9 | **HANDOFF.md missing `Column` and `Field` model classes** — added. | docs #14-15 | [x] |
 | L10 | **Schema quick reference duplicated** in AGENTS.md and CLAUDE.md; cartridge reference format quadruplicated across docs. | docs #18-19 | [ ] |
 | L11 | **Test status duplicated in HANDOFF.md and TODO.md** — must update in sync. | docs #20 | [ ] |
