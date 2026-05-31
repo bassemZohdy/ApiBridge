@@ -28,7 +28,7 @@ export interface SchemaFlags {
 export interface UiField {
   name: string;
   label: string;
-  type: 'string' | 'number' | 'boolean' | '';
+  type: 'string' | 'number' | 'integer' | 'boolean' | 'email' | 'date' | 'url' | 'password' | '';
   required: boolean;
 }
 

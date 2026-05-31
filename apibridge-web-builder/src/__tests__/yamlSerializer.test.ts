@@ -63,4 +63,69 @@ describe('serializeToYaml', () => {
     const yaml = serializeToYaml(schema);
     expect(yaml).not.toContain('uiLayout:');
   });
+
+  it('serializes uiLayout with component and fields', () => {
+    const schema = defaultSchema();
+    schema.endpoints[0].uiLayout = {
+      component: 'Form',
+      searchMode: '',
+      fields: [{ name: 'email', label: 'Email Address', type: 'email', required: true }],
+      columns: [],
+    };
+    const yaml = serializeToYaml(schema);
+    expect(yaml).toContain('component: Form');
+    expect(yaml).toContain('name: email');
+    expect(yaml).toContain('type: email');
+    expect(yaml).toContain('required: true');
+  });
+
+  it('serializes mockResponse statusCode and body', () => {
+    const schema = defaultSchema();
+    schema.endpoints[0].mockResponse = {
+      statusCode: 201,
+      body: '{"created":true}',
+      delayMs: 50,
+    };
+    const yaml = serializeToYaml(schema);
+    expect(yaml).toContain('statusCode: 201');
+    expect(yaml).toContain('delayMs: 50');
+    expect(yaml).toContain('created');
+  });
+
+  it('serializes pagination when set', () => {
+    const schema = defaultSchema();
+    schema.flags.pagination = {
+      pageParam: 'pg',
+      sizeParam: 'limit',
+      defaultPageSize: 50,
+      sortParam: 'orderBy',
+      directionParam: 'order',
+    };
+    const yaml = serializeToYaml(schema);
+    expect(yaml).toContain('pageParam: pg');
+    expect(yaml).toContain('sizeParam: limit');
+    expect(yaml).toContain('defaultPageSize: 50');
+  });
+
+  it('serializes uiLayout searchMode', () => {
+    const schema = defaultSchema();
+    schema.endpoints[0].uiLayout = {
+      component: 'List',
+      searchMode: 'delegate',
+      fields: [],
+      columns: [{ field: 'name', label: 'Name', sortable: true, width: '200px' }],
+    };
+    const yaml = serializeToYaml(schema);
+    expect(yaml).toContain('component: List');
+    expect(yaml).toContain('searchMode: delegate');
+    expect(yaml).toContain('field: name');
+  });
+
+  it('omits mockResponse when null', () => {
+    const schema = defaultSchema();
+    schema.endpoints[0].mockResponse = null;
+    const yaml = serializeToYaml(schema);
+    expect(yaml).not.toContain('mockResponse:');
+    expect(yaml).not.toContain('statusCode:');
+  });
 });
