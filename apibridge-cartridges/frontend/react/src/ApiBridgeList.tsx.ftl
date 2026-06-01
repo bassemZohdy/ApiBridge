@@ -65,7 +65,7 @@ export function ApiBridgeList({ config, onNavigate }: ApiBridgeListProps) {
         params.set(sortParam, sortField);
         params.set(directionParam, sortDir);
       }
-<#if (enableSearch)!false && searchMode != "local">
+<#if searchMode == "delegate" && (enableSearch)!false>
       if (searchTerm) params.set(searchParam, searchTerm);
 </#if>
       const res = await fetch(`${basePath}${listEndpoint.path}?${r"${params}"}`, {
@@ -91,7 +91,7 @@ export function ApiBridgeList({ config, onNavigate }: ApiBridgeListProps) {
     } finally {
       setLoading(false);
     }
-  }, [<#if searchMode != "local">page, pageParam, sizeParam, pageSize, </#if>sortField, sortDir, sortParam, directionParam<#if (enableSearch)!false && searchMode != "local">, searchTerm, searchParam</#if>]);
+  }, [<#if searchMode != "local">page, pageParam, sizeParam, pageSize, </#if>sortField, sortDir, sortParam, directionParam<#if searchMode == "delegate" && (enableSearch)!false>, searchTerm, searchParam</#if>]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 </#if>
@@ -237,7 +237,7 @@ export function ApiBridgeList({ config, onNavigate }: ApiBridgeListProps) {
         {(totalPages !== null || displayRows.length > 0) && (
           <div className="apib-pagination">
             <span className="apib-pagination-info">
-<#if (enableSearch)!false && searchMode == "local">
+<#if searchMode == "local">
               {`${r"${localTotal}"} records`}
 <#else>
               {total !== null ? `${r"${total}"} records` : `${r"${rows.length}"} records`}

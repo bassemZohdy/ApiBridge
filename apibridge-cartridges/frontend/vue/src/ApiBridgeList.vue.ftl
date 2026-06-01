@@ -66,7 +66,7 @@ async function fetchData() {
       params.set(sortParam.value, sortField.value);
       params.set(directionParam.value, sortDir.value);
     }
-<#if (enableSearch)!false && searchMode != "local">
+<#if searchMode == "delegate" && (enableSearch)!false>
     if (searchTerm.value) params.set(searchParam.value, searchTerm.value);
 </#if>
     const res = await fetch(`${basePath}${listEndpoint.path}?${r"${params}"}`, {
@@ -94,7 +94,7 @@ async function fetchData() {
   }
 }
 
-watch([<#if searchMode != "local">page, </#if>sortField, sortDir<#if (enableSearch)!false && searchMode != "local">, searchTerm</#if>], fetchData, { immediate: true });
+watch([<#if searchMode != "local">page, </#if>sortField, sortDir<#if searchMode == "delegate" && (enableSearch)!false>, searchTerm</#if>], fetchData, { immediate: true });
 </#if>
 <#if (enableSearch)!false>
 
@@ -238,7 +238,7 @@ function handleRowClick(row: Row) {
 
       <div v-if="totalPages !== null || displayRows.length > 0" class="apib-pagination">
         <span class="apib-pagination-info">
-<#if (enableSearch)!false && searchMode == "local">
+<#if searchMode == "local">
           {{ `${r"${localTotal}"} records` }}
 <#else>
           {{ total !== null ? `${r"${total}"} records` : `${r"${rows.length}"} records` }}

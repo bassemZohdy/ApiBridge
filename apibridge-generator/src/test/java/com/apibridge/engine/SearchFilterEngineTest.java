@@ -89,4 +89,60 @@ public class SearchFilterEngineTest extends ApiBridgeCartridgeEngineTestBase {
         String content = Files.readString(tempDir.resolve("out/docker-compose.yml"));
         assertTrue(content.contains("SEARCH_PARAM"), "docker-compose must contain SEARCH_PARAM when enableSearch=true");
     }
+
+    private BridgeSchemaModel createLocalSearchModel() {
+        BridgeSchemaModel model = createSearchTestModel();
+        model.getEndpoints().get(0).getUiLayout().setSearchMode("local");
+        return model;
+    }
+
+    @Test
+    public void testReactDelegateSearchHasNoLocalTotal(@TempDir Path tempDir) throws Exception {
+        engine.generate(createSearchTestModel(), findCartridgeDir("frontend/react"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/frontend/src/ApiBridgeList.tsx"));
+        assertFalse(content.contains("localTotal"), "React: localTotal must not appear when searchMode=delegate");
+        assertTrue(content.contains("total !== null"), "React: server total check must appear when searchMode=delegate");
+    }
+
+    @Test
+    public void testReactLocalSearchHasLocalTotal(@TempDir Path tempDir) throws Exception {
+        engine.generate(createLocalSearchModel(), findCartridgeDir("frontend/react"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/frontend/src/ApiBridgeList.tsx"));
+        assertTrue(content.contains("localTotal"), "React: localTotal must appear when searchMode=local");
+        assertTrue(content.contains("visibleRows"), "React: visibleRows must appear when searchMode=local");
+    }
+
+    @Test
+    public void testAngularDelegateSearchHasNoLocalTotal(@TempDir Path tempDir) throws Exception {
+        engine.generate(createSearchTestModel(), findCartridgeDir("frontend/angular"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/frontend/src/app/bridge-list.component.ts"));
+        assertFalse(content.contains("localTotal"), "Angular: localTotal must not appear when searchMode=delegate");
+    }
+
+    @Test
+    public void testAngularLocalSearchHasLocalTotal(@TempDir Path tempDir) throws Exception {
+        engine.generate(createLocalSearchModel(), findCartridgeDir("frontend/angular"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/frontend/src/app/bridge-list.component.ts"));
+        assertTrue(content.contains("localTotal"), "Angular: localTotal must appear when searchMode=local");
+    }
+
+    @Test
+    public void testVueDelegateSearchHasNoLocalTotal(@TempDir Path tempDir) throws Exception {
+        engine.generate(createSearchTestModel(), findCartridgeDir("frontend/vue"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/frontend/src/ApiBridgeList.vue"));
+        assertFalse(content.contains("localTotal"), "Vue: localTotal must not appear when searchMode=delegate");
+    }
+
+    @Test
+    public void testVueLocalSearchHasLocalTotal(@TempDir Path tempDir) throws Exception {
+        engine.generate(createLocalSearchModel(), findCartridgeDir("frontend/vue"), tempDir.resolve("out").toFile());
+
+        String content = Files.readString(tempDir.resolve("out/frontend/src/ApiBridgeList.vue"));
+        assertTrue(content.contains("localTotal"), "Vue: localTotal must appear when searchMode=local");
+    }
 }

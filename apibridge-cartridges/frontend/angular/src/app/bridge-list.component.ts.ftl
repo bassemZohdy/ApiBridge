@@ -83,13 +83,13 @@ export class BridgeListComponent implements OnInit {
   }
 
   get totalPages(): number | null {
-<#if (enableSearch)!false && searchMode == "local">
+<#if searchMode == "local">
     return this.localTotal > 0 ? Math.ceil(this.localTotal / this.pageSize) : null;
 <#else>
     return this.total !== null ? Math.ceil(this.total / this.pageSize) : null;
 </#if>
   }
-<#if (enableSearch)!false && searchMode == "local">
+<#if searchMode == "local">
 
   get visibleRows(): Row[] {
     if (!this.searchTerm) return this.rows;
@@ -115,7 +115,7 @@ export class BridgeListComponent implements OnInit {
     if (this.sortField) {
       queryStr += `${r"${queryStr ? '&' : ''}"}${r"${sortParam}"}=${r"${this.sortField}"}&${r"${directionParam}"}=${r"${this.sortDir}"}`;
     }
-<#if (enableSearch)!false && searchMode != "local">
+<#if searchMode == "delegate" && (enableSearch)!false>
     if (this.searchTerm) {
       queryStr += `${r"${queryStr ? '&' : ''}"}${r"${this.searchParam}"}=${r"${encodeURIComponent(this.searchTerm)}"}`;
     }
@@ -209,7 +209,7 @@ export class BridgeListComponent implements OnInit {
   get isNextDisabled(): boolean { return this.totalPages !== null && this.page >= this.totalPages; }
 
   get recordCountLabel(): string {
-<#if (enableSearch)!false && searchMode == "local">
+<#if searchMode == "local">
     return `${r"${this.localTotal}"} records`;
 <#else>
     return this.total !== null ? `${r"${this.total}"} records` : `${r"${this.rows.length}"} records`;
