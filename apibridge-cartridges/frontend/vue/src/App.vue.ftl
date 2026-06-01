@@ -118,14 +118,14 @@ function navigate(path: string) {
 <#if hasViewEndpoint>
   <ApiBridgeView
     v-else-if="route.page === 'view'"
-    :record-id="(route as { page: 'view'; id: string }).id"
+    :record-id="(route as any).id"
     :on-navigate="navigate"
   />
 </#if>
 <#if hasFormEndpoint>
   <ApiBridgeForm
     v-else-if="route.page === 'form'"
-    :edit-id="(route as { page: 'form'; id?: string }).id"
+    :edit-id="(route as any).id"
     :on-navigate="navigate"
   />
 </#if>

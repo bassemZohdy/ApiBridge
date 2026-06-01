@@ -83,7 +83,7 @@ const FIELD_DEFS: FieldDef[][] = [
 </#list>
   [
 <#list epPathParams as param>
-    { key: '${param}', label: '${param?upper_case}', inputType: 'text', required: true },
+    { key: '${param}', label: '${param?upper_case}', inputType: 'text', required: true, pattern: '' },
 </#list>
 <#if endpoint.uiLayout?? && endpoint.uiLayout.fields?has_content>
 <#list endpoint.uiLayout.fields as field>

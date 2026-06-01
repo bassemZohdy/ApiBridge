@@ -13,7 +13,7 @@
           "options": {
             "outputPath": "dist/${id}-fe",
             "index": "src/index.html",
-            "main": "src/main.ts",
+            "browser": "src/main.ts",
             "tsConfig": "tsconfig.json",
             "styles": ["src/styles.css"],
             "scripts": []
@@ -23,11 +23,7 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "namedChunks": false,
-              "aot": true,
-              "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true
+              "extractLicenses": true
             }
           }
         },

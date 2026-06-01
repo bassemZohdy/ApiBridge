@@ -40,11 +40,11 @@ const sortDir = ref<'asc' | 'desc'>('asc');
 const total = ref<number | null>(null);
 <#if (enableSearch)!false>
 const searchParam = computed(() => props.config.searchParam ?? 'q');
-const searchTerm = ref(() => {
+const searchTerm = ref((() => {
   const hash = window.location.hash;
   const qs = hash.includes('?') ? hash.slice(hash.indexOf('?') + 1) : '';
   return new URLSearchParams(qs).get(searchParam.value) ?? '';
-}());
+})());
 </#if>
 
 const pageParam = computed(() => props.config.pagination.pageParam);

@@ -25,7 +25,7 @@
         class="apib-tab"
         [class.active]="activeTabIndex === ${ep?index}"
         (click)="activeTabIndex = ${ep?index}"
-      >${ep.path}</button>
+      >${ep.path?replace("{", "&#123;")?replace("}", "&#125;")}</button>
 </#list>
     </div>
 </#if>
