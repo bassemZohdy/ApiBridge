@@ -39,7 +39,7 @@ import java.time.Duration;
 import java.util.function.Supplier;
 </#if>
 <#if (flags.enableResponseCache)!false>
-import com.github.ben-manes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Caffeine;
 <#if (flags.enableAuditLog)!false>
 import io.quarkus.redis.client.RedisClient;
 </#if>
@@ -93,7 +93,7 @@ public class ProxyService {
     }
 
     static class CaffeineResponseCache implements ResponseCache {
-        private final com.github.ben-manes.caffeine.cache.Cache<String, String> cache;
+        private final com.github.benmanes.caffeine.cache.Cache<String, String> cache;
         CaffeineResponseCache(long ttlSeconds, long maxSize) {
             this.cache = Caffeine.newBuilder()
                     .maximumSize(maxSize)

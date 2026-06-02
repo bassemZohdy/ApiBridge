@@ -83,11 +83,15 @@ public class BridgeResource {
 </#if>
 
     // Per-endpoint backend URLs — override at runtime via ENV VAR
+<#assign declaredEnvKeys = [] />
 <#list endpoints as endpoint>
     <#assign envKey = pathToEnvKey(endpoint.path) />
+    <#if !declaredEnvKeys?seq_contains(envKey)>
+    <#assign declaredEnvKeys = declaredEnvKeys + [envKey] />
     <#assign urlFieldName = "backendUrl" + envKey?lower_case?replace("_", " ")?capitalize?replace(" ", "") />
     @ConfigProperty(name = "BACKEND_URL_${envKey}", defaultValue = "${endpoint.backendUrl}")
     String ${urlFieldName};
+    </#if>
 </#list>
 
     @Inject

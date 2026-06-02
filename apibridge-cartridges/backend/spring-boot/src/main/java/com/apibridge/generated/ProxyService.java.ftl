@@ -36,7 +36,7 @@ import java.time.Duration;
 import java.util.function.Supplier;
 </#if>
 <#if (flags.enableResponseCache)!false>
-import com.github.ben-manes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.concurrent.TimeUnit;
 <#if (flags.enableAuditLog)!false>
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -107,7 +107,7 @@ public class ProxyService {
     }
 
     private static class CaffeineResponseCache implements ResponseCache {
-        private final com.github.ben-manes.caffeine.cache.Cache<String, String> cache;
+        private final com.github.benmanes.caffeine.cache.Cache<String, String> cache;
         CaffeineResponseCache(long ttlSeconds, long maxSize) {
             this.cache = Caffeine.newBuilder()
                     .maximumSize(maxSize)
@@ -311,19 +311,25 @@ public class ProxyService {
 
         try {
 <#if (flags.enableRateLimiter)!false && (flags.enableCircuitBreaker)!false>
+            final String _url = urlWithQuery;
+            final HttpEntity<String> _ent = entity;
             Supplier<ResponseEntity<String>> innerCall = CircuitBreaker.decorateSupplier(circuitBreaker,
                     Retry.decorateSupplier(retry,
-                            () -> restTemplate.exchange(urlWithQuery, httpMethod, entity, String.class)));
+                            () -> restTemplate.exchange(_url, httpMethod, _ent, String.class)));
             Supplier<ResponseEntity<String>> call = RateLimiter.decorateSupplier(rateLimiter, innerCall);
             ResponseEntity<String> upstream = call.get();
 <#elseif (flags.enableCircuitBreaker)!false>
+            final String _url = urlWithQuery;
+            final HttpEntity<String> _ent = entity;
             Supplier<ResponseEntity<String>> call = CircuitBreaker.decorateSupplier(circuitBreaker,
                     Retry.decorateSupplier(retry,
-                            () -> restTemplate.exchange(urlWithQuery, httpMethod, entity, String.class)));
+                            () -> restTemplate.exchange(_url, httpMethod, _ent, String.class)));
             ResponseEntity<String> upstream = call.get();
 <#elseif (flags.enableRateLimiter)!false>
+            final String _url = urlWithQuery;
+            final HttpEntity<String> _ent = entity;
             Supplier<ResponseEntity<String>> call = RateLimiter.decorateSupplier(rateLimiter,
-                    () -> restTemplate.exchange(urlWithQuery, httpMethod, entity, String.class));
+                    () -> restTemplate.exchange(_url, httpMethod, _ent, String.class));
             ResponseEntity<String> upstream = call.get();
 <#else>
             ResponseEntity<String> upstream = restTemplate.exchange(

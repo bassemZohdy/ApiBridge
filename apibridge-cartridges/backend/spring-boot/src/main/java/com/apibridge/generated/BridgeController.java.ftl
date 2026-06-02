@@ -94,11 +94,15 @@ public class BridgeController {
 </#if>
 
     // Per-endpoint backend URLs — override at runtime via ENV VAR
+<#assign declaredEnvKeys = [] />
 <#list endpoints as endpoint>
 <#assign envKey = pathToEnvKey(endpoint.path) />
+<#if !declaredEnvKeys?seq_contains(envKey)>
+<#assign declaredEnvKeys = declaredEnvKeys + [envKey] />
 <#assign urlFieldName = "backendUrl" + envKey?lower_case?replace("_", " ")?capitalize?replace(" ", "") />
     @Value("${r"${"}BACKEND_URL_${envKey}${r":"}${endpoint.backendUrl}${r"}"}")
     private String ${urlFieldName};
+</#if>
 </#list>
 
     private final ProxyService proxyService;
