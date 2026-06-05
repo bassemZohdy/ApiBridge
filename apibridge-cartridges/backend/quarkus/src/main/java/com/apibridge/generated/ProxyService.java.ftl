@@ -11,12 +11,12 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.inject.Inject;
 <#if (flags.enableAuditLog)!false>
 import com.apibridge.generated.audit.ProxySendEvent;
 import com.apibridge.generated.audit.ProxySuccessEvent;
 import com.apibridge.generated.audit.ProxyFailEvent;
 import jakarta.enterprise.event.Event;
-import jakarta.inject.Inject;
 import java.util.UUID;
 </#if>
 <#if (flags.enableCircuitBreaker)!false>
@@ -40,9 +40,7 @@ import java.util.function.Supplier;
 </#if>
 <#if (flags.enableResponseCache)!false>
 import com.github.benmanes.caffeine.cache.Caffeine;
-<#if (flags.enableAuditLog)!false>
 import io.quarkus.redis.client.RedisClient;
-</#if>
 </#if>
 
 import java.util.Set;
@@ -345,6 +343,38 @@ public class ProxyService {
             Response.ResponseBuilder builder = Response.status(upstream.getStatus()).entity(body);
 
             MultivaluedMap<String, Object> upstreamHeaders = upstream.getHeaders();
+<#if (flags.enableTransform)!false>
+            Map<String, Object> responseHeaders = new java.util.HashMap<>();
+            for (var entry : upstreamHeaders.entrySet()) {
+                String name = entry.getKey().toLowerCase();
+                if (!HOP_BY_HOP.contains(name)) {
+                    if (entry.getValue().size() == 1) {
+                        responseHeaders.put(entry.getKey(), entry.getValue().get(0));
+                    } else if (!entry.getValue().isEmpty()) {
+                        responseHeaders.put(entry.getKey(), entry.getValue().get(0));
+                    }
+                }
+            }
+
+            if (resHeaderRemove != null && !resHeaderRemove.isEmpty()) {
+                resHeaderRemove.forEach(responseHeaders::remove);
+            }
+            if (resHeaderRename != null) {
+                resHeaderRename.forEach((oldName, newName) -> {
+                    Object value = responseHeaders.remove(oldName);
+                    if (value != null) {
+                        responseHeaders.put(newName, value);
+                    }
+                });
+            }
+            if (resHeaderAdd != null) {
+                resHeaderAdd.forEach(responseHeaders::put);
+            }
+
+            for (var entry : responseHeaders.entrySet()) {
+                builder.header(entry.getKey(), entry.getValue());
+            }
+<#else>
             for (var entry : upstreamHeaders.entrySet()) {
                 String name = entry.getKey().toLowerCase();
                 if (!HOP_BY_HOP.contains(name)) {
@@ -352,20 +382,6 @@ public class ProxyService {
                         builder.header(entry.getKey(), value);
                     }
                 }
-            }
-<#if (flags.enableTransform)!false>
-            if (resHeaderAdd != null) resHeaderAdd.forEach((k, v) -> builder.header(k, v));
-            if (resHeaderRemove != null && !resHeaderRemove.isEmpty()) {
-                resHeaderRemove.forEach(name -> builder.getHeaders().remove(name));
-            }
-            if (resHeaderRename != null) {
-                resHeaderRename.forEach((oldName, newName) -> {
-                    var values = upstreamHeaders.get(oldName);
-                    if (values != null) {
-                        builder.getHeaders().remove(oldName);
-                        values.forEach(v -> builder.header(newName, v.toString()));
-                    }
-                });
             }
 </#if>
 <#if (flags.enableAuditLog)!false>

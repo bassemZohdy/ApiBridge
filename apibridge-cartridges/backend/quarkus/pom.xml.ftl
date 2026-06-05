@@ -94,6 +94,12 @@
             <version>3.1.8</version>
         </dependency>
 </#if>
+<#if (flags.enableHealthCheck)!false>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+</#if>
 <#if (flags.enableOpenApi)!false>
         <dependency>
             <groupId>io.quarkus</groupId>
