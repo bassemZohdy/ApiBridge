@@ -11,13 +11,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Optional;
 
 @Path("/")
 @ApplicationScoped
 public class CustomCssResource {
 
-    @ConfigProperty(name = "CUSTOM_CSS_PATH", defaultValue = "")
-    String customCssPath;
+    @ConfigProperty(name = "CUSTOM_CSS_PATH")
+    Optional<String> customCssPath;
 
     @GET
     @Path("/custom.css")
@@ -27,11 +28,11 @@ public class CustomCssResource {
     }
 
     private String loadCss() {
-        if (customCssPath == null || customCssPath.isBlank()) {
+        if (customCssPath.isEmpty() || customCssPath.get().isBlank()) {
             return "";
         }
         try {
-            java.nio.file.Path path = Paths.get(customCssPath);
+            java.nio.file.Path path = Paths.get(customCssPath.get());
             if (!Files.exists(path) || !Files.isRegularFile(path)) {
                 return "";
             }

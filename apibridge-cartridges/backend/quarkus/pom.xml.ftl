@@ -36,6 +36,12 @@
             <artifactId>quarkus-rest-jackson</artifactId>
         </dependency>
 
+        <!-- ClientBuilder used by ProxyService needs the client implementation. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client-jackson</artifactId>
+        </dependency>
+
         <!-- /q/health liveness + readiness probes -->
         <dependency>
             <groupId>io.quarkus</groupId>

@@ -29,6 +29,7 @@ wait_for_http() {
 
 run_combination() {
   local label="$1" schema="$2" out_dir="$3" image_tag="$4" be_cartridge="$5" fe_cartridge="$6"
+  local failures_before="$FAILED"
   log ""
   log "=== $label ==="
 
@@ -101,6 +102,25 @@ EOF
   fi
   pass "$label: app started"
 
+  # npx installs the pinned mock on a fresh runner; app startup is not mock readiness.
+  if ! docker compose -f "$compose_file" exec -T json-server node -e '
+    (async () => {
+      for (let i = 0; i < 45; i++) {
+        try {
+          const response = await fetch("http://localhost:3000/customers");
+          if (response.ok) process.exit(0);
+        } catch {}
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      process.exit(1);
+    })();'; then
+    fail "$label: json-server did not become ready within 90s"
+    docker compose -f "$compose_file" logs --tail 100
+    docker compose -f "$compose_file" down -v 2>/dev/null
+    rm -f "$compose_file"
+    return
+  fi
+
   # 5. Tests
   # Test: static page served
   HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18080/)
@@ -156,8 +176,31 @@ EOF
   fi
 
   # 6. Cleanup
+  if [ "$FAILED" -gt "$failures_before" ]; then
+    docker compose -f "$compose_file" logs --tail 100
+  fi
   docker compose -f "$compose_file" down -v 2>/dev/null
   rm -f "$compose_file"
+
+  # The default generated image must also start with optional branding absent.
+  if [ "$be_cartridge" = "backend/quarkus" ]; then
+    local unbranded_name="$image_tag-unbranded" unbranded_ready=false
+    docker run -d --name "$unbranded_name" --network none "$image_tag" >/dev/null
+    for ((i=0; i<45; i++)); do
+      if docker exec "$unbranded_name" wget -T 2 -qO- http://localhost:8080/api/bridge-config \
+          | grep -q '"customCssPath":""'; then
+        unbranded_ready=true; break
+      fi
+      sleep 2
+    done
+    if [ "$unbranded_ready" = true ]; then
+      pass "$label: default image starts with empty optional branding"
+    else
+      fail "$label: default image failed without branding"
+      docker logs --tail 100 "$unbranded_name"
+    fi
+    docker rm -f "$unbranded_name" >/dev/null
+  fi
 }
 
 # ─── Build generator if not skipped ───────────────────────────────────────────

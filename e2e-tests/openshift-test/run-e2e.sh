@@ -30,6 +30,7 @@ echo "Generating OpenShift manifests..."
 java -jar "$JAR" \
   --schema="$SCHEMA" \
   --cartridge=../../apibridge-cartridges/backend/spring-boot \
+  --cartridge=../../apibridge-cartridges/devops/k8s/kubernetes \
   --cartridge=../../apibridge-cartridges/devops/k8s/openshift \
   --output="$GENERATED" \
   --be-flavor=spring-boot
