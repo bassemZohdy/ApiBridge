@@ -141,6 +141,10 @@ GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `web-build
 
 Release workflow (`.github/workflows/release.yml`): triggers on `v*` tag push — builds fat JAR, creates GitHub Release with ZIP archive, builds and pushes Docker image to GHCR.
 
+Feature and bugfix branch validation runs on pull requests; direct pushes to main
+also run CI. This avoids repeating the full generator suites for each feature
+push and its matching pull request.
+
 ## Git
 
 Branch naming: `feature/<name>` or `bugfix/<name>` → PR to `main`.
