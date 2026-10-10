@@ -21,7 +21,7 @@ if [ "$BE_FLAVOR" = "quarkus" ]; then
   HEALTH_PATH="/q/health/live"
 fi
 
-BASE_PATH="/api/v1/onboarding"
+BASE_PATH="/v1/api/v1/onboarding"
 TEST_ENDPOINT="/initiate"
 
 pass() { echo "  ✓ $*"; }

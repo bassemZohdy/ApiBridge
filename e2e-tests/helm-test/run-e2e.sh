@@ -36,18 +36,18 @@ java -jar "$JAR" \
 echo "Verifying Helm chart structure..."
 
 for f in Chart.yaml values.yaml; do
-  FILE="$GENERATED/$f"
+  FILE="$GENERATED/k8s/$f"
   [ -f "$FILE" ] && pass "$f present" || fail "$f missing"
 done
 
 for f in deployment.yaml service.yaml ingress.yaml configmap.yaml _helpers.tpl; do
-  FILE="$GENERATED/templates/$f"
+  FILE="$GENERATED/k8s/templates/$f"
   [ -f "$FILE" ] && pass "templates/$f present" || fail "templates/$f missing"
 done
 
 # 5. Validate Chart.yaml content
 echo "Validating Chart.yaml..."
-CHART="$GENERATED/Chart.yaml"
+CHART="$GENERATED/k8s/Chart.yaml"
 
 grep -q "apiVersion: v2" "$CHART"                       && pass "apiVersion: v2"           || fail "missing apiVersion: v2"
 grep -q "name: customer-onboarding-bridge" "$CHART"     && pass "chart name"               || fail "missing chart name"
@@ -56,7 +56,7 @@ grep -q "type: application" "$CHART"                    && pass "type: applicati
 
 # 6. Validate values.yaml content
 echo "Validating values.yaml..."
-VALUES="$GENERATED/values.yaml"
+VALUES="$GENERATED/k8s/values.yaml"
 
 grep -q "replicaCount:" "$VALUES"                       && pass "replicaCount"             || fail "missing replicaCount"
 grep -q "repository:" "$VALUES"                         && pass "image repository"         || fail "missing image repository"
@@ -69,17 +69,17 @@ grep -q "SEARCH_PARAM" "$VALUES"                        && pass "search config" 
 # 7. Validate templates contain Helm syntax
 echo "Validating Helm template syntax..."
 
-DEPLOYMENT="$GENERATED/templates/deployment.yaml"
+DEPLOYMENT="$GENERATED/k8s/templates/deployment.yaml"
 grep -q '{{' "$DEPLOYMENT"                              && pass "deployment has Helm expressions" || fail "missing Helm expressions in deployment"
 grep -q '.Values.' "$DEPLOYMENT"                        && pass "deployment uses .Values"        || fail "missing .Values references in deployment"
 
-SERVICE="$GENERATED/templates/service.yaml"
+SERVICE="$GENERATED/k8s/templates/service.yaml"
 grep -q '{{' "$SERVICE"                                 && pass "service has Helm expressions"    || fail "missing Helm expressions in service"
 
-CONFIGMAP="$GENERATED/templates/configmap.yaml"
+CONFIGMAP="$GENERATED/k8s/templates/configmap.yaml"
 grep -q '{{' "$CONFIGMAP"                               && pass "configmap has Helm expressions"  || fail "missing Helm expressions in configmap"
 
-HELPERS="$GENERATED/templates/_helpers.tpl"
+HELPERS="$GENERATED/k8s/templates/_helpers.tpl"
 grep -q '{{-' "$HELPERS"                                && pass "helpers uses Helm partials"      || fail "missing Helm partials in helpers"
 
 echo "=================================================="

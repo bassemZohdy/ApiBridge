@@ -16,7 +16,7 @@
           <#list (endpoint.uiLayout.fields![]) as field>
           {
             "name": "${field.name}",
-            "type": "${field.type}",
+            "type": "${(field.type)!"string"}",
             "required": ${field.required?c}
           }<#if field_has_next>,</#if>
           </#list>

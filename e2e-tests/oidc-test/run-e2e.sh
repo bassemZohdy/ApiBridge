@@ -33,7 +33,7 @@ java -jar "$JAR" \
   --cartridge=../../apibridge-cartridges/backend/spring-boot \
   --output="$GENERATED"
 
-SECURITY_FILE="$GENERATED/src/main/java/com/apibridge/generated/SecurityConfig.java"
+SECURITY_FILE="$GENERATED/backend/src/main/java/com/apibridge/generated/SecurityConfig.java"
 
 # 3. Verify SecurityConfig.java exists
 echo "Verifying SecurityConfig.java..."
@@ -48,13 +48,13 @@ grep -q "SecurityFilterChain" "$SECURITY_FILE"              && pass "SecurityFil
 grep -q "SessionCreationPolicy.STATELESS" "$SECURITY_FILE"  && pass "stateless sessions"         || fail "missing stateless session policy"
 
 # 5. Verify pom.xml includes OAuth2 dependency
-POM_FILE="$GENERATED/pom.xml"
+POM_FILE="$GENERATED/backend/pom.xml"
 [ -f "$POM_FILE" ] && pass "pom.xml present" || fail "pom.xml missing"
 grep -q "spring-boot-starter-oauth2-resource-server" "$POM_FILE" && pass "OAuth2 dependency" || fail "missing OAuth2 dependency in pom.xml"
 
 # 6. Compile check
 echo "Verifying Maven compile..."
-(cd "$GENERATED" && mvn compile -q) && pass "Maven compile succeeds" || fail "Maven compile failed"
+(cd "$GENERATED/backend" && mvn compile -q) && pass "Maven compile succeeds" || fail "Maven compile failed"
 
 # ── Negative case: OIDC disabled ─────────────────────────────────
 
@@ -75,7 +75,7 @@ java -jar "$JAR" \
   --cartridge=../../apibridge-cartridges/backend/spring-boot \
   --output="$GENERATED"
 
-if [ -f "$GENERATED/src/main/java/com/apibridge/generated/SecurityConfig.java" ]; then
+if [ -f "$GENERATED/backend/src/main/java/com/apibridge/generated/SecurityConfig.java" ]; then
   fail "SecurityConfig.java should NOT be generated when enableOidc is absent"
 else
   pass "no SecurityConfig.java when enableOidc absent"

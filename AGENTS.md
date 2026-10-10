@@ -137,9 +137,13 @@ Full reference: `docs/schema-reference.md`.
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `web-builder` (lint + typecheck + tests), `e2e-compile` (17 compile checks incl. K8s/OpenShift/Helm/OpenAPI/OIDC/apiKey/multi-schema + Vue/Angular/React prod builds), `e2e-docker` (fullstack Docker build + runtime), `e2e-json-server` (live API integration). All E2E jobs run in parallel after `build`. Triggers on push to `main`/`feature/**`/`bugfix**` and PRs to `main`. Concurrency groups auto-cancel superseded runs.
+GitHub Actions (`.github/workflows/ci.yml`): `build` (mvn verify) → `web-builder` (lint + typecheck + tests), `e2e-compile` (17 compile checks incl. K8s/OpenShift/Helm/OpenAPI/OIDC/apiKey/multi-schema + Vue/Angular/React prod builds), `e2e-docker` (fullstack Docker build + runtime), `e2e-json-server` (live API integration). All E2E jobs run in parallel after `build`. Triggers on push to `main` and PRs to `main`. Concurrency groups auto-cancel superseded runs.
 
 Release workflow (`.github/workflows/release.yml`): triggers on `v*` tag push — builds fat JAR, creates GitHub Release with ZIP archive, builds and pushes Docker image to GHCR.
+
+Feature and bugfix branch validation runs on pull requests; direct pushes to main
+also run CI. This avoids repeating the full generator suites for each feature
+push and its matching pull request.
 
 ## Git
 

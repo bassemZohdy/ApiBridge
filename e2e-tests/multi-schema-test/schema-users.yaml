@@ -7,7 +7,7 @@ endpoints:
     uiLayout:
       component: List
       columns:
-        - name: id
-          visible: true
-        - name: name
-          visible: true
+        - field: id
+          sortable: true
+        - field: name
+          sortable: true

@@ -33,7 +33,7 @@ echo "Running production build (npm run build)..."
 
 # 6. Verify dist output
 [ -d "generated/frontend/dist" ] || { echo "MISSING: dist/ directory after build"; exit 1; }
-[ -f "generated/frontend/dist/index.html" ] || { echo "MISSING: dist/index.html"; exit 1; }
+[ -f "generated/frontend/dist/customer-onboarding-bridge-fe/browser/index.html" ] || { echo "MISSING: dist/index.html"; exit 1; }
 
 echo "=================================================="
 echo "E2E Angular Production Build PASSED"

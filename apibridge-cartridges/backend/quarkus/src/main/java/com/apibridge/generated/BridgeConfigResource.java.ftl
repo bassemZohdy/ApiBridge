@@ -9,6 +9,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Path("/api")
 @ApplicationScoped
@@ -32,8 +33,8 @@ public class BridgeConfigResource {
     @ConfigProperty(name = "PAGINATION_DIRECTION_PARAM", defaultValue = "<#if (flags.pagination.directionParam)??>${flags.pagination.directionParam}<#else>dir</#if>")
     String directionParam;
 
-    @ConfigProperty(name = "CUSTOM_CSS_PATH", defaultValue = "")
-    String customCssPath;
+    @ConfigProperty(name = "CUSTOM_CSS_PATH")
+    Optional<String> customCssPath;
 
     @ConfigProperty(name = "SEARCH_PARAM", defaultValue = "q")
     String searchParam;
@@ -58,7 +59,7 @@ public class BridgeConfigResource {
         config.put("enableSearch", ${((enableSearch)!false)?c});
         config.put("searchParam", searchParam);
         config.put("pagination", pagination);
-        config.put("customCssPath", customCssPath);
+        config.put("customCssPath", customCssPath.orElse(""));
 
         return config;
     }

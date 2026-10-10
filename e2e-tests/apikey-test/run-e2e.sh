@@ -32,7 +32,7 @@ java -jar "$JAR" \
   --cartridge=../../apibridge-cartridges/backend/spring-boot \
   --output="$GENERATED"
 
-CONTROLLER="$GENERATED/src/main/java/com/apibridge/generated/BridgeController.java"
+CONTROLLER="$GENERATED/backend/src/main/java/com/apibridge/generated/BridgeController.java"
 
 # 4. Verify apiKey-specific code
 echo "Verifying apiKey security output..."
@@ -62,7 +62,7 @@ java -jar "$JAR" \
   --cartridge=../../apibridge-cartridges/devops/k8s/helm \
   --output="$GENERATED"
 
-VALUES="$GENERATED/values.yaml"
+VALUES="$GENERATED/k8s/values.yaml"
 grep -q 'API_KEY:' "$VALUES"                    && pass "API_KEY in Helm values"        || fail "missing API_KEY in Helm values"
 
 echo "=================================================="

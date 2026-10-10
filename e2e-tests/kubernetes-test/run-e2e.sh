@@ -38,13 +38,13 @@ java -jar "$JAR" \
 echo "Verifying Kubernetes manifest structure..."
 
 for f in deployment.yaml service.yaml configmap.yaml kustomization.yaml; do
-  FILE="$GENERATED/$f"
+  FILE="$GENERATED/k8s/$f"
   [ -f "$FILE" ] && pass "$f present" || fail "$f missing"
 done
 
 # 5. Validate deployment.yaml content
 echo "Validating deployment.yaml..."
-DEPLOYMENT="$GENERATED/deployment.yaml"
+DEPLOYMENT="$GENERATED/k8s/deployment.yaml"
 
 grep -q "kind: Deployment" "$DEPLOYMENT"         && pass "kind: Deployment"     || fail "missing kind: Deployment"
 grep -q "name: customer-onboarding-bridge" "$DEPLOYMENT" && pass "deployment name"       || fail "missing deployment name"
@@ -59,7 +59,7 @@ grep -q "customer-onboarding-bridge-config" "$DEPLOYMENT" && pass "configMapRef"
 
 # 6. Validate service.yaml content
 echo "Validating service.yaml..."
-SERVICE="$GENERATED/service.yaml"
+SERVICE="$GENERATED/k8s/service.yaml"
 
 grep -q "kind: Service" "$SERVICE"                && pass "kind: Service"        || fail "missing kind: Service"
 grep -q "type: ClusterIP" "$SERVICE"              && pass "ClusterIP type"       || fail "missing ClusterIP"
@@ -67,7 +67,7 @@ grep -q "targetPort: http" "$SERVICE"             && pass "targetPort: http"    
 
 # 7. Validate configmap.yaml content
 echo "Validating configmap.yaml..."
-CONFIGMAP="$GENERATED/configmap.yaml"
+CONFIGMAP="$GENERATED/k8s/configmap.yaml"
 
 grep -q "kind: ConfigMap" "$CONFIGMAP"            && pass "kind: ConfigMap"      || fail "missing kind: ConfigMap"
 grep -q "MOCK_MODE" "$CONFIGMAP"                  && pass "MOCK_MODE"            || fail "missing MOCK_MODE"
@@ -78,7 +78,7 @@ grep -q "MANAGEMENT_TRACING_ENABLED" "$CONFIGMAP" && pass "telemetry config"    
 
 # 8. Validate kustomization.yaml content
 echo "Validating kustomization.yaml..."
-KUSTOMIZATION="$GENERATED/kustomization.yaml"
+KUSTOMIZATION="$GENERATED/k8s/kustomization.yaml"
 
 grep -q "kind: Kustomization" "$KUSTOMIZATION"    && pass "kind: Kustomization"  || fail "missing kind: Kustomization"
 grep -q "configmap.yaml" "$KUSTOMIZATION"         && pass "configmap resource"   || fail "missing configmap resource"
@@ -95,11 +95,11 @@ java -jar "$JAR" \
   --output="$GENERATED" \
   --be-flavor=quarkus
 
-QUARKUS_DEPLOYMENT="$GENERATED/deployment.yaml"
+QUARKUS_DEPLOYMENT="$GENERATED/k8s/deployment.yaml"
 grep -q "q/health/live" "$QUARKUS_DEPLOYMENT"         && pass "Quarkus liveness"    || fail "missing Quarkus liveness"
 grep -q "q/health/ready" "$QUARKUS_DEPLOYMENT"        && pass "Quarkus readiness"   || fail "missing Quarkus readiness"
 grep -q "q/health/started" "$QUARKUS_DEPLOYMENT"      && pass "Quarkus startup"     || fail "missing Quarkus startup"
-grep -q "QUARKUS_HTTP_PORT" "$GENERATED/configmap.yaml" && pass "Quarkus port"       || fail "missing QUARKUS_HTTP_PORT"
+grep -q "QUARKUS_HTTP_PORT" "$GENERATED/k8s/configmap.yaml" && pass "Quarkus port"       || fail "missing QUARKUS_HTTP_PORT"
 
 echo "=================================================="
 echo "E2E Kubernetes PASSED"
