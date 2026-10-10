@@ -38,13 +38,13 @@ java -jar "$JAR" \
 echo "Verifying OpenShift manifest structure..."
 
 for f in deployment.yaml service.yaml configmap.yaml kustomization.yaml route.yaml; do
-  FILE="$GENERATED/$f"
+  FILE="$GENERATED/k8s/k8s/$f"
   [ -f "$FILE" ] && pass "$f present" || fail "$f missing"
 done
 
 # 5. Validate route.yaml content (OpenShift-specific)
 echo "Validating route.yaml..."
-ROUTE="$GENERATED/route.yaml"
+ROUTE="$GENERATED/k8s/k8s/route.yaml"
 
 grep -q "kind: Route" "$ROUTE"                     && pass "kind: Route"          || fail "missing kind: Route"
 grep -q "route.openshift.io" "$ROUTE"              && pass "OpenShift API group"  || fail "missing OpenShift API group"
@@ -55,7 +55,7 @@ grep -q "targetPort: http" "$ROUTE"                && pass "targetPort: http"   
 
 # 6. Validate kustomization.yaml includes route
 echo "Validating kustomization.yaml..."
-KUSTOMIZATION="$GENERATED/kustomization.yaml"
+KUSTOMIZATION="$GENERATED/k8s/k8s/kustomization.yaml"
 
 grep -q "route.yaml" "$KUSTOMIZATION"              && pass "route in resources"   || fail "missing route in resources"
 grep -q "configmap.yaml" "$KUSTOMIZATION"          && pass "configmap resource"   || fail "missing configmap resource"

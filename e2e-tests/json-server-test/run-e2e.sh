@@ -64,8 +64,8 @@ run_combination() {
   cat > "$compose_file" <<EOF
 services:
   json-server:
-    image: typicode/json-server:0.17
-    command: "--watch /data/db.json --host 0.0.0.0"
+    image: node:20-alpine
+    command: ["npx", "--yes", "json-server@0.17.4", "--watch", "/data/db.json", "--host", "0.0.0.0"]
     volumes:
       - $(pwd)/data:/data
     expose:
@@ -89,7 +89,7 @@ services:
 EOF
 
   log "Starting services..."
-  docker compose -f "$compose_file" up -d 2>/dev/null
+  docker compose -f "$compose_file" up -d
 
   # 4. Wait for app
   if ! wait_for_http "http://localhost:18080/" 90; then
