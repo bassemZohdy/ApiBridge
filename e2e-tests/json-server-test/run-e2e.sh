@@ -94,6 +94,7 @@ EOF
   # 4. Wait for app
   if ! wait_for_http "http://localhost:18080/" 90; then
     fail "$label: app did not start within 90s"
+    docker compose -f "$compose_file" logs --tail 100
     docker compose -f "$compose_file" down -v 2>/dev/null
     rm -f "$compose_file"
     return

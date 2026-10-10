@@ -77,7 +77,11 @@ RUN addgroup -S -g 1001 appgroup \
 
 WORKDIR /app
 
+<#if backendFlavor == "quarkus">
+COPY --from=backend-build --chown=appuser:appgroup /app/backend/target/*-runner.jar app.jar
+<#else>
 COPY --from=backend-build --chown=appuser:appgroup /app/backend/target/*.jar app.jar
+</#if>
 
 RUN chmod g=u /app/app.jar
 

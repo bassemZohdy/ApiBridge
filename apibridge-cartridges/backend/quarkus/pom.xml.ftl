@@ -14,7 +14,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Produce a self-contained fat JAR on `mvn package` -->
-        <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
+        <quarkus.package.type>uber-jar</quarkus.package.type>
     </properties>
 
     <dependencyManagement>
